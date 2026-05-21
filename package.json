@@ -1,0 +1,60 @@
+{
+  "name": "genui-agent-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "electron:build": "tsc -p tsconfig.electron.json",
+    "electron:dev": "npm run electron:build && electron_config_cache=${electron_config_cache:-/private/tmp/electron-cache} electron dist-electron/electron/main.js",
+    "electron:pack": "npm run build && npm run electron:build && electron-builder --mac",
+    "genui": "tsx scripts/genui-cli.ts",
+    "genui:mcp": "tsx scripts/genui-mcp.ts",
+    "start": "next start",
+    "test": "vitest run",
+    "lint": "eslint"
+  },
+  "build": {
+    "appId": "dev.genui.agent-workbench",
+    "productName": "GenUI Popup Broker",
+    "files": [
+      ".next/**/*",
+      "dist-electron/**/*",
+      "next.config.ts",
+      "package.json",
+      "public/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": "dir"
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@openuidev/react-headless": "latest",
+    "@openuidev/react-lang": "latest",
+    "@openuidev/react-ui": "latest",
+    "next": "16.1.6",
+    "openai": "^6.22.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.22.3",
+    "typescript": "^5",
+    "vitest": "^4.1.7",
+    "wait-on": "^9.0.10"
+  }
+}

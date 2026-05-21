@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "declaration": false,
+    "incremental": false,
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "noEmit": false,
+    "outDir": "dist-electron",
+    "rootDir": ".",
+    "sourceMap": true,
+    "types": ["node"]
+  },
+  "include": [
+    "electron/**/*.ts",
+    "src/library.ts",
+    "src/server/genui/**/*.ts",
+    "src/server/tools/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", "dist-electron"]
+}
