@@ -231,6 +231,12 @@ describe("agent interface scaffold", () => {
       expect.arrayContaining(["genui.open_popup", "genui.close_popup", "genui.list_components", "genui.usage_guide"]),
     );
   });
+
+  it("keeps the documented guide control API available for the CLI", async () => {
+    const electronMain = await fs.readFile(path.join(process.cwd(), "electron/main.ts"), "utf8");
+    expect(electronMain).toContain('url.pathname === "/v1/guide"');
+    expect(electronMain).toContain("agentUsageGuide");
+  });
 });
 
 describe("broker state", () => {
