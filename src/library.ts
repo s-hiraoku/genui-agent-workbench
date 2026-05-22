@@ -68,6 +68,11 @@ function formatCellValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+}
+
 function lngToWorldX(lng: number, zoom: number): number {
   return ((lng + 180) / 360) * 256 * 2 ** zoom;
 }
@@ -1032,13 +1037,480 @@ const CodeDiff = defineComponent({
     ),
 });
 
+const KeyValuePanel = defineComponent({
+  name: "KeyValuePanel",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    items: z.array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+        description: z.string().optional(),
+        tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+      }),
+    ),
+  }),
+  description:
+    "Dense key-value facts panel for metadata, environment info, customer details, config summaries, and short evidence lists.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "dl",
+        { style: { display: "grid", gap: 0, margin: 0, padding: 0 } },
+        props.items.map((item, index) => {
+          const tone = toneFor(item.tone);
+          return React.createElement(
+            "div",
+            {
+              key: `${item.label}:${index}`,
+              style: {
+                alignItems: "start",
+                borderTop: index === 0 ? "0" : "1px solid #e5e5e5",
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "minmax(110px, 0.38fr) minmax(0, 1fr)",
+                padding: "10px 14px",
+              },
+            },
+            React.createElement("dt", { style: { color: "#737373", fontSize: 12, fontWeight: 800 } }, item.label),
+            React.createElement(
+              "dd",
+              { style: { color: "#171717", margin: 0, minWidth: 0 } },
+              React.createElement("div", { style: { color: tone.text, fontSize: 14, fontWeight: 800, overflowWrap: "anywhere" } }, item.value),
+              item.description
+                ? React.createElement("p", { style: { color: "#525252", fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" } }, item.description)
+                : null,
+            ),
+          );
+        }),
+      ),
+    ),
+});
+
+const AlertList = defineComponent({
+  name: "AlertList",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    alerts: z.array(
+      z.object({
+        severity: z.enum(["info", "warning", "danger", "positive"]).default("info"),
+        title: z.string(),
+        description: z.string().optional(),
+        action: z.string().optional(),
+      }),
+    ),
+  }),
+  description:
+    "Alert and risk list for issues, warnings, blockers, incidents, validation errors, and positive confirmations.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        props.alerts.map((alert, index) => {
+          const tone = toneFor(alert.severity);
+          return React.createElement(
+            "article",
+            {
+              key: `${alert.title}:${index}`,
+              style: {
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderLeft: `4px solid ${tone.accent}`,
+                borderRadius: 8,
+                padding: 12,
+              },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
+              React.createElement("strong", { style: { color: tone.text, fontSize: 14, lineHeight: 1.35 } }, alert.title),
+              React.createElement(
+                "span",
+                { style: { color: tone.accent, flexShrink: 0, fontSize: 11, fontWeight: 900, textTransform: "uppercase" } },
+                alert.severity,
+              ),
+            ),
+            alert.description
+              ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, alert.description)
+              : null,
+            alert.action
+              ? React.createElement("div", { style: { color: tone.text, fontSize: 12, fontWeight: 800, marginTop: 8 } }, alert.action)
+              : null,
+          );
+        }),
+      ),
+    ),
+});
+
+const ProgressStepper = defineComponent({
+  name: "ProgressStepper",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    steps: z.array(
+      z.object({
+        label: z.string(),
+        status: z.enum(["done", "active", "pending", "blocked"]).default("pending"),
+        description: z.string().optional(),
+      }),
+    ),
+  }),
+  description:
+    "Step-by-step progress tracker for workflows, onboarding, releases, investigations, approvals, and multi-stage agent runs.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "ol",
+        { style: { display: "grid", gap: 10, listStyle: "none", margin: 0, padding: 14 } },
+        props.steps.map((step, index) => {
+          const tone = toneFor(step.status === "done" ? "positive" : step.status === "blocked" ? "danger" : step.status === "active" ? "info" : "neutral");
+          return React.createElement(
+            "li",
+            {
+              key: `${step.label}:${index}`,
+              style: {
+                alignItems: "start",
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "28px 1fr",
+              },
+            },
+            React.createElement(
+              "span",
+              {
+                style: {
+                  alignItems: "center",
+                  background: tone.background,
+                  border: `1px solid ${tone.border}`,
+                  borderRadius: 999,
+                  color: tone.text,
+                  display: "inline-flex",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  height: 24,
+                  justifyContent: "center",
+                  width: 24,
+                },
+              },
+              index + 1,
+            ),
+            React.createElement(
+              "div",
+              { style: { borderBottom: index === props.steps.length - 1 ? "0" : "1px solid #e5e5e5", paddingBottom: 10 } },
+              React.createElement(
+                "div",
+                { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 } },
+                React.createElement("strong", { style: { color: "#171717", fontSize: 14 } }, step.label),
+                React.createElement("span", { style: { color: tone.accent, fontSize: 11, fontWeight: 900, textTransform: "uppercase" } }, step.status),
+              ),
+              step.description
+                ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.45, margin: "4px 0 0" } }, step.description)
+                : null,
+            ),
+          );
+        }),
+      ),
+    ),
+});
+
+const BarChart = defineComponent({
+  name: "BarChart",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    unit: z.string().optional(),
+    max: z.number().positive().optional(),
+    data: z.array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+        tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+      }),
+    ),
+  }),
+  description:
+    "Simple responsive horizontal bar chart for rankings, category comparison, volume, cost, risk, and operational counts.",
+  component: ({ props }) => {
+    const maxValue = props.max ?? Math.max(1, ...props.data.map((item) => item.value));
+    return React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        props.data.map((item, index) => {
+          const tone = toneFor(item.tone);
+          const percent = clampPercent((item.value / maxValue) * 100);
+          return React.createElement(
+            "div",
+            { key: `${item.label}:${index}`, style: { display: "grid", gap: 5 } },
+            React.createElement(
+              "div",
+              { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between" } },
+              React.createElement("span", { style: { color: "#404040", fontSize: 12, fontWeight: 800 } }, item.label),
+              React.createElement("span", { style: { color: tone.text, fontSize: 12, fontWeight: 900 } }, `${item.value}${props.unit ?? ""}`),
+            ),
+            React.createElement(
+              "div",
+              { style: { background: "#f5f5f5", borderRadius: 999, height: 10, overflow: "hidden" } },
+              React.createElement("div", {
+                style: {
+                  background: tone.accent,
+                  borderRadius: 999,
+                  height: "100%",
+                  width: `${percent}%`,
+                },
+              }),
+            ),
+          );
+        }),
+      ),
+    );
+  },
+});
+
+const LineChart = defineComponent({
+  name: "LineChart",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    unit: z.string().optional(),
+    data: z.array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+      }),
+    ),
+  }),
+  description:
+    "Compact line chart for trends, time series, forecasts, health signals, backlog movement, and metric changes over time.",
+  component: ({ props }) => {
+    const width = 640;
+    const height = 220;
+    const values = props.data.map((point) => point.value);
+    const minValue = Math.min(...values, 0);
+    const maxValue = Math.max(...values, 1);
+    const span = Math.max(1, maxValue - minValue);
+    const points = props.data.map((point, index) => {
+      const x = props.data.length === 1 ? width / 2 : (index / (props.data.length - 1)) * width;
+      const y = height - ((point.value - minValue) / span) * height;
+      return { ...point, x, y };
+    });
+
+    return React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { padding: 14 } },
+        React.createElement(
+          "svg",
+          { role: "img", viewBox: `0 0 ${width} ${height}`, style: { background: "#fafafa", borderRadius: 8, display: "block", width: "100%" } },
+          React.createElement("polyline", {
+            fill: "none",
+            points: points.map((point) => `${point.x},${point.y}`).join(" "),
+            stroke: "#2563eb",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            strokeWidth: 4,
+          }),
+          points.map((point, index) =>
+            React.createElement("circle", {
+              cx: point.x,
+              cy: point.y,
+              fill: "#2563eb",
+              key: `${point.label}:${index}`,
+              r: 5,
+            }),
+          ),
+        ),
+        React.createElement(
+          "div",
+          { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 } },
+          points.map((point, index) =>
+            React.createElement(
+              "span",
+              { key: `${point.label}:legend:${index}`, style: { color: "#525252", fontSize: 12 } },
+              `${point.label}: ${point.value}${props.unit ?? ""}`,
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+});
+
+const ResourceList = defineComponent({
+  name: "ResourceList",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    resources: z.array(
+      z.object({
+        title: z.string(),
+        type: z.string().optional(),
+        url: z.string().optional(),
+        description: z.string().optional(),
+        status: z.enum(["ready", "draft", "blocked", "external"]).optional(),
+      }),
+    ),
+  }),
+  description:
+    "Resource and link list for files, URLs, documents, artifacts, references, generated outputs, and handoff materials.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        props.resources.map((resource, index) => {
+          const tone = toneFor(resource.status === "blocked" ? "danger" : resource.status === "draft" ? "warning" : "info");
+          const title = React.createElement("strong", { style: { color: "#171717", fontSize: 14, overflowWrap: "anywhere" } }, resource.title);
+          return React.createElement(
+            "article",
+            {
+              key: `${resource.title}:${index}`,
+              style: {
+                background: "#fafafa",
+                border: "1px solid #e5e5e5",
+                borderRadius: 8,
+                padding: 12,
+              },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
+              resource.url
+                ? React.createElement("a", { href: resource.url, rel: "noreferrer", style: { textDecoration: "none" }, target: "_blank" }, title)
+                : title,
+              React.createElement("span", { style: { color: tone.accent, flexShrink: 0, fontSize: 11, fontWeight: 900, textTransform: "uppercase" } }, resource.status ?? resource.type ?? "resource"),
+            ),
+            resource.description
+              ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.45, margin: "6px 0 0" } }, resource.description)
+              : null,
+            resource.url ? React.createElement("div", { style: { color: "#737373", fontSize: 12, marginTop: 7, overflowWrap: "anywhere" } }, resource.url) : null,
+          );
+        }),
+      ),
+    ),
+});
+
+const FormPanel = defineComponent({
+  name: "FormPanel",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    fields: z.array(
+      z.object({
+        label: z.string(),
+        value: z.string().optional(),
+        type: z.enum(["text", "number", "date", "select", "checkbox", "textarea"]).default("text"),
+        required: z.boolean().optional(),
+        status: z.enum(["valid", "missing", "review"]).optional(),
+        help: z.string().optional(),
+      }),
+    ),
+  }),
+  description:
+    "Read-only form summary for intake, approval, required inputs, user confirmation, request review, and missing-field explanations.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        props.fields.map((field, index) => {
+          const tone = toneFor(field.status === "valid" ? "positive" : field.status === "missing" ? "danger" : "warning");
+          return React.createElement(
+            "label",
+            {
+              key: `${field.label}:${index}`,
+              style: {
+                background: "#fafafa",
+                border: `1px solid ${field.status ? tone.border : "#e5e5e5"}`,
+                borderRadius: 8,
+                display: "grid",
+                gap: 6,
+                padding: 10,
+              },
+            },
+            React.createElement(
+              "span",
+              { style: { alignItems: "center", color: "#404040", display: "flex", flexWrap: "wrap", fontSize: 12, fontWeight: 800, gap: 6 } },
+              field.label,
+              field.required ? React.createElement("span", { style: { color: "#dc2626" } }, "required") : null,
+              field.status ? React.createElement("span", { style: { color: tone.accent, textTransform: "uppercase" } }, field.status) : null,
+            ),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  background: "#fff",
+                  border: "1px solid #e5e5e5",
+                  borderRadius: 6,
+                  color: field.value ? "#171717" : "#a3a3a3",
+                  fontSize: 14,
+                  minHeight: field.type === "textarea" ? 72 : 36,
+                  padding: "8px 9px",
+                  whiteSpace: "pre-wrap",
+                },
+              },
+              field.value || "Not provided",
+            ),
+            field.help ? React.createElement("span", { style: { color: "#737373", fontSize: 12 } }, field.help) : null,
+          );
+        }),
+      ),
+    ),
+});
+
 const componentGroups: ComponentGroup[] = [
   ...(openuiLibrary.componentGroups ?? []),
   {
     name: "Agent Explanation",
-    components: ["MetricGrid", "ActionPanel", "TimelinePanel", "DecisionMatrix", "DataTable", "TaskBoard", "CodeDiff"],
+    components: [
+      "MetricGrid",
+      "KeyValuePanel",
+      "AlertList",
+      "ProgressStepper",
+      "BarChart",
+      "LineChart",
+      "ResourceList",
+      "FormPanel",
+      "ActionPanel",
+      "TimelinePanel",
+      "DecisionMatrix",
+      "DataTable",
+      "TaskBoard",
+      "CodeDiff",
+    ],
     notes: [
       "- Use MetricGrid for KPI summaries, health snapshots, and status at-a-glance.",
+      "- Use KeyValuePanel for metadata, environment details, customer facts, and compact evidence.",
+      "- Use AlertList for risks, blockers, validation findings, incidents, and warnings.",
+      "- Use ProgressStepper for workflows, approvals, onboarding, release steps, and investigations.",
+      "- Use BarChart for category comparison, rankings, volumes, counts, and cost breakdowns.",
+      "- Use LineChart for trend, forecast, time-series, backlog, and metric movement.",
+      "- Use ResourceList for files, URLs, docs, generated outputs, and references.",
+      "- Use FormPanel for input review, missing fields, intake summaries, and approval requests.",
       "- Use ActionPanel whenever the UI should tell the user what to do next.",
       "- Use TimelinePanel for chronological explanations, incident flow, launches, and multi-step progress.",
       "- Use DecisionMatrix when comparing options or making a recommendation.",
@@ -1071,6 +1543,13 @@ export const library = createLibrary({
   components: [
     ...Object.values(openuiLibrary.components),
     MetricGrid,
+    KeyValuePanel,
+    AlertList,
+    ProgressStepper,
+    BarChart,
+    LineChart,
+    ResourceList,
+    FormPanel,
     ActionPanel,
     TimelinePanel,
     DecisionMatrix,
@@ -1090,6 +1569,13 @@ export const promptOptions: PromptOptions = {
   additionalRules: [
     ...(openuiPromptOptions.additionalRules ?? []),
     "For KPI summaries, status snapshots, and dashboards, prefer MetricGrid(title, description, metrics).",
+    "For metadata, facts, environment details, and compact evidence, prefer KeyValuePanel(title, description, items).",
+    "For risks, blockers, warnings, validation findings, and incident signals, prefer AlertList(title, description, alerts).",
+    "For staged progress, approvals, onboarding, investigations, and release steps, prefer ProgressStepper(title, description, steps).",
+    "For rankings, counts, volumes, costs, and category comparison, prefer BarChart(title, description, unit, max, data).",
+    "For trends, forecasts, time series, backlog movement, and metric changes, prefer LineChart(title, description, unit, data).",
+    "For files, URLs, docs, generated artifacts, and references, prefer ResourceList(title, description, resources).",
+    "For required inputs, intake review, confirmation, and missing fields, prefer FormPanel(title, description, fields).",
     "For recommended next steps, approvals, handoffs, and follow-up work, prefer ActionPanel(title, description, actions).",
     "For chronological explanations, incidents, launches, or multi-step progress, prefer TimelinePanel(title, description, events).",
     "For alternatives, tradeoffs, or recommendations, prefer DecisionMatrix(title, description, options).",

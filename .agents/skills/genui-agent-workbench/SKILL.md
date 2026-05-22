@@ -35,6 +35,12 @@ The product goal is to make GenUI the visual explanation layer that agents reach
 ## Agent-Facing Components
 
 - `MetricGrid`: KPI/status summaries.
+- `KeyValuePanel`: compact facts and metadata.
+- `AlertList`: risks, warnings, blockers, validation findings.
+- `ProgressStepper`: staged workflows and approvals.
+- `BarChart` / `LineChart`: comparison and trend charts.
+- `ResourceList`: files, URLs, docs, references, artifacts.
+- `FormPanel`: input review and missing-field checks.
 - `ActionPanel`: next actions and handoffs.
 - `TimelinePanel`: chronological explanations.
 - `DecisionMatrix`: comparisons and recommendations.

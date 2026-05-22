@@ -50,6 +50,12 @@ The control API is local-only on `127.0.0.1`. The current URL is written to `.ge
 The MVP component library is organized around agent explanation jobs:
 
 - `MetricGrid` for KPI/status summaries.
+- `KeyValuePanel` for compact facts and metadata.
+- `AlertList` for risks, warnings, blockers, and validation findings.
+- `ProgressStepper` for staged workflows and approvals.
+- `BarChart` and `LineChart` for category comparison and trends.
+- `ResourceList` for files, URLs, documents, and generated artifacts.
+- `FormPanel` for input review, missing fields, and approval checks.
 - `ActionPanel` for next actions and handoffs.
 - `TimelinePanel` for chronological explanations.
 - `DecisionMatrix` for tradeoff comparisons.

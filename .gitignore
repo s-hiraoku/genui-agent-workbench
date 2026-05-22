@@ -19,3 +19,4 @@ pnpm-debug.log*
 
 .serena/
 .genui/
+.genui-test/

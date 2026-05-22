@@ -6,7 +6,7 @@ const ARTIFACT_ROOT = ".genui";
 const ARTIFACT_DIR = "artifacts";
 
 export function getGenUIRoot(): string {
-  return path.join(process.cwd(), ARTIFACT_ROOT);
+  return process.env.GENUI_DATA_DIR ? path.resolve(process.env.GENUI_DATA_DIR) : path.join(process.cwd(), ARTIFACT_ROOT);
 }
 
 export function getArtifactDir(): string {

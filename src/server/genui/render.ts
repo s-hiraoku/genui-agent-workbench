@@ -148,11 +148,108 @@ function createFallbackOpenUILang(input: ReturnType<typeof normalizeInput>): str
   const wantsTable = /table|grid|rows|records|csv|spreadsheet|一覧|表形式|テーブル|リスト|データ|検索結果/i.test(input.prompt);
   const wantsTasks = /task|kanban|board|todo|plan|handoff|queue|triage|タスク|計画|担当|進捗|カンバン|キュー/i.test(input.prompt);
   const wantsDiff = /diff|patch|code|config|review|changes|差分|パッチ|コード|設定|変更|レビュー/i.test(input.prompt);
+  const wantsChart = /chart|graph|bar|line|trend|forecast|推移|グラフ|チャート|棒グラフ|折れ線|予測/i.test(input.prompt);
+  const wantsAlert = /alert|warning|risk|blocker|issue|validation|リスク|警告|問題|ブロッカー|検証|注意/i.test(input.prompt);
+  const wantsProgress = /step|progress|workflow|approval|release|investigation|ステップ|進行|承認|調査|リリース/i.test(input.prompt);
+  const wantsResources = /resource|link|url|file|document|artifact|reference|資料|リンク|URL|ファイル|ドキュメント|参考/i.test(input.prompt);
+  const wantsForm = /form|input|field|intake|approval|missing|フォーム|入力|項目|申請|不足|確認/i.test(input.prompt);
+  const wantsFacts = /key-value|metadata|facts|environment|config|summary|メタデータ|ファクト|環境|設定値|要約/i.test(input.prompt);
   const selectedMockData = selectMockDataMode(input.prompt, input.mockData);
   const rows = contextRows(input);
 
   if (wantsTable && rows.length > 0) {
     return createContextTableOpenUILang(input, rows);
+  }
+
+  if (wantsChart) {
+    return [
+      "root = Card([header, bars, trend, actions])",
+      `header = CardHeader("${q(title)}", "Agent-generated chart view")`,
+      "bars = BarChart(\"カテゴリ比較\", \"件数やスコアの比較\", \"\", null, [b1, b2, b3, b4])",
+      "b1 = { label: \"Critical\", value: 9, tone: \"danger\" }",
+      "b2 = { label: \"High\", value: 16, tone: \"warning\" }",
+      "b3 = { label: \"Normal\", value: 28, tone: \"info\" }",
+      "b4 = { label: \"Done\", value: 42, tone: \"positive\" }",
+      "trend = LineChart(\"直近推移\", \"contextに時系列を渡すと実データで表示できます\", \"\", [p1, p2, p3, p4, p5])",
+      "p1 = { label: \"Mon\", value: 18 }",
+      "p2 = { label: \"Tue\", value: 22 }",
+      "p3 = { label: \"Wed\", value: 19 }",
+      "p4 = { label: \"Thu\", value: 31 }",
+      "p5 = { label: \"Fri\", value: 27 }",
+      "actions = ActionPanel(\"次のアクション\", \"チャートを実データ化するには\", [a1])",
+      "a1 = { label: \"data pointsをcontextで渡す\", priority: \"medium\", owner: \"calling agent\" }",
+    ].join("\n");
+  }
+
+  if (wantsForm) {
+    return [
+      "root = Card([header, form, alerts, actions])",
+      `header = CardHeader("${q(title)}", "Input review popup")`,
+      "form = FormPanel(\"入力内容の確認\", \"不足項目とレビュー対象を表示します\", [f1, f2, f3])",
+      "f1 = { label: \"目的\", value: \"ユーザーに視覚的に説明する\", type: \"textarea\", required: true, status: \"valid\" }",
+      "f2 = { label: \"データソース\", value: \"\", type: \"text\", required: true, status: \"missing\", help: \"context-fileで渡してください\" }",
+      "f3 = { label: \"出力サイズ\", value: \"panel\", type: \"select\", status: \"review\" }",
+      "alerts = AlertList(\"確認事項\", \"生成前に見るべきポイント\", [al1])",
+      "al1 = { severity: \"warning\", title: \"データソース未指定\", description: \"実データが必要なUIではcontextを渡してください\", action: \"--context-fileを使う\" }",
+      "actions = ActionPanel(\"次のアクション\", \"不足情報を埋める\", [a1])",
+      "a1 = { label: \"context-fileを追加して再生成\", priority: \"high\", owner: \"agent\" }",
+    ].join("\n");
+  }
+
+  if (wantsResources) {
+    return [
+      "root = Card([header, resources, facts])",
+      `header = CardHeader("${q(title)}", "Resource handoff popup")`,
+      "resources = ResourceList(\"関連リソース\", \"ファイル、URL、生成物をまとめます\", [r1, r2, r3])",
+      "r1 = { title: \"Generated artifact\", type: \"artifact\", description: \"このpopupの保存済みartifact\", status: \"ready\" }",
+      "r2 = { title: \"Implementation notes\", type: \"document\", description: \"agentが参照すべき設計メモ\", status: \"draft\" }",
+      "r3 = { title: \"External reference\", type: \"url\", url: \"https://example.com\", description: \"実URLがある場合はcontextで渡してください\", status: \"external\" }",
+      "facts = KeyValuePanel(\"メタデータ\", \"呼び出し元情報\", [kv1, kv2])",
+      `kv1 = { label: "Agent", value: "${q(input.agentId ?? "agent")}", tone: "info" }`,
+      "kv2 = { label: \"Mode\", value: \"fallback\", tone: \"neutral\" }",
+    ].join("\n");
+  }
+
+  if (wantsProgress) {
+    return [
+      "root = Card([header, steps, actions])",
+      `header = CardHeader("${q(title)}", "Workflow progress popup")`,
+      "steps = ProgressStepper(\"進行状況\", \"完了・進行中・未着手を分けて表示します\", [s1, s2, s3, s4])",
+      "s1 = { label: \"依頼を受信\", status: \"done\", description: \"calling agentからpromptを受け取りました\" }",
+      "s2 = { label: \"UIを生成\", status: \"done\", description: \"OpenUI artifactを作成しました\" }",
+      "s3 = { label: \"ユーザー確認\", status: \"active\", description: \"popupで内容を確認してください\" }",
+      "s4 = { label: \"結果を反映\", status: \"pending\", description: \"判断結果をagent workflowへ戻します\" }",
+      "actions = ActionPanel(\"次のアクション\", \"workflowを進める\", [a1])",
+      "a1 = { label: \"確認後にclose_popupを呼ぶ\", priority: \"medium\", owner: \"agent\" }",
+    ].join("\n");
+  }
+
+  if (wantsAlert) {
+    return [
+      "root = Card([header, alerts, actions])",
+      `header = CardHeader("${q(title)}", "Risk and alert summary")`,
+      "alerts = AlertList(\"リスクと警告\", \"ユーザーが先に見るべき注意点\", [al1, al2, al3])",
+      "al1 = { severity: \"danger\", title: \"高優先度のブロッカー\", description: \"判断前にowner確認が必要です\", action: \"ownerへ確認\" }",
+      "al2 = { severity: \"warning\", title: \"データ不足\", description: \"contextが不足すると推論ベースのUIになります\", action: \"structured contextを追加\" }",
+      "al3 = { severity: \"info\", title: \"fallback生成\", description: \"OPENAI_API_KEYなしでも確認用UIを表示できます\" }",
+      "actions = ActionPanel(\"推奨アクション\", \"リスクを下げる動き\", [a1, a2])",
+      "a1 = { label: \"不足データを追加\", priority: \"high\", owner: \"agent\" }",
+      "a2 = { label: \"ブロッカーを先に解消\", priority: \"critical\", owner: \"user\" }",
+    ].join("\n");
+  }
+
+  if (wantsFacts) {
+    return [
+      "root = Card([header, facts, actions])",
+      `header = CardHeader("${q(title)}", "Compact facts summary")`,
+      "facts = KeyValuePanel(\"重要情報\", \"判断に必要なファクト\", [kv1, kv2, kv3, kv4])",
+      `kv1 = { label: "Prompt", value: "${prompt}", tone: "info" }`,
+      `kv2 = { label: "Agent", value: "${q(input.agentId ?? "agent")}", tone: "neutral" }`,
+      "kv3 = { label: \"Data\", value: \"context optional\", description: \"context-fileで実データを渡せます\", tone: \"warning\" }",
+      "kv4 = { label: \"Output\", value: \"popup artifact\", tone: \"positive\" }",
+      "actions = ActionPanel(\"次のアクション\", \"必要なら詳細UIへ展開\", [a1])",
+      "a1 = { label: \"表・チャート・差分などへ再生成\", priority: \"medium\", owner: \"agent\" }",
+    ].join("\n");
   }
 
   if (wantsDiff) {

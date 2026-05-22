@@ -136,6 +136,22 @@ Good prompts tell the broker what the user needs to understand or decide:
 ```
 
 ```txt
+カテゴリ別の件数と直近推移をチャートで表示して。
+```
+
+```txt
+リスクと警告をseverity別に表示して。各項目に推奨アクションも付けて。
+```
+
+```txt
+入力内容をフォーム確認UIで表示して。不足項目も示して。
+```
+
+```txt
+関連ファイルと参考URLをリソース一覧として表示して。
+```
+
+```txt
 このrowsを表で表示して。重要な行と次アクションも示して。
 ```
 

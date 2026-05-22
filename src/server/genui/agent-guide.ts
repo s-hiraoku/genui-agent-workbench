@@ -45,13 +45,31 @@ export const agentUsageGuide = {
     {
       intent: "Status/KPI",
       prompt: "この状況をKPIカード、リスク、次アクションで視覚化して。",
-      components: ["MetricGrid", "ActionPanel"],
+      components: ["MetricGrid", "AlertList", "ActionPanel"],
+      size: "panel",
+    },
+    {
+      intent: "Facts/metadata",
+      prompt: "この調査結果の重要メタデータをkey-value形式で整理して。",
+      components: ["KeyValuePanel", "ResourceList"],
+      size: "panel",
+    },
+    {
+      intent: "Charts",
+      prompt: "カテゴリ別の件数と直近推移をチャートで表示して。",
+      components: ["BarChart", "LineChart"],
+      size: "wide",
+    },
+    {
+      intent: "Input review",
+      prompt: "入力内容をフォーム確認UIで表示して。不足項目も示して。",
+      components: ["FormPanel", "AlertList"],
       size: "panel",
     },
     {
       intent: "Incident/Timeline",
       prompt: "障害対応の流れをタイムラインで説明し、今すぐやることを出して。",
-      components: ["TimelinePanel", "ActionPanel"],
+      components: ["TimelinePanel", "ProgressStepper", "AlertList", "ActionPanel"],
       size: "tall",
     },
     {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
@@ -7,15 +8,19 @@ import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-st
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { renderGenUI } from "../src/server/genui/render";
 
-const genuiDir = path.join(process.cwd(), ".genui");
+const genuiTestRoot = path.join(process.cwd(), ".genui-test");
+let genuiDir = "";
 
 beforeEach(async () => {
   process.env.GENUI_MOCK_RENDER = "1";
+  genuiDir = path.join(genuiTestRoot, randomUUID());
+  process.env.GENUI_DATA_DIR = genuiDir;
   await fs.rm(genuiDir, { force: true, recursive: true });
 });
 
 afterEach(async () => {
   delete process.env.GENUI_MOCK_RENDER;
+  delete process.env.GENUI_DATA_DIR;
   await fs.rm(genuiDir, { force: true, recursive: true });
 });
 
@@ -130,6 +135,52 @@ describe("renderGenUI", () => {
     expect(result.artifact.openuiLang).toContain("CodeDiff");
   });
 
+  it("uses chart components in chart fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "カテゴリ別の件数と直近推移をチャートで表示して",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("BarChart");
+    expect(result.artifact.openuiLang).toContain("LineChart");
+  });
+
+  it("uses AlertList in risk fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "リスクと警告をseverity別に表示して",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("AlertList");
+  });
+
+  it("uses ProgressStepper in progress fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "作業の進行状況をステップで表示して",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("ProgressStepper");
+  });
+
+  it("uses ResourceList in resource fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "関連ファイルと参考URLをリソース一覧で表示して",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("ResourceList");
+  });
+
+  it("uses FormPanel in form fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "入力内容をフォーム確認UIで表示して。不足項目も示して。",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("FormPanel");
+  });
+
   it("uses AudioPlayer in mock fallback for audio prompts", async () => {
     const result = await renderGenUI({
       prompt: "音楽プレーヤーを表示して",
@@ -154,6 +205,13 @@ describe("agent interface scaffold", () => {
     expect(componentCatalog.map((item) => item.name)).toEqual(
       expect.arrayContaining([
         "MetricGrid",
+        "KeyValuePanel",
+        "AlertList",
+        "ProgressStepper",
+        "BarChart",
+        "LineChart",
+        "ResourceList",
+        "FormPanel",
         "ActionPanel",
         "TimelinePanel",
         "DecisionMatrix",

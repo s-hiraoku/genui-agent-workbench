@@ -51,6 +51,8 @@ For local smoke tests without OpenAI:
 GENUI_MOCK_RENDER=1 npm run electron:dev
 ```
 
+Artifacts are stored in `.genui/` by default. Set `GENUI_DATA_DIR=/path/to/dir` to use a different local store.
+
 ## Run
 
 Start the resident broker:
@@ -150,6 +152,13 @@ The MCP server expects the Electron broker to already be running. It resolves th
 Agent explanation components:
 
 - `MetricGrid`: KPI/status cards for dashboards, health checks, and progress summaries.
+- `KeyValuePanel`: metadata, environment details, customer facts, and compact evidence.
+- `AlertList`: risks, blockers, warnings, validation findings, and confirmations.
+- `ProgressStepper`: staged workflows, approvals, releases, investigations, and onboarding.
+- `BarChart`: rankings, counts, category comparison, cost, and risk scoring.
+- `LineChart`: trends, forecasts, time series, backlog movement, and metric history.
+- `ResourceList`: files, URLs, documents, generated artifacts, and handoff references.
+- `FormPanel`: input review, missing fields, intake summaries, and approval checks.
 - `ActionPanel`: prioritized next actions with owner, due date, and severity.
 - `TimelinePanel`: chronological explanation for incidents, releases, research, and workflows.
 - `DecisionMatrix`: option comparison for recommendations and tradeoffs.
@@ -171,6 +180,22 @@ Use outcome-oriented prompts:
 
 ```txt
 この状況をKPIカード、リスク、次アクションで視覚化して。
+```
+
+```txt
+カテゴリ別の件数と直近推移をチャートで表示して。
+```
+
+```txt
+リスクと警告をseverity別に表示して。各項目に推奨アクションも付けて。
+```
+
+```txt
+入力内容をフォーム確認UIで表示して。不足項目も示して。
+```
+
+```txt
+関連ファイルと参考URLをリソース一覧として表示して。
 ```
 
 ```txt
