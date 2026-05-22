@@ -2,7 +2,14 @@ import OpenAI from "openai";
 import { library, promptOptions } from "../../library";
 import { getMockData, selectMockDataMode } from "./mock-context";
 import { saveArtifact } from "./artifacts";
-import type { GenUIArtifact, GenUILocale, GenUIMockDataMode, RenderGenUIInput, RenderGenUIResult } from "./types";
+import type {
+  GenUIArtifact,
+  GenUIGenerationMode,
+  GenUILocale,
+  GenUIMockDataMode,
+  RenderGenUIInput,
+  RenderGenUIResult,
+} from "./types";
 
 function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
@@ -120,9 +127,11 @@ export async function renderGenUI(input: RenderGenUIInput): Promise<RenderGenUIR
   const locale = detectLocale(normalized.prompt, normalized.locale);
   const model = process.env.OPENAI_MODEL ?? "gpt-5.2";
   let openuiLang: string;
+  let generationMode: GenUIGenerationMode;
 
   if (!process.env.OPENAI_API_KEY || process.env.GENUI_MOCK_RENDER === "1") {
     openuiLang = createFallbackOpenUILang(normalized);
+    generationMode = "fallback";
   } else {
     const client = new OpenAI();
     const response = await client.chat.completions.create({
@@ -134,6 +143,7 @@ export async function renderGenUI(input: RenderGenUIInput): Promise<RenderGenUIR
     });
 
     openuiLang = response.choices[0]?.message.content?.trim() || createFallbackOpenUILang(normalized);
+    generationMode = response.choices[0]?.message.content?.trim() ? "llm" : "fallback";
   }
 
   const artifact: GenUIArtifact = {
@@ -143,6 +153,7 @@ export async function renderGenUI(input: RenderGenUIInput): Promise<RenderGenUIR
     title: normalized.title ?? `${normalized.agentId ?? "Agent"} GenUI`,
     openuiLang,
     createdAt: new Date().toISOString(),
+    generationMode,
     model,
     locale,
     mockData: selectedMockData,

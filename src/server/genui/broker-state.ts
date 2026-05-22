@@ -6,6 +6,8 @@ export type BrokerState = {
   controlUrl: string;
   nextUrl: string;
   pid: number;
+  brokerProtocolVersion: string;
+  appVersion: string;
   updatedAt: string;
 };
 

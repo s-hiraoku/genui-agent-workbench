@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeBoot } from "./ThemeBoot";
 
 export const metadata: Metadata = {
   title: "GenUI Popup Broker",
@@ -13,8 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeBoot />
+        {children}
+      </body>
     </html>
   );
 }

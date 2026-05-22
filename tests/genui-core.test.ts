@@ -28,6 +28,7 @@ describe("renderGenUI", () => {
     expect(result.artifact.artifactId).toMatch(/^art_/);
     expect(result.artifact.agentId).toBe("test-agent");
     expect(result.artifact.title).toBe("Sales Popup");
+    expect(result.artifact.generationMode).toBe("fallback");
     expect(result.artifact.locale).toBe("ja");
     expect(result.previewPath).toBe(`/preview/${result.artifact.artifactId}`);
 
@@ -74,6 +75,8 @@ describe("broker state", () => {
       controlUrl: "http://127.0.0.1:48231",
       nextUrl: "http://127.0.0.1:3000",
       pid: 123,
+      brokerProtocolVersion: "0.2.0",
+      appVersion: "0.1.0",
       updatedAt: "2026-05-22T00:00:00.000Z",
     });
 
