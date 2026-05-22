@@ -38,6 +38,9 @@ The product goal is to make GenUI the visual explanation layer that agents reach
 - `ActionPanel`: next actions and handoffs.
 - `TimelinePanel`: chronological explanations.
 - `DecisionMatrix`: comparisons and recommendations.
+- `DataTable`: structured rows, evidence, tickets, file lists.
+- `TaskBoard`: queues, plans, triage lanes, agent handoffs.
+- `CodeDiff`: code/config/prompt/document change review.
 - `MapView`: locations, routes, sites, and incidents.
 - `AudioPlayer`: music, voice notes, podcasts, recordings.
 - `VideoPlayer`: demos, clips, tutorials, walkthroughs.
@@ -46,6 +49,7 @@ The product goal is to make GenUI the visual explanation layer that agents reach
 
 - Prefer small changes around `renderGenUI`, artifact persistence, or popup lifecycle.
 - Keep MCP tool schemas aligned with CLI inputs.
+- Prefer `--context-file` or MCP `context` for real data instead of embedding large JSON in prompts.
 - Do not describe a generated popup as complete until Electron has opened a BrowserWindow or the control API returned a clear error.
 - Document architectural changes in `docs/`.
 - When adding a GenUI component, update `src/library.ts`, `src/server/genui/component-catalog.ts`, tests, README, and `docs/agent-interface.md`.

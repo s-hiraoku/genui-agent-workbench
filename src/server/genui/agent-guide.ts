@@ -14,6 +14,8 @@ export const agentUsageGuide = {
   cli: {
     open:
       "npm run genui -- popup --agent-id <agent> --title <title> --size panel --prompt \"<visual explanation request>\"",
+    openWithContext:
+      "npm run genui -- popup --agent-id <agent> --prompt-file prompt.txt --context-file context.json --size wide",
     close: "npm run genui -- close --popup-id <popupId>",
     inspect: ["npm run genui -- status", "npm run genui -- components", "npm run genui -- guide"],
   },
@@ -59,6 +61,24 @@ export const agentUsageGuide = {
       size: "wide",
     },
     {
+      intent: "Structured rows",
+      prompt: "このrowsを表で表示して。重要な行と次アクションも示して。",
+      components: ["DataTable", "ActionPanel"],
+      size: "wide",
+    },
+    {
+      intent: "Task handoff",
+      prompt: "作業状況をTodo/Doing/Doneのボードで表示して。担当と状態も見せて。",
+      components: ["TaskBoard", "ActionPanel"],
+      size: "wide",
+    },
+    {
+      intent: "Change review",
+      prompt: "この変更差分をレビュー用UIで表示して。追加・削除と確認ポイントも見せて。",
+      components: ["CodeDiff", "ActionPanel"],
+      size: "wide",
+    },
+    {
       intent: "Map",
       prompt: "拠点や顧客を地図で表示し、優先度別にマーカーを分けて。",
       components: ["MapView"],
@@ -75,6 +95,7 @@ export const agentUsageGuide = {
     "Never include secrets in prompt or context.",
     "Pass concrete data in context when available instead of asking the broker to invent it.",
     "Use size presets before custom width/height.",
+    "For CLI calls, prefer --context-file for structured data and --prompt-file for long prompts.",
     "Do not claim external live data or MCP-backed tools were used unless the caller supplied that data.",
     "Keep prompts outcome-oriented: tell the broker what the user needs to understand or decide.",
   ],

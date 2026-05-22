@@ -53,6 +53,9 @@ The MVP component library is organized around agent explanation jobs:
 - `ActionPanel` for next actions and handoffs.
 - `TimelinePanel` for chronological explanations.
 - `DecisionMatrix` for tradeoff comparisons.
+- `DataTable` for structured rows, tickets, file lists, evidence, and search results.
+- `TaskBoard` for queues, implementation plans, triage lanes, and handoffs.
+- `CodeDiff` for code, config, prompt, document, and migration review.
 - `MapView` for spatial explanation.
 - `AudioPlayer` for sound and recording review.
 - `VideoPlayer` for clips, demos, and walkthroughs.

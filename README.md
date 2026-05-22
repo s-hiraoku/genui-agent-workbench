@@ -73,6 +73,32 @@ npm run genui -- popup \
   --prompt "売上ダッシュボードを作って。KPI、リスク、次のアクションを表示して。"
 ```
 
+Open a popup with structured context from files:
+
+```bash
+npm run genui -- popup \
+  --agent-id codex \
+  --title "Triage Table" \
+  --size wide \
+  --prompt-file prompt.txt \
+  --context-file context.json
+```
+
+Useful context shape for table-style UI:
+
+```json
+{
+  "columns": [
+    { "key": "id", "label": "ID" },
+    { "key": "status", "label": "Status" },
+    { "key": "next", "label": "Next action" }
+  ],
+  "rows": [
+    { "id": "A-1", "status": "blocked", "next": "Escalate owner" }
+  ]
+}
+```
+
 Close a popup:
 
 ```bash
@@ -127,6 +153,9 @@ Agent explanation components:
 - `ActionPanel`: prioritized next actions with owner, due date, and severity.
 - `TimelinePanel`: chronological explanation for incidents, releases, research, and workflows.
 - `DecisionMatrix`: option comparison for recommendations and tradeoffs.
+- `DataTable`: operational rows, tickets, file lists, research results, rankings, and evidence.
+- `TaskBoard`: task queues, implementation plans, triage lanes, QA status, and agent handoffs.
+- `CodeDiff`: code/config/prompt/document diffs for review.
 
 Media and spatial components:
 
@@ -150,6 +179,18 @@ Use outcome-oriented prompts:
 
 ```txt
 3つの実装案を比較して、推奨案と理由を視覚的に説明して。
+```
+
+```txt
+このrowsを表で表示して。重要な行と次アクションも示して。
+```
+
+```txt
+作業状況をTodo/Doing/Doneのボードで表示して。担当と状態も見せて。
+```
+
+```txt
+この変更差分をレビュー用UIで表示して。追加・削除と確認ポイントも見せて。
 ```
 
 ```txt

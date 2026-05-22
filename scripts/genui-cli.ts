@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+import { promises as fs } from "node:fs";
 import { readBrokerState } from "../src/server/genui/broker-state";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
@@ -65,6 +66,63 @@ async function requestJson(url: string, init?: RequestInit): Promise<Record<stri
   return body;
 }
 
+async function readTextFile(filePath: string): Promise<string> {
+  return fs.readFile(filePath, "utf8");
+}
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function parseJsonObject(label: string, value: string): Record<string, unknown> {
+  const parsed = JSON.parse(value) as unknown;
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object`);
+  }
+
+  return parsed as Record<string, unknown>;
+}
+
+async function resolvePrompt(options: CliOptions): Promise<string> {
+  if (typeof options.prompt === "string") {
+    return options.prompt;
+  }
+
+  if (typeof options["prompt-file"] === "string") {
+    return readTextFile(options["prompt-file"]);
+  }
+
+  if (options.stdin === true) {
+    return readStdin();
+  }
+
+  return "";
+}
+
+async function resolveContext(options: CliOptions): Promise<Record<string, unknown> | undefined> {
+  const parts: Record<string, unknown>[] = [];
+
+  if (typeof options["context-file"] === "string") {
+    parts.push(parseJsonObject("--context-file", await readTextFile(options["context-file"])));
+  }
+
+  if (typeof options["context-json"] === "string") {
+    parts.push(parseJsonObject("--context-json", options["context-json"]));
+  }
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return Object.assign({}, ...parts);
+}
+
 async function ensureCompatibleBroker(controlUrl: string): Promise<void> {
   let status: Record<string, unknown>;
 
@@ -88,12 +146,14 @@ async function ensureCompatibleBroker(controlUrl: string): Promise<void> {
 }
 
 async function popup(options: CliOptions): Promise<unknown> {
-  if (typeof options.prompt !== "string" || options.prompt.trim().length === 0) {
-    throw new Error("--prompt is required");
+  const prompt = (await resolvePrompt(options)).trim();
+  if (prompt.length === 0) {
+    throw new Error("--prompt, --prompt-file, or --stdin is required");
   }
 
   const controlUrl = await resolveControlUrl(options);
   await ensureCompatibleBroker(controlUrl);
+  const context = await resolveContext(options);
   const sizeOption = typeof options.size === "string" ? options.size : undefined;
   const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
   const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
@@ -101,9 +161,10 @@ async function popup(options: CliOptions): Promise<unknown> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      prompt: options.prompt,
+      prompt,
       agentId: options["agent-id"],
       title: options.title,
+      context,
       locale: options.locale,
       mockData: options["mock-data"],
       size: sizeOption,
@@ -169,6 +230,10 @@ Usage:
 
 Options:
   --service-url <url>  Override broker control URL
+  --prompt-file <path> Read prompt from a UTF-8 text file
+  --stdin              Read prompt from stdin when --prompt is omitted
+  --context-json <json> Attach structured context as a JSON object
+  --context-file <path> Attach structured context from a JSON file
   --title <title>      Popup window title
   --mock-data <mode>   auto | sales | support | none
   --locale <locale>    auto | ja | en

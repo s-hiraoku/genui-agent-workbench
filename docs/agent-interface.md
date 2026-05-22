@@ -80,6 +80,18 @@ Open:
 npm run genui -- popup --agent-id codex --title "Decision Review" --size wide --prompt "3つの案を比較して推奨案を出して"
 ```
 
+Open with file-based context:
+
+```bash
+npm run genui -- popup --agent-id codex --prompt-file prompt.txt --context-file context.json --size wide
+```
+
+Open with inline context:
+
+```bash
+npm run genui -- popup --agent-id codex --prompt "このrowsを表で表示して" --context-json '{"rows":[{"id":"A-1","status":"blocked"}]}'
+```
+
 Close:
 
 ```bash
@@ -123,6 +135,18 @@ Good prompts tell the broker what the user needs to understand or decide:
 候補案を比較して、推奨案と理由を視覚的に説明して。
 ```
 
+```txt
+このrowsを表で表示して。重要な行と次アクションも示して。
+```
+
+```txt
+作業状況をTodo/Doing/Doneのボードで表示して。担当と状態も見せて。
+```
+
+```txt
+この変更差分をレビュー用UIで表示して。追加・削除と確認ポイントも見せて。
+```
+
 Poor prompts are vague:
 
 ```txt
@@ -133,6 +157,7 @@ Poor prompts are vague:
 
 - Never pass secrets in prompt or context.
 - Pass concrete data in `context` when available.
+- Prefer `--context-file` for larger data; prefer `--context-json` only for small objects.
 - Do not claim live data, tools, or MCP-backed sources were used unless the calling agent supplied that data.
 - Keep each popup focused on one user decision or explanation.
 - Close popups after the workflow no longer needs them.

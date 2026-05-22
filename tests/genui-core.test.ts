@@ -91,6 +91,45 @@ describe("renderGenUI", () => {
     expect(result.artifact.openuiLang).toContain("DecisionMatrix");
   });
 
+  it("uses DataTable with caller-provided context rows", async () => {
+    const result = await renderGenUI({
+      prompt: "このrowsを表で表示して",
+      mockData: "none",
+      context: {
+        columns: [
+          { key: "id", label: "ID" },
+          { key: "status", label: "Status" },
+        ],
+        rows: [
+          { id: "A-1", status: "blocked", owner: "Ito" },
+          { id: "A-2", status: "ready", owner: "Sato" },
+        ],
+      },
+    });
+
+    expect(result.artifact.openuiLang).toContain("DataTable");
+    expect(result.artifact.openuiLang).toContain("A-1");
+    expect(result.artifact.context).toMatchObject({ rows: expect.any(Array) });
+  });
+
+  it("uses TaskBoard in task fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "作業状況をタスクボードで表示して",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("TaskBoard");
+  });
+
+  it("uses CodeDiff in diff fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "この変更差分をレビュー用UIで表示して",
+      mockData: "none",
+    });
+
+    expect(result.artifact.openuiLang).toContain("CodeDiff");
+  });
+
   it("uses AudioPlayer in mock fallback for audio prompts", async () => {
     const result = await renderGenUI({
       prompt: "音楽プレーヤーを表示して",
@@ -118,6 +157,9 @@ describe("agent interface scaffold", () => {
         "ActionPanel",
         "TimelinePanel",
         "DecisionMatrix",
+        "DataTable",
+        "TaskBoard",
+        "CodeDiff",
         "MapView",
         "AudioPlayer",
         "VideoPlayer",
