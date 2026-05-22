@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { readBrokerState } from "../src/server/genui/broker-state";
+import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 
 type CliOptions = Record<string, string | boolean>;
@@ -141,6 +142,21 @@ async function components(options: CliOptions): Promise<unknown> {
   return requestJson(`${controlUrl}/v1/components`);
 }
 
+async function guide(options: CliOptions): Promise<unknown> {
+  const controlUrl = await resolveControlUrl(options);
+
+  try {
+    await ensureCompatibleBroker(controlUrl);
+    return await requestJson(`${controlUrl}/v1/guide`);
+  } catch {
+    return {
+      ...agentUsageGuide,
+      brokerStatus: "offline",
+      note: "Resident broker is not reachable. Start it with npm run electron:dev before opening popups.",
+    };
+  }
+}
+
 function printHelp(): void {
   console.log(`GenUI Popup Broker CLI
 
@@ -149,6 +165,7 @@ Usage:
   npm run genui -- close --popup-id "<popupId>"
   npm run genui -- status
   npm run genui -- components
+  npm run genui -- guide
 
 Options:
   --service-url <url>  Override broker control URL
@@ -181,6 +198,11 @@ async function main(): Promise<void> {
 
   if (command === "components") {
     console.log(JSON.stringify(await components(options), null, 2));
+    return;
+  }
+
+  if (command === "guide") {
+    console.log(JSON.stringify(await guide(options), null, 2));
     return;
   }
 

@@ -8,6 +8,8 @@ out/
 dist/
 dist-electron/
 coverage/
+*.tsbuildinfo
+.claude/
 
 .DS_Store
 npm-debug.log*

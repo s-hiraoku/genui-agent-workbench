@@ -90,8 +90,10 @@ export function PreviewClient({
           <div className="hud-divider mt-2" />
         </header>
 
-        <main className="app-scroll flex-1 overflow-auto px-6 py-5">
-          <Renderer response={openuiLang} library={library} />
+        <main className="app-scroll genui-preview-scroll flex-1 overflow-auto px-6 py-5">
+          <div className="genui-render-root">
+            <Renderer response={openuiLang} library={library} />
+          </div>
         </main>
       </div>
     </div>

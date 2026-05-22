@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { readBrokerState } from "../src/server/genui/broker-state";
+import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 
 async function resolveControlUrl(): Promise<string> {
@@ -140,6 +141,18 @@ server.registerTool(
       structuredContent: result,
     };
   },
+);
+
+server.registerTool(
+  "genui.usage_guide",
+  {
+    description: "Get agent-oriented guidance for when and how to use GenUI Popup Broker.",
+    inputSchema: {},
+  },
+  async () => ({
+    content: [{ type: "text", text: JSON.stringify(agentUsageGuide, null, 2) }],
+    structuredContent: agentUsageGuide,
+  }),
 );
 
 const transport = new StdioServerTransport();

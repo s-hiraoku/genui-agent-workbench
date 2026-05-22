@@ -20,6 +20,47 @@ const markerColors: Record<NonNullable<MapMarker["color"]>, string> = {
   yellow: "#ca8a04",
 };
 
+const toneStyles: Record<string, { accent: string; background: string; border: string; text: string }> = {
+  critical: { accent: "#dc2626", background: "#fef2f2", border: "#fecaca", text: "#7f1d1d" },
+  danger: { accent: "#dc2626", background: "#fef2f2", border: "#fecaca", text: "#7f1d1d" },
+  warning: { accent: "#d97706", background: "#fffbeb", border: "#fde68a", text: "#78350f" },
+  positive: { accent: "#16a34a", background: "#f0fdf4", border: "#bbf7d0", text: "#14532d" },
+  neutral: { accent: "#525252", background: "#fafafa", border: "#e5e5e5", text: "#171717" },
+  info: { accent: "#2563eb", background: "#eff6ff", border: "#bfdbfe", text: "#1e3a8a" },
+};
+
+function toneFor(value?: string) {
+  return toneStyles[value ?? "neutral"] ?? toneStyles.neutral;
+}
+
+const panelStyle: React.CSSProperties = {
+  background: "#ffffff",
+  border: "1px solid #d4d4d4",
+  borderRadius: 8,
+  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
+  color: "#171717",
+  overflow: "hidden",
+};
+
+function panelHeader(title?: string, description?: string): React.ReactNode {
+  if (!title && !description) {
+    return null;
+  }
+
+  return React.createElement(
+    "div",
+    { style: { borderBottom: "1px solid #e5e5e5", padding: "12px 14px" } },
+    title ? React.createElement("h3", { style: { color: "#171717", fontSize: 16, fontWeight: 700, margin: 0 } }, title) : null,
+    description
+      ? React.createElement(
+          "p",
+          { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: title ? "4px 0 0" : 0 } },
+          description,
+        )
+      : null,
+  );
+}
+
 function lngToWorldX(lng: number, zoom: number): number {
   return ((lng + 180) / 360) * 256 * 2 ** zoom;
 }
@@ -394,8 +435,297 @@ const VideoPlayer = defineComponent({
     ),
 });
 
+const MetricGrid = defineComponent({
+  name: "MetricGrid",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    metrics: z.array(
+      z.object({
+        label: z.string(),
+        value: z.string(),
+        delta: z.string().optional(),
+        description: z.string().optional(),
+        tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+      }),
+    ),
+  }),
+  description:
+    "Responsive KPI and summary metric grid for dashboards, status reports, operational snapshots, progress summaries, and executive explanations.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "grid",
+            gap: 10,
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            padding: 14,
+          },
+        },
+        props.metrics.map((metric, index) => {
+          const tone = toneFor(metric.tone);
+          return React.createElement(
+            "article",
+            {
+              key: `${metric.label}:${index}`,
+              style: {
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderRadius: 8,
+                minHeight: 104,
+                padding: 12,
+              },
+            },
+            React.createElement("div", { style: { color: "#525252", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em" } }, metric.label),
+            React.createElement("div", { style: { color: tone.text, fontSize: 24, fontWeight: 800, lineHeight: 1.15, marginTop: 6 } }, metric.value),
+            metric.delta
+              ? React.createElement("div", { style: { color: tone.accent, fontSize: 12, fontWeight: 700, marginTop: 6 } }, metric.delta)
+              : null,
+            metric.description
+              ? React.createElement("p", { style: { color: "#525252", fontSize: 12, lineHeight: 1.45, margin: "7px 0 0" } }, metric.description)
+              : null,
+          );
+        }),
+      ),
+    ),
+});
+
+const ActionPanel = defineComponent({
+  name: "ActionPanel",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    actions: z.array(
+      z.object({
+        label: z.string(),
+        description: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+        owner: z.string().optional(),
+        due: z.string().optional(),
+      }),
+    ),
+  }),
+  description:
+    "Prioritized next-action panel for recommendations, handoffs, agent plans, approvals, follow-up work, and user-visible task lists.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        props.actions.map((action, index) => {
+          const tone = toneFor(action.priority === "critical" ? "critical" : action.priority === "high" ? "warning" : "info");
+          return React.createElement(
+            "article",
+            {
+              key: `${action.label}:${index}`,
+              style: {
+                background: "#fafafa",
+                border: "1px solid #e5e5e5",
+                borderLeft: `4px solid ${tone.accent}`,
+                borderRadius: 8,
+                padding: 12,
+              },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
+              React.createElement("strong", { style: { color: "#171717", fontSize: 14, lineHeight: 1.35 } }, action.label),
+              React.createElement(
+                "span",
+                {
+                  style: {
+                    background: tone.background,
+                    border: `1px solid ${tone.border}`,
+                    borderRadius: 999,
+                    color: tone.text,
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    textTransform: "uppercase",
+                  },
+                },
+                action.priority,
+              ),
+            ),
+            action.description
+              ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, action.description)
+              : null,
+            action.owner || action.due
+              ? React.createElement(
+                  "div",
+                  { style: { color: "#737373", display: "flex", flexWrap: "wrap", fontSize: 12, gap: 8, marginTop: 8 } },
+                  action.owner ? React.createElement("span", null, `Owner: ${action.owner}`) : null,
+                  action.due ? React.createElement("span", null, `Due: ${action.due}`) : null,
+                )
+              : null,
+          );
+        }),
+      ),
+    ),
+});
+
+const TimelinePanel = defineComponent({
+  name: "TimelinePanel",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    events: z.array(
+      z.object({
+        time: z.string(),
+        title: z.string(),
+        description: z.string().optional(),
+        status: z.enum(["done", "active", "planned", "blocked", "warning"]).default("planned"),
+      }),
+    ),
+  }),
+  description:
+    "Chronological timeline for incidents, launches, project plans, research history, deployment progress, and multi-step explanations.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "ol",
+        { style: { display: "grid", gap: 0, listStyle: "none", margin: 0, padding: 14 } },
+        props.events.map((event, index) => {
+          const tone = toneFor(event.status === "done" ? "positive" : event.status === "blocked" ? "danger" : event.status === "warning" ? "warning" : "info");
+          return React.createElement(
+            "li",
+            {
+              key: `${event.time}:${event.title}:${index}`,
+              style: {
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "82px 18px 1fr",
+                minHeight: 54,
+              },
+            },
+            React.createElement("time", { style: { color: "#737373", fontSize: 12, fontWeight: 700, paddingTop: 2 } }, event.time),
+            React.createElement(
+              "span",
+              { style: { alignItems: "center", display: "flex", flexDirection: "column" } },
+              React.createElement("span", {
+                style: {
+                  background: tone.accent,
+                  border: "2px solid #fff",
+                  borderRadius: 999,
+                  boxShadow: `0 0 0 2px ${tone.border}`,
+                  height: 10,
+                  marginTop: 4,
+                  width: 10,
+                },
+              }),
+              index < props.events.length - 1 ? React.createElement("span", { style: { background: "#e5e5e5", flex: 1, marginTop: 4, width: 1 } }) : null,
+            ),
+            React.createElement(
+              "div",
+              { style: { paddingBottom: 14 } },
+              React.createElement("strong", { style: { color: "#171717", display: "block", fontSize: 14 } }, event.title),
+              event.description ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: "4px 0 0" } }, event.description) : null,
+            ),
+          );
+        }),
+      ),
+    ),
+});
+
+const DecisionMatrix = defineComponent({
+  name: "DecisionMatrix",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    options: z.array(
+      z.object({
+        name: z.string(),
+        summary: z.string().optional(),
+        score: z.string().optional(),
+        recommendation: z.enum(["recommended", "consider", "avoid"]).default("consider"),
+        pros: z.array(z.string()).default([]),
+        cons: z.array(z.string()).default([]),
+      }),
+    ),
+  }),
+  description:
+    "Comparison matrix for choices, recommendations, tradeoffs, vendor/tool selection, design alternatives, and agent decision support.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyle },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "grid",
+            gap: 10,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            padding: 14,
+          },
+        },
+        props.options.map((option, index) => {
+          const tone = toneFor(option.recommendation === "recommended" ? "positive" : option.recommendation === "avoid" ? "danger" : "info");
+          return React.createElement(
+            "article",
+            {
+              key: `${option.name}:${index}`,
+              style: {
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderRadius: 8,
+                display: "grid",
+                gap: 8,
+                padding: 12,
+              },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between" } },
+              React.createElement("strong", { style: { color: tone.text, fontSize: 15 } }, option.name),
+              option.score ? React.createElement("span", { style: { color: tone.accent, fontSize: 13, fontWeight: 800 } }, option.score) : null,
+            ),
+            option.summary ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.45, margin: 0 } }, option.summary) : null,
+            option.pros.length
+              ? React.createElement(
+                  "ul",
+                  { style: { color: "#262626", fontSize: 12, lineHeight: 1.45, margin: 0, paddingLeft: 18 } },
+                  option.pros.map((pro, proIndex) => React.createElement("li", { key: `${pro}:${proIndex}` }, pro)),
+                )
+              : null,
+            option.cons.length
+              ? React.createElement(
+                  "ul",
+                  { style: { color: "#737373", fontSize: 12, lineHeight: 1.45, margin: 0, paddingLeft: 18 } },
+                  option.cons.map((con, conIndex) => React.createElement("li", { key: `${con}:${conIndex}` }, con)),
+                )
+              : null,
+          );
+        }),
+      ),
+    ),
+});
+
 const componentGroups: ComponentGroup[] = [
   ...(openuiLibrary.componentGroups ?? []),
+  {
+    name: "Agent Explanation",
+    components: ["MetricGrid", "ActionPanel", "TimelinePanel", "DecisionMatrix"],
+    notes: [
+      "- Use MetricGrid for KPI summaries, health snapshots, and status at-a-glance.",
+      "- Use ActionPanel whenever the UI should tell the user what to do next.",
+      "- Use TimelinePanel for chronological explanations, incident flow, launches, and multi-step progress.",
+      "- Use DecisionMatrix when comparing options or making a recommendation.",
+    ],
+  },
   {
     name: "Maps",
     components: ["MapView"],
@@ -417,7 +747,16 @@ const componentGroups: ComponentGroup[] = [
 ];
 
 export const library = createLibrary({
-  components: [...Object.values(openuiLibrary.components), MapView, AudioPlayer, VideoPlayer],
+  components: [
+    ...Object.values(openuiLibrary.components),
+    MetricGrid,
+    ActionPanel,
+    TimelinePanel,
+    DecisionMatrix,
+    MapView,
+    AudioPlayer,
+    VideoPlayer,
+  ],
   componentGroups,
   root: openuiLibrary.root,
 });
@@ -426,12 +765,31 @@ export const promptOptions: PromptOptions = {
   ...openuiPromptOptions,
   additionalRules: [
     ...(openuiPromptOptions.additionalRules ?? []),
+    "For KPI summaries, status snapshots, and dashboards, prefer MetricGrid(title, description, metrics).",
+    "For recommended next steps, approvals, handoffs, and follow-up work, prefer ActionPanel(title, description, actions).",
+    "For chronological explanations, incidents, launches, or multi-step progress, prefer TimelinePanel(title, description, events).",
+    "For alternatives, tradeoffs, or recommendations, prefer DecisionMatrix(title, description, options).",
     "For map requests, use MapView(title, description, center, zoom, height, markers) as part of the UI. Include useful marker labels and colors.",
     "For audio or music requests, use AudioPlayer(title, description, tracks). Do not autoplay. Prefer provided audio URLs.",
     "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters). Do not autoplay. Prefer provided video URLs.",
   ],
   examples: [
     ...(openuiPromptOptions.examples ?? []),
+    `Agent explanation example:
+
+root = Card([header, metrics, timeline, actions])
+header = CardHeader("Launch Readiness", "Agent-generated status summary")
+metrics = MetricGrid("Key signals", "Current launch posture", [m1, m2, m3])
+m1 = { label: "Build", value: "Passing", delta: "0 blockers", tone: "positive", description: "CI is green on the release branch" }
+m2 = { label: "Risk", value: "Medium", delta: "2 watch items", tone: "warning", description: "Support staffing and migration docs need review" }
+m3 = { label: "ETA", value: "Fri 15:00", tone: "info", description: "Ready if review completes by noon" }
+timeline = TimelinePanel("Path to ship", "What has happened and what remains", [e1, e2, e3])
+e1 = { time: "09:00", title: "Build verified", status: "done", description: "Automated checks completed" }
+e2 = { time: "Now", title: "Human review", status: "active", description: "Reviewing visual behavior and docs" }
+e3 = { time: "Next", title: "Release decision", status: "planned", description: "Approve, defer, or narrow scope" }
+actions = ActionPanel("Recommended next actions", "Use these to finish the workflow", [a1, a2])
+a1 = { label: "Review settings popup", priority: "high", owner: "user", due: "today", description: "Confirm UI is readable in light and dark themes" }
+a2 = { label: "Restart broker", priority: "medium", owner: "agent", description: "Load the latest protocol and component catalog" }`,
     `Map example:
 
 root = Card([header, map, followups])

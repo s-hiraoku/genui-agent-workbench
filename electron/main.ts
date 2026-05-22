@@ -6,6 +6,7 @@ import { URL } from "node:url";
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from "electron";
 import { renderGenUI } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
+import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { BROKER_APP_VERSION, BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import {
@@ -237,6 +238,11 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
       brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
       components: componentCatalog,
     });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/v1/guide") {
+    sendJson(res, 200, agentUsageGuide);
     return;
   }
 

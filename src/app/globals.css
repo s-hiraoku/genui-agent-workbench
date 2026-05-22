@@ -662,6 +662,75 @@ html:not([data-theme="light"]) .hud-title {
 .app-scroll::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 999px; }
 .app-scroll::-webkit-scrollbar-thumb:hover { background: rgba(var(--cyan), 0.55); }
 
+.genui-preview-scroll {
+  min-block-size: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.genui-render-root {
+  container: inline-size / genui-render;
+  color: #111827;
+  display: grid;
+  gap: clamp(0.75rem, 2.4cqi, 1.25rem);
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.genui-render-root :where(*) {
+  box-sizing: border-box;
+  min-inline-size: 0;
+}
+
+.genui-render-root :where(section, article, div, table) {
+  max-inline-size: 100%;
+}
+
+.genui-render-root :where(img, video, audio, canvas, iframe, svg) {
+  max-inline-size: 100%;
+}
+
+.genui-render-root :where(video, canvas, iframe) {
+  aspect-ratio: 16 / 9;
+  block-size: auto;
+  display: block;
+  inline-size: 100%;
+}
+
+.genui-render-root :where(table) {
+  border-collapse: collapse;
+  inline-size: 100%;
+}
+
+.genui-render-root :where(pre, code) {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.genui-render-root :where(p, li, td, th, h1, h2, h3, h4, h5, h6, span, strong) {
+  overflow-wrap: anywhere;
+}
+
+.genui-render-root :where([style*="white-space: nowrap"]) {
+  white-space: normal !important;
+}
+
+.genui-render-root :where(audio) {
+  display: block;
+  inline-size: 100%;
+}
+
+@container genui-render (max-width: 430px) {
+  .genui-render-root {
+    gap: 0.75rem;
+  }
+
+  .genui-render-root :where([style*="grid-template-columns"]) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .app-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--hairline), transparent);
