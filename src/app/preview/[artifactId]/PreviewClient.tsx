@@ -28,10 +28,15 @@ export function PreviewClient({
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
       try {
-        await fetch(`${controlUrl}/v1/popups/${popupId}/close`, { method: "POST" });
-        return;
+        const res = await fetch(
+          `${controlUrl}/v1/popups/${popupId}/close`,
+          { method: "POST" },
+        );
+        if (res.ok) return;
+        // Non-2xx (e.g. broker restarted, popup id stale) — fall through
+        // to window.close() so the popup never gets stuck open.
       } catch {
-        /* fall through */
+        /* network error — fall through */
       }
     }
     window.close();

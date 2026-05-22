@@ -44,6 +44,7 @@ export function SettingsClient({ controlUrl }: { controlUrl: string }) {
   }, [controlUrl]);
 
   const save = async (patch: Partial<BrokerSettings>) => {
+    const previous = settings;
     setSettings((s) => ({ ...s, ...patch }));
     setError(null);
     try {
@@ -52,16 +53,35 @@ export function SettingsClient({ controlUrl }: { controlUrl: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(patch),
       });
+      if (!res.ok) {
+        throw new Error(`Save failed: ${res.status} ${res.statusText}`);
+      }
       const data = (await res.json()) as ApiResponse;
       const { launchAtLogin, controlPort, nextPort } = data.settings;
       setSettings({ launchAtLogin, controlPort, nextPort });
     } catch (e: unknown) {
+      // Roll back the optimistic update so the UI matches what the
+      // broker actually persisted.
+      setSettings(previous);
       setError(e instanceof Error ? e.message : "Failed to save settings");
     }
   };
 
   const close = () => window.close();
   const portValue = (n: number | null) => (n === null ? "" : String(n));
+
+  // Parse a port input. Returns:
+  //   null      → empty (reset to auto)
+  //   number    → valid TCP port in [1, 65535]
+  //   undefined → invalid input; the caller should skip the save
+  const parsePort = (raw: string): number | null | undefined => {
+    const v = raw.trim();
+    if (v === "") return null;
+    if (!/^\d+$/.test(v)) return undefined;
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1 || n > 65535) return undefined;
+    return n;
+  };
 
   return (
     <LiquidGlassSurface>
@@ -98,15 +118,14 @@ export function SettingsClient({ controlUrl }: { controlUrl: string }) {
                   className="lg-input"
                   inputMode="numeric"
                   onChange={(e) => {
-                    const v = e.target.value.trim();
-                    setSettings((s) => ({
-                      ...s,
-                      controlPort: v === "" ? null : Number(v),
-                    }));
+                    const parsed = parsePort(e.target.value);
+                    if (parsed === undefined) return;
+                    setSettings((s) => ({ ...s, controlPort: parsed }));
                   }}
                   onBlur={(e) => {
-                    const v = e.target.value.trim();
-                    save({ controlPort: v === "" ? null : Number(v) });
+                    const parsed = parsePort(e.target.value);
+                    if (parsed === undefined) return;
+                    save({ controlPort: parsed });
                   }}
                   placeholder="auto"
                   value={portValue(settings.controlPort)}
@@ -119,15 +138,14 @@ export function SettingsClient({ controlUrl }: { controlUrl: string }) {
                   className="lg-input"
                   inputMode="numeric"
                   onChange={(e) => {
-                    const v = e.target.value.trim();
-                    setSettings((s) => ({
-                      ...s,
-                      nextPort: v === "" ? null : Number(v),
-                    }));
+                    const parsed = parsePort(e.target.value);
+                    if (parsed === undefined) return;
+                    setSettings((s) => ({ ...s, nextPort: parsed }));
                   }}
                   onBlur={(e) => {
-                    const v = e.target.value.trim();
-                    save({ nextPort: v === "" ? null : Number(v) });
+                    const parsed = parsePort(e.target.value);
+                    if (parsed === undefined) return;
+                    save({ nextPort: parsed });
                   }}
                   placeholder="auto"
                   value={portValue(settings.nextPort)}
