@@ -34,6 +34,8 @@
     "@openuidev/react-headless": "latest",
     "@openuidev/react-lang": "latest",
     "@openuidev/react-ui": "latest",
+    "liquid-glass-react": "^1.1.1",
+    "lucide-react": "^1.16.0",
     "next": "16.1.6",
     "openai": "^6.22.0",
     "react": "19.2.3",

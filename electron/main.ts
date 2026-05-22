@@ -6,7 +6,6 @@ import { URL } from "node:url";
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from "electron";
 import { renderGenUI } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
-import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { BROKER_APP_VERSION, BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import {
@@ -241,11 +240,6 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/v1/guide") {
-    sendJson(res, 200, agentUsageGuide);
-    return;
-  }
-
   if (req.method === "GET" && url.pathname === "/v1/sizes") {
     const display = screen.getPrimaryDisplay().workAreaSize;
     sendJson(res, 200, {
@@ -426,6 +420,10 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     `&size=${preset}` +
     `&agent=${encodeURIComponent(input.agentId ?? "agent")}`;
 
+  // liquid-glass-react renders the glass material inside the page;
+  // the BrowserWindow itself just needs to be transparent so the
+  // page-level wallpaper + glass can come through. No OS vibrancy —
+  // it would double-frost the captured backdrop.
   const window = new BrowserWindow({
     title,
     width: geometry.width,
@@ -439,7 +437,6 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
-    ...(theme === "dark" ? { vibrancy: "under-window" as const, visualEffectState: "active" as const } : {}),
     roundedCorners: true,
     fullscreenable: true,
     webPreferences: {
@@ -540,7 +537,6 @@ function openSettingsWindow(): void {
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
-    ...(theme === "dark" ? { vibrancy: "under-window" as const, visualEffectState: "active" as const } : {}),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
