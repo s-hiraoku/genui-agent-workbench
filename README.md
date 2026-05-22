@@ -65,6 +65,13 @@ Close a popup:
 npm run genui -- close --popup-id "<popupId>"
 ```
 
+Inspect the running broker:
+
+```bash
+npm run genui -- status
+npm run genui -- components
+```
+
 The CLI returns JSON:
 
 ```json
@@ -72,9 +79,13 @@ The CLI returns JSON:
   "popupId": "pop_...",
   "artifactId": "art_...",
   "previewUrl": "http://127.0.0.1:3000/preview/art_...",
-  "status": "open"
+  "status": "open",
+  "generationMode": "llm",
+  "brokerProtocolVersion": "0.2.0"
 }
 ```
+
+`generationMode` is `"llm"` when OpenAI generated the artifact and `"fallback"` when the broker used a local deterministic fallback.
 
 ## MCP Usage
 
@@ -88,6 +99,7 @@ Tools:
 
 - `genui.open_popup`: generates an OpenUI artifact and opens a popup.
 - `genui.close_popup`: closes a popup by `popupId`.
+- `genui.list_components`: lists custom GenUI components available in the resident broker.
 
 The MCP server expects the Electron broker to already be running. It reads `.genui/broker.json` or `GENUI_BROKER_URL` to find the local control API.
 
@@ -98,6 +110,12 @@ The broker extends OpenUI's default component library with:
 - `MapView`: OpenStreetMap-backed map panel with center, zoom, height, and colored markers.
 - `AudioPlayer`: playlist-style audio player for music, voice notes, podcasts, recordings, and generated audio.
 - `VideoPlayer`: video player with poster, chapters, and transcript support for demos, clips, recordings, and walkthroughs.
+
+The same catalog is available from the resident broker:
+
+```bash
+npm run genui -- components
+```
 
 Useful next component candidates for agent popups:
 
@@ -140,3 +158,13 @@ OpenUI React renderer
 ```
 
 MCP is implemented as a thin stdio adapter. Electron remains the owner of popup windows and the local control API.
+
+## Broker Contract
+
+- Broker protocol version: `0.2.0`
+- Status endpoint: `GET /v1/status`
+- Component catalog endpoint: `GET /v1/components`
+- Popup open endpoint: `POST /v1/popups`
+- Popup close endpoint: `POST /v1/popups/:popupId/close`
+
+CLI and MCP clients check the broker protocol version before opening or closing popups. If the resident app is using old code, restart it with `npm run electron:dev`.

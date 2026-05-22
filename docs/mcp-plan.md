@@ -10,6 +10,9 @@ MCP is now an implemented entrypoint, but it remains a thin adapter over the res
 - `genui.close_popup`
   - Input: `{ popupId }`
   - Output: `{ popupId, artifactId, previewUrl, status }`
+- `genui.list_components`
+  - Input: `{}`
+  - Output: `{ brokerProtocolVersion, components }`
 
 ## Operation
 

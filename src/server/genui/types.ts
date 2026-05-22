@@ -1,5 +1,17 @@
 export type GenUIMockDataMode = "auto" | "sales" | "support" | "none";
 export type GenUILocale = "auto" | "ja" | "en";
+export type GenUIGenerationMode = "llm" | "fallback";
+
+export type GenUISizePreset =
+  | "compact"
+  | "card"
+  | "panel"
+  | "default"
+  | "wide"
+  | "tall"
+  | "stage"
+  | "cinema"
+  | "fullscreen";
 
 export type RenderGenUIInput = {
   prompt: string;
@@ -8,6 +20,9 @@ export type RenderGenUIInput = {
   context?: Record<string, unknown>;
   mockData?: GenUIMockDataMode;
   locale?: GenUILocale;
+  size?: GenUISizePreset;
+  width?: number;
+  height?: number;
 };
 
 export type GenUIArtifact = {
@@ -17,6 +32,7 @@ export type GenUIArtifact = {
   title: string;
   openuiLang: string;
   createdAt: string;
+  generationMode: GenUIGenerationMode;
   model: string;
   locale: GenUILocale;
   mockData: GenUIMockDataMode;
@@ -40,6 +56,7 @@ export type PopupRecord = {
   previewUrl: string;
   createdAt: string;
   closedAt?: string;
+  generationMode: GenUIGenerationMode;
 };
 
 export type PopupOpenResponse = {
@@ -47,4 +64,6 @@ export type PopupOpenResponse = {
   artifactId: string;
   previewUrl: string;
   status: PopupStatus;
+  generationMode: GenUIGenerationMode;
+  brokerProtocolVersion: string;
 };
