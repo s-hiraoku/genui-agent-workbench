@@ -46,6 +46,8 @@ const MapWithListDynamic = dynamic<MapWithListProps>(() => import("./app/_ui/Map
 import {
   Bar as RcBar,
   BarChart as RcBarChart,
+  ComposedChart as RcComposedChart,
+  Legend as RcLegend,
   CartesianGrid as RcCartesianGrid,
   Cell as RcCell,
   Line as RcLine,
@@ -1678,6 +1680,133 @@ const LineChart = defineComponent({
               strokeWidth: 1.5,
               dot: { r: 2.5, stroke: chartPalette.line, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
               activeDot: { r: 3.5, stroke: chartPalette.line, strokeWidth: 1.5, fill: chartPalette.line },
+              isAnimationActive: false,
+            }),
+          ),
+        ),
+      ),
+    );
+  },
+});
+
+const ComboChart = defineComponent({
+  name: "ComboChart",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    data: z.array(
+      z.object({
+        label: z.string(),
+        barValue: z.number(),
+        lineValue: z.number(),
+      }),
+    ),
+    barUnit: z.string().optional(),
+    lineUnit: z.string().optional(),
+    barLabel: z.string().optional(),
+    lineLabel: z.string().optional(),
+    barTone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Combo chart with bars and a line sharing the X axis but using two independent Y axes. Use when a single popup needs two series in different units — e.g. PV (absolute) + CVR (%), revenue + growth-rate, requests/sec + latency. Pick LineChart or BarChart instead if all series use the same unit.",
+  component: ({ props }) => {
+    const barUnit = props.barUnit ?? "";
+    const lineUnit = props.lineUnit ?? "";
+    const barLabel = props.barLabel ?? "Bar";
+    const lineLabel = props.lineLabel ?? "Line";
+    const toneColor: Record<string, string> = {
+      positive: "rgba(126, 174, 86, 0.92)",
+      info: "rgba(72, 138, 184, 0.90)",
+      warning: "rgba(176, 142, 72, 0.92)",
+      danger: "rgba(148, 72, 82, 0.92)",
+      neutral: "rgba(154, 170, 150, 0.78)",
+    };
+    const barColor = toneColor[props.barTone ?? "info"] ?? toneColor.info;
+    const lineColor = "rgba(248, 220, 124, 0.96)";
+    const tooltipFormatter = (value: unknown, name: unknown) => {
+      const v = typeof value === "number" ? value.toLocaleString() : String(value);
+      const isLine = name === lineLabel;
+      return `${v}${isLine ? lineUnit : barUnit}`;
+    };
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { height: 260, padding: 14 } },
+        React.createElement(
+          RcResponsiveContainer as React.ElementType,
+          { width: "100%", height: "100%" },
+          React.createElement(
+            RcComposedChart,
+            { data: props.data, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
+            React.createElement(RcCartesianGrid, {
+              stroke: chartPalette.grid,
+              strokeDasharray: "2 4",
+              vertical: false,
+            }),
+            React.createElement(RcXAxis, {
+              dataKey: "label",
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              minTickGap: 12,
+            }),
+            React.createElement(RcYAxis, {
+              yAxisId: "left",
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              width: 52,
+              tickFormatter: (value: number) => `${value}${barUnit}`,
+            }),
+            React.createElement(RcYAxis, {
+              yAxisId: "right",
+              orientation: "right",
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              width: 44,
+              tickFormatter: (value: number) => `${value}${lineUnit}`,
+            }),
+            React.createElement(RcTooltip, {
+              contentStyle: {
+                background: chartPalette.tooltipBg,
+                border: `1px solid ${chartPalette.tooltipBorder}`,
+                borderRadius: 8,
+                color: "rgba(248, 253, 255, 0.98)",
+                fontSize: 12,
+              },
+              labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
+              cursor: { fill: "rgba(120, 220, 255, 0.06)" },
+              formatter: tooltipFormatter,
+            }),
+            React.createElement(RcLegend, {
+              wrapperStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 12, paddingTop: 4 },
+              iconType: "circle",
+            }),
+            React.createElement(RcBar, {
+              yAxisId: "left",
+              dataKey: "barValue",
+              name: barLabel,
+              fill: barColor,
+              radius: [3, 3, 0, 0],
+              isAnimationActive: false,
+            }),
+            React.createElement(RcLine, {
+              yAxisId: "right",
+              type: "monotone",
+              dataKey: "lineValue",
+              name: lineLabel,
+              stroke: lineColor,
+              strokeWidth: 1.6,
+              dot: { r: 2.5, stroke: lineColor, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
+              activeDot: { r: 3.5, stroke: lineColor, strokeWidth: 1.5, fill: lineColor },
               isAnimationActive: false,
             }),
           ),
@@ -3512,6 +3641,7 @@ const componentGroups: ComponentGroup[] = [
       "ProgressStepper",
       "BarChart",
       "LineChart",
+      "ComboChart",
       "ResourceList",
       "FormPanel",
       "ActionPanel",
@@ -3528,6 +3658,7 @@ const componentGroups: ComponentGroup[] = [
       "- Use ProgressStepper for workflows, approvals, onboarding, release steps, and investigations.",
       "- Use BarChart for category comparison, rankings, volumes, counts, and cost breakdowns.",
       "- Use LineChart for trend, forecast, time-series, backlog, and metric movement.",
+      "- Use ComboChart when two series with different units belong together (PV + CVR, revenue + growth-rate, requests + latency). Bars take the left axis, line takes the right axis.",
       "- Use ResourceList for files, URLs, docs, generated outputs, and references.",
       "- Use FormPanel for input review, missing fields, intake summaries, and approval requests.",
       "- Use ActionPanel whenever the UI should tell the user what to do next.",
@@ -3659,6 +3790,7 @@ const customComponents = [
   ProgressStepper,
   BarChart,
   LineChart,
+  ComboChart,
   ResourceList,
   FormPanel,
   ActionPanel,
@@ -3704,6 +3836,7 @@ const customComponentNames = new Set([
   "ProgressStepper",
   "BarChart",
   "LineChart",
+  "ComboChart",
   "ResourceList",
   "FormPanel",
   "ActionPanel",
@@ -3761,6 +3894,7 @@ export const promptOptions: PromptOptions = {
     "For staged progress, approvals, onboarding, investigations, and release steps, prefer ProgressStepper(title, description, steps).",
     "For rankings, counts, volumes, costs, and category comparison, prefer BarChart(title, description, unit, max, data).",
     "For trends, forecasts, time series, backlog movement, and metric changes, prefer LineChart(title, description, unit, data).",
+    "For two series with different units shown together (e.g. PV + CVR, revenue + growth-rate, requests + latency), prefer ComboChart(title, description, data=[{label, barValue, lineValue}], barUnit, lineUnit, barLabel, lineLabel, barTone). Bars use the left axis, the line uses the right axis. If all series use the same unit, use LineChart or BarChart instead.",
     "For files, URLs, docs, generated artifacts, and references, prefer ResourceList(title, description, resources).",
     "For required inputs, intake review, confirmation, and missing fields, prefer FormPanel(title, description, fields).",
     "For recommended next steps, approvals, handoffs, and follow-up work, prefer ActionPanel(title, description, actions).",

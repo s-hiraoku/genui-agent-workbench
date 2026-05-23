@@ -129,7 +129,7 @@ The component library is the design boundary. Agents can compose listed componen
 - Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`
 - Geography: `MapView`, `MapWithList`, `GeoHeatmap`, `WeatherCard`
 - Conversation and people: `MessageThread`, `TranscriptView`, `PersonCard`, `EventList`
-- Charts: `BarChart`, `LineChart`, `DonutChart`, `Sparkline`
+- Charts: `BarChart`, `LineChart`, `ComboChart`, `DonutChart`, `Sparkline`
 
 Run `npm run genui -- prompt-spec` for full signatures and examples.
 

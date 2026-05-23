@@ -61,6 +61,7 @@ export const agentUsageGuide = {
     "EventList",
     "BarChart",
     "LineChart",
+    "ComboChart",
     "DonutChart",
     "Sparkline",
   ],

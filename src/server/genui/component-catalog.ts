@@ -57,6 +57,14 @@ export const componentCatalog: ComponentCatalogItem[] = [
     examplePrompt: "直近7日の推移を折れ線グラフで表示して。",
   },
   {
+    name: "ComboChart",
+    category: "Charts",
+    description:
+      "Combo chart with bars (left axis) and a line (right axis) sharing the X axis. Use when two related series live in different units, like PV vs. conversion rate, revenue vs. growth rate, or requests vs. latency.",
+    useCases: ["PV + CVR", "revenue + growth rate", "requests + latency", "calls + answered rate", "traffic + bounce rate"],
+    examplePrompt: "日次PVと当日CVRを 1 枚のグラフで重ねて表示して。",
+  },
+  {
     name: "ResourceList",
     category: "Agent Explanation",
     description: "Resource list for files, URLs, documents, generated artifacts, and handoff references.",
