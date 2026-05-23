@@ -120,6 +120,14 @@ export const componentCatalog: ComponentCatalogItem[] = [
     examplePrompt: "東京の顧客拠点を地図で表示して。優先度別にマーカーを分けて。",
   },
   {
+    name: "MapWithList",
+    category: "Maps",
+    description:
+      "Interactive Leaflet map paired with a clickable item list. Clicking a list entry flies the map to that point and opens its popup; clicking a marker highlights the entry. Supports pan/zoom/scroll/Retina tiles. Each item can carry optional links (official site, review pages, etc.) shown as chips in both the list and the marker popup. A Google Maps link is auto-generated from lat/lng. All links open in the user's default browser.",
+    useCases: ["cafe directory", "store list with map", "tour stop browser", "customer site directory", "venue picker"],
+    examplePrompt: "淡路島のおすすめカフェを地図とリスト連動で表示して。公式サイトのリンクも添えて。",
+  },
+  {
     name: "AudioPlayer",
     category: "Media",
     description: "Playlist-style audio player for music, voice notes, podcasts, recordings, and generated audio.",

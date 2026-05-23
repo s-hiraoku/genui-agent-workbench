@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 import { LiquidGlassSurface } from "./_ui/LiquidGlassSurface";
+import { NativeSelect } from "./_ui/NativeSelect";
 
 type Artifact = {
   artifactId: string;
@@ -18,8 +19,8 @@ type HomeClientProps = {
 type GlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
 type LabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
 type ThemeColorPreset =
-  | "tactical"
   | "blue"
+  | "azure"
   | "cyan"
   | "violet"
   | "mint"
@@ -46,7 +47,7 @@ type SettingsResponse = {
 const DESIGN_DEFAULTS: DesignSettings = {
   glassPreset: "milky",
   labelInkPreset: "green",
-  themeColorPreset: "tactical",
+  themeColorPreset: "mint",
   windowAnimationPreset: "center",
 };
 
@@ -71,11 +72,11 @@ const labelInkOptions: Array<{ value: LabelInkPreset; label: string }> = [
 ];
 
 const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
-  { value: "tactical", label: "Tactical" },
   { value: "blue", label: "Blue" },
+  { value: "azure", label: "Bright Blue" },
   { value: "cyan", label: "Cyan" },
   { value: "violet", label: "Violet" },
-  { value: "mint", label: "Mint" },
+  { value: "mint", label: "Tactical" },
   { value: "rose", label: "Rose" },
   { value: "amber", label: "Amber" },
   { value: "white", label: "White" },
@@ -214,45 +215,30 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
                   <div className="grid gap-2 sm:grid-cols-3">
                     <label className="flex min-w-0 flex-col gap-1">
                       <span className="lg-meta-faint">Glass preset</span>
-                      <select
-                        className="lg-select"
+                      <NativeSelect
+                        ariaLabel="Glass preset"
+                        options={glassPresetOptions}
                         value={design.glassPreset}
-                        onChange={(e) => saveDesign({ glassPreset: e.target.value as GlassPreset })}
-                      >
-                        {glassPresetOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                        onValueChange={(value) => saveDesign({ glassPreset: value as GlassPreset })}
+                      />
                     </label>
                     <label className="flex min-w-0 flex-col gap-1">
                       <span className="lg-meta-faint">Label ink</span>
-                      <select
-                        className="lg-select"
+                      <NativeSelect
+                        ariaLabel="Label ink"
+                        options={labelInkOptions}
                         value={design.labelInkPreset}
-                        onChange={(e) => saveDesign({ labelInkPreset: e.target.value as LabelInkPreset })}
-                      >
-                        {labelInkOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                        onValueChange={(value) => saveDesign({ labelInkPreset: value as LabelInkPreset })}
+                      />
                     </label>
                     <label className="flex min-w-0 flex-col gap-1">
                       <span className="lg-meta-faint">Open animation</span>
-                      <select
-                        className="lg-select"
+                      <NativeSelect
+                        ariaLabel="Window animation"
+                        options={windowAnimationOptions}
                         value={design.windowAnimationPreset}
-                        onChange={(e) => saveDesign({ windowAnimationPreset: e.target.value as WindowAnimationPreset })}
-                      >
-                        {windowAnimationOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                        onValueChange={(value) => saveDesign({ windowAnimationPreset: value as WindowAnimationPreset })}
+                      />
                     </label>
                   </div>
                 </div>

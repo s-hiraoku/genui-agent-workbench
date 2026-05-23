@@ -2,8 +2,9 @@
 
 import "@openuidev/react-ui/components.css";
 import "@openuidev/react-ui/styles/index.css";
+import "leaflet/dist/leaflet.css";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Renderer } from "@openuidev/react-lang";
 import { X } from "lucide-react";
 import { library } from "@/library";
@@ -29,6 +30,8 @@ export function PreviewClient({
   controlUrl,
   themeColor,
 }: PreviewClientProps) {
+  const [opaque, setOpaque] = useState(false);
+
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
       try {
@@ -55,18 +58,28 @@ export function PreviewClient({
   }, [closePopup]);
 
   return (
-    <LiquidGlassSurface animation={animation} themeColor={themeColor}>
+    <LiquidGlassSurface animation={animation} opaque={opaque} themeColor={themeColor}>
       <div className="lg-content h-full">
         <header className="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
           <h1 className="lg-title min-w-0 truncate">{artifactTitle}</h1>
-          <button
-            className="lg-icon-button"
-            onClick={closePopup}
-            type="button"
-            aria-label="Close"
-          >
-            <X size={16} strokeWidth={1.5} />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <label className="lg-opacity-toggle">
+              <input
+                checked={opaque}
+                onChange={(event) => setOpaque(event.currentTarget.checked)}
+                type="checkbox"
+              />
+              <span>Opaque</span>
+            </label>
+            <button
+              className="lg-icon-button"
+              onClick={closePopup}
+              type="button"
+              aria-label="Close"
+            >
+              <X size={16} strokeWidth={1.5} />
+            </button>
+          </div>
         </header>
 
         <main className="lg-scroll lg-preview flex-1 overflow-auto">

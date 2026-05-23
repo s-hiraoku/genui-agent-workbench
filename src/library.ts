@@ -1,7 +1,48 @@
 import React from "react";
+import dynamic from "next/dynamic";
 import { createLibrary, defineComponent, type ComponentGroup, type PromptOptions } from "@openuidev/react-lang";
 import { openuiLibrary, openuiPromptOptions } from "@openuidev/react-ui/genui-lib";
 import { z } from "zod/v4";
+
+type MapWithListProps = {
+  title?: string;
+  description?: string;
+  center?: { lat: number; lng: number };
+  zoom?: number;
+  height?: number;
+  items: Array<{
+    id: string;
+    lat: number;
+    lng: number;
+    label: string;
+    description?: string;
+    category?: string;
+    color?: "red" | "blue" | "green" | "yellow" | "purple" | "gray";
+  }>;
+};
+
+const MapWithListDynamic = dynamic<MapWithListProps>(() => import("./app/_ui/MapWithList.js").then((mod) => mod.default), {
+  ssr: false,
+  loading: () =>
+    React.createElement(
+      "div",
+      {
+        style: {
+          alignItems: "center",
+          background: "rgba(2, 18, 32, 0.18)",
+          border: "1px solid rgba(128, 226, 255, 0.18)",
+          borderRadius: 10,
+          color: "rgba(228, 244, 251, 0.86)",
+          display: "flex",
+          fontSize: 13,
+          height: 280,
+          justifyContent: "center",
+          padding: 14,
+        },
+      },
+      "Loading map…",
+    ),
+});
 import {
   Bar as RcBar,
   BarChart as RcBarChart,
@@ -354,6 +395,52 @@ function normalizeTileX(tileX: number, zoom: number): number {
   const max = 2 ** zoom;
   return ((tileX % max) + max) % max;
 }
+
+const MapWithList = defineComponent({
+  name: "MapWithList",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    center: z
+      .object({
+        lat: z.number(),
+        lng: z.number(),
+      })
+      .optional(),
+    zoom: z.number().int().min(1).max(18).default(11),
+    height: z.number().int().min(240).max(720).default(420),
+    items: z.array(
+      z.object({
+        id: z.string(),
+        lat: z.number(),
+        lng: z.number(),
+        label: z.string(),
+        description: z.string().optional(),
+        category: z.string().optional(),
+        color: z.enum(["red", "blue", "green", "yellow", "purple", "gray"]).optional(),
+        links: z
+          .array(
+            z.object({
+              label: z.string(),
+              url: z.string(),
+            }),
+          )
+          .optional(),
+      }),
+    ),
+  }),
+  description:
+    "Interactive map paired with a clickable item list. Clicking a list entry flies the map to that point and opens its popup; clicking a marker highlights the entry. Each item can include links (official site, review pages, etc.) shown as chips in the list and the marker popup. A Google Maps link is always auto-generated from lat/lng. Use for store/cafe/site directories, customer maps, tour stops — any time the user should browse points and see their place on a map.",
+  component: ({ props }) =>
+    React.createElement(MapWithListDynamic, {
+      title: props.title,
+      description: props.description,
+      center: props.center,
+      zoom: props.zoom,
+      height: props.height,
+      items: props.items,
+    }),
+});
 
 const MapView = defineComponent({
   name: "MapView",
@@ -1458,11 +1545,9 @@ const BarChart = defineComponent({
         "div",
         { style: { height: 220, padding: 14 } },
         React.createElement(
-          RcResponsiveContainer,
-          {
-            width: "100%",
-            height: "100%",
-            children: React.createElement(
+          RcResponsiveContainer as React.ElementType,
+          { width: "100%", height: "100%" },
+          React.createElement(
             RcBarChart,
             {
               data: props.data,
@@ -1511,11 +1596,10 @@ const BarChart = defineComponent({
                   key: `${item.label}:${index}`,
                   fill: toneColor[item.tone ?? "neutral"] ?? toneColor.neutral,
                 }),
+              ),
             ),
-          },
         ),
       ),
-        ),
       ),
     );
   },
@@ -1549,11 +1633,9 @@ const LineChart = defineComponent({
         "div",
         { style: { height: 220, padding: 14 } },
         React.createElement(
-          RcResponsiveContainer,
-          {
-            width: "100%",
-            height: "100%",
-            children: React.createElement(
+          RcResponsiveContainer as React.ElementType,
+          { width: "100%", height: "100%" },
+          React.createElement(
             RcLineChart,
             { data: props.data, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
             React.createElement(RcCartesianGrid, {
@@ -1598,8 +1680,7 @@ const LineChart = defineComponent({
               activeDot: { r: 3.5, stroke: chartPalette.line, strokeWidth: 1.5, fill: chartPalette.line },
               isAnimationActive: false,
             }),
-            ),
-          },
+          ),
         ),
       ),
     );
@@ -1852,11 +1933,9 @@ const Sparkline = defineComponent({
       "div",
       { style: { height, width: "100%" } },
       React.createElement(
-        RcResponsiveContainer,
-        {
-          width: "100%",
-          height: "100%",
-          children: React.createElement(
+        RcResponsiveContainer as React.ElementType,
+        { width: "100%", height: "100%" },
+        React.createElement(
           RcLineChart,
           { data: series, margin: { top: 2, right: 2, left: 2, bottom: 2 } },
           React.createElement(RcLine, {
@@ -1869,7 +1948,6 @@ const Sparkline = defineComponent({
             isAnimationActive: false,
           }),
         ),
-      },
       ),
     );
   },
@@ -3083,11 +3161,9 @@ const DonutChart = defineComponent({
           "div",
           { style: { height: 180, position: "relative", width: 180 } },
           React.createElement(
-            RcResponsiveContainer,
-            {
-              width: "100%",
-              height: "100%",
-              children: React.createElement(
+            RcResponsiveContainer as React.ElementType,
+            { width: "100%", height: "100%" },
+            React.createElement(
               RcPieChart,
               null,
               React.createElement(RcTooltip, {
@@ -3120,9 +3196,8 @@ const DonutChart = defineComponent({
                 },
                 data.map((seg, i) =>
                   React.createElement(RcCell, { key: i, fill: seg.fill }),
+                ),
               ),
-            },
-          ),
             ),
           ),
           React.createElement(
@@ -3465,10 +3540,11 @@ const componentGroups: ComponentGroup[] = [
   },
   {
     name: "Maps",
-    components: ["MapView"],
+    components: ["MapView", "MapWithList"],
     notes: [
-      "- Use MapView whenever the user asks for a map, locations, geography, stores, customers, incidents, sites, routes, or nearby places.",
-      "- MapView requires center: { lat, lng }, zoom, and markers with lat/lng/label. Use real coordinates when known; otherwise use clearly approximate coordinates.",
+      "- Use MapView for a standalone map with markers. Static, no list, no interaction beyond pan/zoom.",
+      "- Use MapWithList when the user should browse multiple points by name AND see them on a map. Clicking a list item flies the map to it and opens its popup; clicking a marker highlights the list item. Items can include links (official site, review pages, etc.); a Google Maps link is auto-generated. Best for store directories, cafe lists, tour stops, customer/site maps.",
+      "- Both accept center: { lat, lng } (optional for MapWithList — auto-centered on items) and zoom. MapWithList items need id, lat, lng, label, plus optional description, category, color.",
       "- Marker colors: red, blue, green, yellow, purple, gray.",
     ],
   },
@@ -3592,6 +3668,7 @@ const customComponents = [
   TaskBoard,
   CodeDiff,
   MapView,
+  MapWithList,
   AudioPlayer,
   VideoPlayer,
   ImageGallery,
@@ -3636,6 +3713,7 @@ const customComponentNames = new Set([
   "TaskBoard",
   "CodeDiff",
   "MapView",
+  "MapWithList",
   "AudioPlayer",
   "VideoPlayer",
   "ImageGallery",
@@ -3692,6 +3770,7 @@ export const promptOptions: PromptOptions = {
     "For task queues, implementation plans, QA status, triage lanes, or multi-agent handoffs, prefer TaskBoard(title, description, columns).",
     "For code, config, prompt, or document changes, prefer CodeDiff(title, description, files).",
     "For map requests, use MapView(title, description, center, zoom, height, markers) as part of the UI. Include useful marker labels and colors.",
+    "For interactive map + list directories (cafe lists, store maps, tour stops, customer directories), prefer MapWithList(title, description, center?, zoom, height, items). Each item has { id, lat, lng, label, description?, category?, color?, links?: [{label, url}] }. Pass real http(s) URLs for official sites, review pages, social profiles, etc. A 'Google Maps' link is auto-generated from lat/lng — do not duplicate it. The list and map stay in sync: clicking a list entry flies the map to it; clicking a marker highlights the entry. Links open in the user's default browser.",
     "For audio or music requests, use AudioPlayer(title, description, tracks). Do not autoplay. Prefer provided audio URLs.",
     "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters). Do not autoplay. Prefer provided video URLs.",
     "For screenshots, photo grids, and visual evidence, prefer ImageGallery(title, description, images, columns).",

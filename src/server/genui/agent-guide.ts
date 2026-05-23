@@ -48,6 +48,7 @@ export const agentUsageGuide = {
     "CodeDiff",
     "CodeBlock",
     "MapView",
+    "MapWithList",
     "GeoHeatmap",
     "ImageGallery",
     "InlineSvg",

@@ -4,8 +4,8 @@ export type GenUIGlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "
 export type GenUILabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
 export type GenUIWindowAnimationPreset = "center" | "left" | "right" | "top" | "fade";
 export type GenUIThemeColorPreset =
-  | "tactical"
   | "blue"
+  | "azure"
   | "cyan"
   | "violet"
   | "mint"

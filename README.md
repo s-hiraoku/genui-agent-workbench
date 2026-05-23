@@ -127,7 +127,7 @@ The component library is the design boundary. Agents can compose listed componen
 - Data: `DataTable`, `DataPreview`, `TreeView`
 - Code and changes: `CodeDiff`, `CodeBlock`
 - Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`
-- Geography: `MapView`, `GeoHeatmap`, `WeatherCard`
+- Geography: `MapView`, `MapWithList`, `GeoHeatmap`, `WeatherCard`
 - Conversation and people: `MessageThread`, `TranscriptView`, `PersonCard`, `EventList`
 - Charts: `BarChart`, `LineChart`, `DonutChart`, `Sparkline`
 
@@ -145,7 +145,7 @@ Design defaults can be changed from:
 
 Available presets:
 
-- `themeColorPreset`: `tactical` (default), `blue`, `cyan`, `violet`, `mint`, `rose`, `amber`, `white`, `midnight`, `forest`, `crimson`, `graphite`
+- `themeColorPreset`: `mint` (default, shown as Tactical), `blue`, `azure` (shown as Bright Blue), `cyan`, `violet`, `rose`, `amber`, `white`, `midnight`, `forest`, `crimson`, `graphite`
 - `glassPreset`: `clear`, `pane`, `milky` (default), `dense`, `mint`, `sky`, `rose`, `amber`
 - `labelInkPreset`: `green` (default), `slate`, `white`, `blue`, `amber`, `red`
 - `windowAnimationPreset`: `center` (default), `left`, `right`, `top`, `fade`

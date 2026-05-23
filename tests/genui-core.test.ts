@@ -9,6 +9,7 @@ import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
 import { library, promptOptions } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
+import { sanitizeSettings } from "../src/server/genui/settings";
 
 const genuiTestRoot = path.join(process.cwd(), ".genui-test");
 let genuiDir = "";
@@ -100,6 +101,34 @@ describe("agent interface scaffold", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
     expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable"]));
+  });
+});
+
+describe("settings", () => {
+  it("uses mint as the tactical HUD theme preset", () => {
+    const settings = sanitizeSettings({
+      design: {
+        glassPreset: "milky",
+        labelInkPreset: "green",
+        themeColorPreset: "mint",
+        windowAnimationPreset: "center",
+      },
+    });
+
+    expect(settings.design.themeColorPreset).toBe("mint");
+  });
+
+  it("accepts the bright blue theme preset", () => {
+    const settings = sanitizeSettings({
+      design: {
+        glassPreset: "milky",
+        labelInkPreset: "green",
+        themeColorPreset: "azure",
+        windowAnimationPreset: "center",
+      },
+    });
+
+    expect(settings.design.themeColorPreset).toBe("azure");
   });
 });
 

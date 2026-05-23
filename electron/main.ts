@@ -3,7 +3,7 @@ import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import net from "node:net";
 import path from "node:path";
 import { URL } from "node:url";
-import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from "electron";
+import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, shell, Tray } from "electron";
 import { OpenUILangValidationError, renderGenUI } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
@@ -22,6 +22,33 @@ type PopupRuntime = PopupRecord & {
 };
 
 const popupRegistry = new Map<string, PopupRuntime>();
+
+// Route external links (target="_blank", window.open) from popup/settings
+// windows to the OS default browser, instead of spawning new floating
+// BrowserWindows inside Electron. Internal navigations (same Next.js
+// origin) are left alone.
+function routeExternalLinks(window: BrowserWindow): void {
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) {
+      void shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
+
+  window.webContents.on("will-navigate", (event, url) => {
+    const current = window.webContents.getURL();
+    try {
+      const target = new URL(url);
+      const here = new URL(current);
+      if (target.origin !== here.origin && /^https?:$/i.test(target.protocol)) {
+        event.preventDefault();
+        void shell.openExternal(url);
+      }
+    } catch {
+      // ignore bad URLs
+    }
+  });
+}
 
 let tray: Tray | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -458,6 +485,8 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     },
   });
 
+  routeExternalLinks(window);
+
   if (geometry.fullScreen) {
     window.setFullScreen(true);
   }
@@ -555,6 +584,8 @@ function openSettingsWindow(): void {
       preload: path.join(__dirname, "preload.js"),
     },
   });
+
+  routeExternalLinks(settingsWindow);
 
   settingsWindow.on("closed", () => {
     settingsWindow = null;

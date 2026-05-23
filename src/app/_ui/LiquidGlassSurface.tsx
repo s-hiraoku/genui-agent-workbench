@@ -5,13 +5,14 @@ import { type ReactNode } from "react";
 type LiquidGlassSurfaceProps = {
   animation?: string;
   children: ReactNode;
+  opaque?: boolean;
   themeColor?: string;
 };
 
 const animationPresets = new Set(["center", "left", "right", "top", "fade"]);
 const themeColorPresets = new Set([
-  "tactical",
   "blue",
+  "azure",
   "cyan",
   "violet",
   "mint",
@@ -24,12 +25,12 @@ const themeColorPresets = new Set([
   "graphite",
 ]);
 
-export function LiquidGlassSurface({ animation, children, themeColor }: LiquidGlassSurfaceProps) {
+export function LiquidGlassSurface({ animation, children, opaque, themeColor }: LiquidGlassSurfaceProps) {
   const animationPreset = animationPresets.has(animation ?? "") ? animation : "center";
-  const themeColorPreset = themeColorPresets.has(themeColor ?? "") ? themeColor : "tactical";
+  const themeColorPreset = themeColorPresets.has(themeColor ?? "") ? themeColor : "mint";
 
   return (
-    <div className="lg-shell" data-theme-color={themeColorPreset}>
+    <div className="lg-shell" data-opaque={opaque ? "true" : "false"} data-theme-color={themeColorPreset}>
       <div className="lg-wallpaper" />
       <div className="lg-center">
         <div className="lg-window-frame" data-animation={animationPreset}>
