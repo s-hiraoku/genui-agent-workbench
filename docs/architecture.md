@@ -67,6 +67,6 @@ Popup previews are constrained by a dedicated renderer wrapper. The renderer app
 - stable scroll boundaries;
 - media max-width and aspect-ratio constraints;
 - table/pre/code wrapping;
-- narrow-container fallback for generated grid layouts.
+- narrow-container handling for generated grid layouts.
 
 This is intentionally defensive because agent-authored UI can contain arbitrary component combinations and long text.

@@ -1,7 +1,9 @@
 #!/usr/bin/env tsx
 import { spawn } from "node:child_process";
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { readBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
@@ -9,6 +11,7 @@ import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import { library, promptOptions } from "../src/library";
 
 type CliOptions = Record<string, string | boolean>;
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv: string[]): { command: string; options: CliOptions } {
   const [command = "help", ...rest] = argv;
@@ -121,14 +124,22 @@ function assertCompatibleBroker(status: Record<string, unknown>): void {
   }
 }
 
-function startBrokerProcess(): void {
-  const child = spawn("npm", ["run", "electron:dev"], {
-    cwd: process.cwd(),
-    detached: true,
-    env: process.env,
-    stdio: "ignore",
+function startBrokerProcess(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("npm", ["run", "electron:dev"], {
+      cwd: repoRoot,
+      detached: true,
+      env: process.env,
+      stdio: "ignore",
+    });
+
+    child.once("error", reject);
+    child.once("spawn", () => {
+      console.error(`[genui] starting broker with "npm run electron:dev" in ${repoRoot}`);
+      child.unref();
+      resolve();
+    });
   });
-  child.unref();
 }
 
 async function ensureBroker(options: CliOptions): Promise<string> {
@@ -143,7 +154,13 @@ async function ensureBroker(options: CliOptions): Promise<string> {
     throw new Error("GenUI broker is not reachable. Start it with npm run electron:dev.");
   }
 
-  startBrokerProcess();
+  try {
+    await startBrokerProcess();
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to start GenUI broker with "npm run electron:dev" in ${repoRoot}. Detail: ${detail}`);
+  }
+
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     await sleep(750);
@@ -155,7 +172,9 @@ async function ensureBroker(options: CliOptions): Promise<string> {
     }
   }
 
-  throw new Error("GenUI broker did not become ready within 30 seconds.");
+  throw new Error(
+    `GenUI broker did not become ready within 30 seconds. Try running "npm run electron:dev" manually in ${repoRoot} to see startup logs.`,
+  );
 }
 
 async function popup(options: CliOptions): Promise<unknown> {

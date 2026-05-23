@@ -3,6 +3,15 @@ import { library } from "../../library";
 import { saveArtifact } from "./artifacts";
 import type { GenUIArtifact, GenUILocale, RenderGenUIInput, RenderGenUIResult } from "./types";
 
+const openuiParser = createParser(library.toJSONSchema(), library.root);
+
+export class OpenUILangValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OpenUILangValidationError";
+  }
+}
+
 function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
 }
@@ -33,11 +42,19 @@ function validationSummary(
 }
 
 export function validateOpenUILang(openuiLang: string): void {
-  const parser = createParser(library.toJSONSchema(), library.root);
-  const result = parser.parse(openuiLang);
+  let result: ReturnType<typeof openuiParser.parse>;
+
+  try {
+    result = openuiParser.parse(openuiLang);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new OpenUILangValidationError(`Invalid OpenUI Lang: ${detail}`);
+  }
 
   if (result.meta.errors.length > 0 || result.meta.unresolved.length > 0) {
-    throw new Error(`Invalid OpenUI Lang: ${validationSummary(result.meta.errors, result.meta.unresolved)}`);
+    throw new OpenUILangValidationError(
+      `Invalid OpenUI Lang: ${validationSummary(result.meta.errors, result.meta.unresolved)}`,
+    );
   }
 }
 

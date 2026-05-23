@@ -7,7 +7,7 @@ import { loadArtifact } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { library, promptOptions } from "../src/library";
-import { renderGenUI, validateOpenUILang } from "../src/server/genui/render";
+import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 
 const genuiTestRoot = path.join(process.cwd(), ".genui-test");
 let genuiDir = "";
@@ -61,6 +61,10 @@ describe("renderGenUI", () => {
     await expect(renderGenUI({ openuiLang: "root = MissingCard()" })).rejects.toThrow(
       "Invalid OpenUI Lang",
     );
+  });
+
+  it("reports validation failures with a typed error", () => {
+    expect(() => validateOpenUILang("root = MissingCard()")).toThrow(OpenUILangValidationError);
   });
 
   it("validates representative OpenUI Lang", () => {

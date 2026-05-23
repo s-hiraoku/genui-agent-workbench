@@ -1,6 +1,6 @@
 ---
 name: genui-agent-workbench
-description: Use this skill when working on the genui-agent-workbench repository, especially for the Electron GenUI Popup Broker, CLI/MCP invocation, or OpenUI artifact rendering.
+description: Use this skill when working on the genui-agent-workbench repository, especially for the Electron GenUI Popup Broker, CLI invocation, or OpenUI artifact rendering.
 ---
 
 # genui-agent-workbench

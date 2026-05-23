@@ -4,7 +4,7 @@ import net from "node:net";
 import path from "node:path";
 import { URL } from "node:url";
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, Tray } from "electron";
-import { renderGenUI } from "../src/server/genui/render";
+import { OpenUILangValidationError, renderGenUI } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { componentCatalog } from "../src/server/genui/component-catalog";
@@ -286,9 +286,17 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   if (req.method === "POST" && url.pathname === "/v1/popups") {
-    const body = await readRequestJson(req);
-    const opened = await openPopup(body as RenderGenUIInput);
-    sendJson(res, 200, opened);
+    try {
+      const body = await readRequestJson(req);
+      const opened = await openPopup(body as RenderGenUIInput);
+      sendJson(res, 200, opened);
+    } catch (error) {
+      if (error instanceof OpenUILangValidationError) {
+        sendJson(res, 400, { error: error.message });
+        return;
+      }
+      throw error;
+    }
     return;
   }
 
@@ -367,18 +375,6 @@ function pickPreset(input: RenderGenUIInput): SizePreset {
   if (typeof raw === "string" && raw in PRESET_RATIOS) {
     return raw as SizePreset;
   }
-  return inferPresetFromInput(input);
-}
-
-function inferPresetFromInput(input: RenderGenUIInput): SizePreset {
-  const text = `${input.openuiLang ?? ""} ${input.title ?? ""}`.toLowerCase();
-  if (/\b(full ?screen|kiosk|cinema|theater)\b/.test(text)) return "cinema";
-  if (/\b(dashboard|grid|board|matrix|map)\b/.test(text)) return "stage";
-  if (/\b(table|list|report|spreadsheet|long)\b/.test(text)) return "wide";
-  if (/\b(form|wizard|checklist|tall|column)\b/.test(text)) return "tall";
-  if (/\b(toast|alert|tip|hint|mini|notice)\b/.test(text)) return "compact";
-  if (/\b(card|summary|kpi|stat|profile)\b/.test(text)) return "card";
-  if (/\b(setting|preference|filter|panel|sidebar)\b/.test(text)) return "panel";
   return "default";
 }
 
