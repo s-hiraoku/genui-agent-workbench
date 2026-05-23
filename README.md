@@ -2,39 +2,24 @@
 
 A resident GenUI Popup Broker for AI agents.
 
-`genui-agent-workbench` is a local visual surface for agent workflows. Other AI agents call it through CLI, MCP, or repository-local Skill instructions when they need to explain something to a human with generated UI. The Electron app stays resident, generates an OpenUI artifact, and opens the result in a dedicated popup window.
+`genui-agent-workbench` gives local agents a way to show rich temporary UI without owning windows themselves. The agent generates OpenUI Lang, the CLI sends it to the resident Electron broker, and the broker validates, stores, and renders it in a popup.
 
 OpenUI means the Generative UI framework from `@openuidev`, not the W3C Open UI community/spec project.
 
 ## Product Concept
 
-GenUI is treated as a tool, not as a standalone chat app.
+GenUI is a visual output surface for agents, not a chat app and not a broker-side LLM.
 
 The intended flow:
 
-1. Start the resident Electron broker once.
-2. Any AI agent calls the broker through CLI or MCP.
-3. The agent sends `prompt`, optional `context`, `agentId`, `title`, and a size preset.
-4. The broker generates an OpenUI artifact and saves it under `.genui/artifacts`.
-5. Electron opens a popup that renders `/preview/[artifactId]`.
-6. The user closes the popup, or the calling agent closes it later by `popupId`.
+1. The agent reads the CLI-provided authoring guide with `npm run genui -- prompt-spec`.
+2. The agent decides the UI and generates OpenUI Lang.
+3. The agent calls `npm run genui -- popup --openui-lang-file ui.openui`.
+4. The CLI starts or connects to the resident Electron broker.
+5. The broker validates the OpenUI Lang, saves an artifact under `.genui/artifacts`, and opens a popup.
+6. The preview page renders the artifact with OpenUI `<Renderer>`.
 
-The goal is to make this an interface layer that AI agents naturally reach for when text is not enough: status dashboards, decision support, timelines, maps, media previews, task handoffs, and compact explanations.
-
-## MVP Status
-
-This scaffold includes:
-
-- Electron tray-resident broker.
-- Local control API owned by Electron main.
-- Next.js dashboard and `/preview/[artifactId]` renderer.
-- CLI client for popup open/close/status/component discovery/usage guide.
-- MCP stdio server with agent-oriented tools.
-- OpenUI + custom GenUI component library.
-- Deterministic fallback renderer for local development without OpenAI.
-- Artifact store under `.genui/`.
-- Broker protocol version checks for CLI/MCP compatibility.
-- Unit coverage for artifact generation, fallback routing, broker state, component catalog, and agent guide.
+The broker does not interpret natural-language prompts and does not call an LLM. UI planning belongs to the calling agent.
 
 ## Setup
 
@@ -43,75 +28,52 @@ npm install
 cp .env.example .env.local
 ```
 
-Set `OPENAI_API_KEY` in `.env.local` for real LLM generation.
-
-For local smoke tests without OpenAI:
-
-```bash
-GENUI_MOCK_RENDER=1 npm run electron:dev
-```
-
 Artifacts are stored in `.genui/` by default. Set `GENUI_DATA_DIR=/path/to/dir` to use a different local store.
 
 ## Run
 
-Start the resident broker:
+Start the resident broker explicitly:
 
 ```bash
 npm run electron:dev
 ```
 
-Electron starts the Next.js preview service, starts the local control API, writes `.genui/broker.json`, and stays available from the tray.
+The `popup` command also attempts to start the broker when it is not reachable.
 
 ## CLI
 
-Open a popup:
+Ask the CLI how an agent should use it:
+
+```bash
+npm run genui -- agent-instructions
+npm run genui -- prompt-spec
+npm run genui -- components
+```
+
+Open a popup from OpenUI Lang:
 
 ```bash
 npm run genui -- popup \
   --agent-id codex \
-  --title "Sales Review" \
+  --title "Build Review" \
   --size panel \
-  --prompt "売上ダッシュボードを作って。KPI、リスク、次のアクションを表示して。"
+  --openui-lang-file ui.openui
 ```
 
-Open a popup with structured context from files:
+Open from stdin:
 
 ```bash
-npm run genui -- popup \
+cat ui.openui | npm run genui -- popup \
   --agent-id codex \
-  --title "Triage Table" \
-  --size wide \
-  --prompt-file prompt.txt \
-  --context-file context.json
+  --title "Build Review" \
+  --stdin-openui
 ```
 
-Useful context shape for table-style UI:
-
-```json
-{
-  "columns": [
-    { "key": "id", "label": "ID" },
-    { "key": "status", "label": "Status" },
-    { "key": "next", "label": "Next action" }
-  ],
-  "rows": [
-    { "id": "A-1", "status": "blocked", "next": "Escalate owner" }
-  ]
-}
-```
-
-Close a popup:
+Close and inspect:
 
 ```bash
 npm run genui -- close --popup-id "<popupId>"
-```
-
-Inspect the broker:
-
-```bash
 npm run genui -- status
-npm run genui -- components
 npm run genui -- guide
 ```
 
@@ -123,111 +85,57 @@ npm run genui -- guide
   "artifactId": "art_...",
   "previewUrl": "http://127.0.0.1:3000/preview/art_...",
   "status": "open",
-  "generationMode": "llm",
+  "generationMode": "provided",
   "brokerProtocolVersion": "0.2.0"
 }
 ```
 
-`generationMode` is `"llm"` when OpenAI generated the artifact and `"fallback"` when local deterministic generation was used.
+## OpenUI Lang Example
 
-## MCP
-
-Run the MCP stdio server:
-
-```bash
-npm run genui:mcp
+```openui
+root = Card([header, metrics, actions])
+header = CardHeader("Build Review", "Current agent run")
+metrics = MetricGrid("Summary", "Key checks", [m1, m2])
+m1 = { label: "Tests", value: "68 passed", tone: "positive" }
+m2 = { label: "Lint", value: "passed", tone: "positive" }
+actions = ActionPanel("Next Actions", "Recommended handoff", [a1])
+a1 = { label: "Open popup", priority: "medium", owner: "agent", description: "Send OpenUI Lang through the CLI" }
 ```
-
-Tools:
-
-- `genui.open_popup`: generate an artifact and open a popup.
-- `genui.close_popup`: close a popup by `popupId`.
-- `genui.list_components`: list available custom GenUI components.
-- `genui.usage_guide`: return agent-oriented usage patterns, CLI examples, MCP affordances, prompt patterns, and guardrails.
-
-The MCP server expects the Electron broker to already be running. It resolves the local broker URL from `GENUI_BROKER_URL`, `GENUI_SERVICE_URL`, `.genui/broker.json`, or `http://127.0.0.1:48231`.
 
 ## Built-In GenUI Components
 
-Agent explanation components:
+The component library is the design boundary. Agents can compose listed components, but styling is owned by this repo.
 
-- `Label`: reusable Liquid Glass status, priority, tag, count, and compact metadata badge.
-- `MetricGrid`: KPI/status cards for dashboards, health checks, and progress summaries.
-- `KeyValuePanel`: metadata, environment details, customer facts, and compact evidence.
-- `AlertList`: risks, blockers, warnings, validation findings, and confirmations.
-- `ProgressStepper`: staged workflows, approvals, releases, investigations, and onboarding.
-- `BarChart`: rankings, counts, category comparison, cost, and risk scoring.
-- `LineChart`: trends, forecasts, time series, backlog movement, and metric history.
-- `ResourceList`: files, URLs, documents, generated artifacts, and handoff references.
-- `FormPanel`: input review, missing fields, intake summaries, and approval checks.
-- `ActionPanel`: prioritized next actions with owner, due date, and severity.
-- `TimelinePanel`: chronological explanation for incidents, releases, research, and workflows.
-- `DecisionMatrix`: option comparison for recommendations and tradeoffs.
-- `DataTable`: operational rows, tickets, file lists, research results, rankings, and evidence.
-- `TaskBoard`: task queues, implementation plans, triage lanes, QA status, and agent handoffs.
-- `CodeDiff`: code/config/prompt/document diffs for review.
+- Basics: `Card`, `CardHeader`, `Label`
+- Summaries: `MetricGrid`, `Stat`, `KeyValuePanel`
+- Risks and status: `AlertList`, `NotificationToast`, `DiagnosticsCard`
+- Decisions: `DecisionMatrix`, `CompareTable`, `ConfirmDialog`
+- Progress: `ProgressStepper`, `TimelinePanel`, `TaskBoard`, `WizardForm`
+- Data: `DataTable`, `DataPreview`, `TreeView`
+- Code and changes: `CodeDiff`, `CodeBlock`
+- Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`
+- Geography: `MapView`, `GeoHeatmap`, `WeatherCard`
+- Conversation and people: `MessageThread`, `TranscriptView`, `PersonCard`, `EventList`
+- Charts: `BarChart`, `LineChart`, `DonutChart`, `Sparkline`
 
-Media and spatial components:
+Run `npm run genui -- prompt-spec` for full signatures and examples.
 
-- `MapView`: OpenStreetMap-backed panel with center, zoom, height, and colored markers.
-- `AudioPlayer`: playlist-style audio player for music, voice notes, podcasts, and recordings.
-- `VideoPlayer`: video player with poster, chapters, and transcript support.
+## Liquid Glass Design
 
-The renderer also adds popup-specific layout hardening: stable scroll boundaries, container-query aware content, media aspect-ratio constraints, table wrapping, and overflow protection.
+The app uses a project-local Liquid Glass HUD design layer built from CSS variables/classes and the custom OpenUI component library. There is no separate Liquid Glass runtime dependency.
 
-Custom Liquid Glass components accept `glassPreset`, `glassColor`, and `glassOpacity`. Prefer `glassPreset`: `clear`, `pane`, `milky`, `dense`, `mint`, `sky`, `rose`, or `amber`. The shell theme uses `themeColorPreset`: `blue`, `cyan`, `violet`, `mint`, `rose`, `amber`, or `white`. `Label` also accepts `inkPreset`: `green`, `slate`, `white`, `blue`, `amber`, or `red`. Window opening uses `windowAnimationPreset`: `center`, `left`, `right`, `top`, or `fade`.
+Design defaults can be changed from:
 
-## Agent Prompt Patterns
+- the main workbench screen (`/`)
+- the tray settings window (`/settings`)
+- `POST /v1/settings`
 
-Use outcome-oriented prompts:
+Available presets:
 
-```txt
-この状況をKPIカード、リスク、次アクションで視覚化して。
-```
-
-```txt
-カテゴリ別の件数と直近推移をチャートで表示して。
-```
-
-```txt
-リスクと警告をseverity別に表示して。各項目に推奨アクションも付けて。
-```
-
-```txt
-入力内容をフォーム確認UIで表示して。不足項目も示して。
-```
-
-```txt
-関連ファイルと参考URLをリソース一覧として表示して。
-```
-
-```txt
-障害対応の流れをタイムラインで説明し、今すぐやることを出して。
-```
-
-```txt
-3つの実装案を比較して、推奨案と理由を視覚的に説明して。
-```
-
-```txt
-このrowsを表で表示して。重要な行と次アクションも示して。
-```
-
-```txt
-作業状況をTodo/Doing/Doneのボードで表示して。担当と状態も見せて。
-```
-
-```txt
-この変更差分をレビュー用UIで表示して。追加・削除と確認ポイントも見せて。
-```
-
-```txt
-東京の顧客拠点を地図で表示して。優先度別にマーカーを分けて。
-```
-
-```txt
-デモ動画をチャプター付きで表示して。重要な場面もまとめて。
-```
+- `themeColorPreset`: `blue` (default), `cyan`, `violet`, `mint`, `rose`, `amber`, `white`
+- `glassPreset`: `clear`, `pane`, `milky` (default), `dense`, `mint`, `sky`, `rose`, `amber`
+- `labelInkPreset`: `green` (default), `slate`, `white`, `blue`, `amber`, `red`
+- `windowAnimationPreset`: `center` (default), `left`, `right`, `top`, `fade`
 
 ## Local Control API
 
@@ -241,27 +149,25 @@ Use outcome-oriented prompts:
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
 
-The API is local-only on `127.0.0.1`. CLI and MCP check `brokerProtocolVersion` before mutating popup state.
+The API is local-only on `127.0.0.1`. The CLI is the supported agent-facing interface.
 
 ## Architecture
 
 ```txt
-External AI agent
-  ↓ CLI / MCP / Skill-guided workflow
+AI agent
+  ↓ reads `genui prompt-spec`
+OpenUI Lang
+  ↓ CLI
 Electron resident broker
-  ↓ local control API
-renderGenUI(input)
-  ↓ OpenAI or deterministic fallback
-.genui/artifacts/<artifactId>.json
-  ↓
-Electron BrowserWindow popup
+  ↓ validate + save artifact
+BrowserWindow popup
   ↓
 Next.js /preview/[artifactId]
   ↓
 OpenUI React renderer + custom component library
 ```
 
-Electron owns popup lifecycle. CLI and MCP are thin clients. Next.js owns dashboard and preview rendering.
+Electron owns popup lifecycle. The CLI is the agent-facing entry point. Next.js owns dashboard and preview rendering.
 
 ## Validation
 
@@ -276,5 +182,4 @@ npm run electron:build
 
 - Do not commit `.env`, `.env.local`, `.genui/`, build output, or secrets.
 - Keep new UI components registered in both `src/library.ts` and `src/server/genui/component-catalog.ts`.
-- Keep MCP schemas, CLI options, and `docs/agent-interface.md` aligned.
-- Document architectural changes in `docs/`.
+- Keep CLI help, `src/server/genui/agent-guide.ts`, and `docs/agent-interface.md` aligned.

@@ -1,109 +1,55 @@
 # Agent Interface
 
-This project is designed so other AI agents can use GenUI as a local visual explanation tool.
+This project is designed so AI agents can use GenUI as a local visual output tool through the CLI.
 
-## When Agents Should Use It
+## Responsibility Split
 
-Use GenUI Popup Broker when a human would understand faster with UI than with text:
+- Agent: understand the user, choose the UI, and generate OpenUI Lang.
+- CLI: expose authoring instructions, start/connect to the broker, and send OpenUI Lang.
+- Broker: validate OpenUI Lang, store artifacts, and open Electron popups.
+- OpenUI: render OpenUI Lang with the broker's component library.
 
-- Status dashboards and KPI summaries.
-- Incident timelines and release plans.
-- Decision matrices and tradeoff comparisons.
-- Maps, locations, routes, and site lists.
-- Audio or video review.
-- Next-action handoffs and approval prompts.
-
-Do not use it for plain text answers, secrets, or workflows where the user does not need a visual surface.
+The broker is not a UI-planning LLM. Do not send natural-language prompts as the primary path.
 
 ## Preferred Agent Flow
 
-1. Call `genui.usage_guide` or `npm run genui -- guide` during setup.
-2. Call `genui.list_components` or `npm run genui -- components` if choosing a UI shape.
-3. Call `genui.open_popup` with an outcome-oriented prompt and structured context.
-4. Store `popupId`, `artifactId`, and `previewUrl` in the calling workflow.
-5. Call `genui.close_popup` when the popup is no longer useful.
-
-## MCP Contract
-
-### `genui.open_popup`
-
-Input:
-
-```json
-{
-  "prompt": "この状況をKPI、リスク、次アクションで視覚化して。",
-  "agentId": "codex",
-  "title": "Status Review",
-  "context": {
-    "summary": "Optional structured data from the calling agent"
-  },
-  "mockData": "auto",
-  "locale": "ja",
-  "size": "panel"
-}
-```
-
-Output:
-
-```json
-{
-  "popupId": "pop_...",
-  "artifactId": "art_...",
-  "previewUrl": "http://127.0.0.1:3000/preview/art_...",
-  "status": "open",
-  "generationMode": "llm",
-  "brokerProtocolVersion": "0.2.0"
-}
-```
-
-### `genui.close_popup`
-
-Input:
-
-```json
-{ "popupId": "pop_..." }
-```
-
-### `genui.list_components`
-
-Returns the broker component catalog. Agents should use this when deciding which UI shape to request.
-
-### `genui.usage_guide`
-
-Returns prompt patterns, guardrails, CLI examples, and MCP tool guidance. Agents should use this as their self-serve onboarding document.
-
-## CLI Contract
-
-Open:
+1. Run `npm run genui -- agent-instructions` if the agent has not used GenUI before.
+2. Run `npm run genui -- prompt-spec` and use the output as the OpenUI Lang authoring guide.
+3. Generate OpenUI Lang using only listed components.
+4. Open a popup:
 
 ```bash
-npm run genui -- popup --agent-id codex --title "Decision Review" --size wide --prompt "3つの案を比較して推奨案を出して"
+npm run genui -- popup --agent-id codex --title "Decision Review" --size wide --openui-lang-file ui.openui
 ```
 
-Open with file-based context:
-
-```bash
-npm run genui -- popup --agent-id codex --prompt-file prompt.txt --context-file context.json --size wide
-```
-
-Open with inline context:
-
-```bash
-npm run genui -- popup --agent-id codex --prompt "このrowsを表で表示して" --context-json '{"rows":[{"id":"A-1","status":"blocked"}]}'
-```
-
-Close:
+5. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
+6. Close when done:
 
 ```bash
 npm run genui -- close --popup-id "<popupId>"
 ```
 
-Inspect:
+## OpenUI Lang Example
+
+```openui
+root = Card([header, matrix, actions])
+header = CardHeader("Decision Review", "Three implementation options")
+matrix = DecisionMatrix("Options", "Recommendation summary", [o1, o2])
+o1 = { name: "Direct OpenUI Lang", recommendation: "recommended", score: "9/10", pros: ["Clear responsibility", "No broker LLM"], cons: ["Agent must generate UI"] }
+o2 = { name: "Broker prompt route", recommendation: "avoid", score: "4/10", pros: ["Simple caller"], cons: ["Duplicate interpretation", "Harder to control"] }
+actions = ActionPanel("Next Actions", "Recommended handoff", [a1])
+a1 = { label: "Use direct CLI route", priority: "high", owner: "agent", description: "Generate OpenUI Lang and pass it to --openui-lang-file" }
+```
+
+## CLI Commands
 
 ```bash
-npm run genui -- status
+npm run genui -- agent-instructions
+npm run genui -- prompt-spec
 npm run genui -- components
-npm run genui -- guide
+npm run genui -- popup --openui-lang-file ui.openui --title "Status" --agent-id codex
+npm run genui -- status
+npm run genui -- close --popup-id "<popupId>"
 ```
 
 ## Size Presets
@@ -119,79 +65,11 @@ npm run genui -- guide
 
 Prefer presets before custom `width` and `height`.
 
-## Glass Presets
-
-Custom Liquid Glass components accept `glassPreset`, `glassColor`, and `glassOpacity`. Prefer `glassPreset` first:
-
-- `clear`: lightest glass.
-- `pane`: default transparent pane.
-- `milky`: readable frosted glass.
-- `dense`: strongest milky layer.
-- `mint`, `sky`, `rose`, `amber`: tinted milky layers.
-
-Use `glassColor` and `glassOpacity` only when the preset needs a specific override.
-
-The shell theme color is controlled by `themeColorPreset`: `blue`, `cyan`, `violet`, `mint`, `rose`, `amber`, or `white`. The default is `blue`.
-
-`Label` also accepts `inkPreset`: `green`, `slate`, `white`, `blue`, `amber`, or `red`. Use `green` for default milky labels.
-
-Window open animation is controlled by `windowAnimationPreset`: `center`, `left`, `right`, `top`, or `fade`.
-
-## Prompt Style
-
-Good prompts tell the broker what the user needs to understand or decide:
-
-```txt
-この状況をKPIカード、リスク、次アクションで視覚化して。
-```
-
-```txt
-障害対応の流れをタイムラインで説明し、今すぐやることを出して。
-```
-
-```txt
-候補案を比較して、推奨案と理由を視覚的に説明して。
-```
-
-```txt
-カテゴリ別の件数と直近推移をチャートで表示して。
-```
-
-```txt
-リスクと警告をseverity別に表示して。各項目に推奨アクションも付けて。
-```
-
-```txt
-入力内容をフォーム確認UIで表示して。不足項目も示して。
-```
-
-```txt
-関連ファイルと参考URLをリソース一覧として表示して。
-```
-
-```txt
-このrowsを表で表示して。重要な行と次アクションも示して。
-```
-
-```txt
-作業状況をTodo/Doing/Doneのボードで表示して。担当と状態も見せて。
-```
-
-```txt
-この変更差分をレビュー用UIで表示して。追加・削除と確認ポイントも見せて。
-```
-
-Poor prompts are vague:
-
-```txt
-いい感じにして
-```
-
 ## Guardrails
 
-- Never pass secrets in prompt or context.
-- Pass concrete data in `context` when available.
-- Prefer `--context-file` for larger data; prefer `--context-json` only for small objects.
-- Do not claim live data, tools, or MCP-backed sources were used unless the calling agent supplied that data.
+- Never pass secrets in OpenUI Lang or context.
+- Return only OpenUI Lang when authoring popup content.
+- Always define `root = ...`.
+- Use only components listed by `prompt-spec` or `components`.
 - Keep each popup focused on one user decision or explanation.
-- Close popups after the workflow no longer needs them.
+- Do not claim live data, tools, or remote sources were used unless the calling agent actually used them.
