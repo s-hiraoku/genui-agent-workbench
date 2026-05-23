@@ -1,6 +1,19 @@
 import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeBoot } from "./ThemeBoot";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-sans-src",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono-src",
+});
 
 export const metadata: Metadata = {
   title: "GenUI Popup Broker",
@@ -8,13 +21,25 @@ export const metadata: Metadata = {
     "A resident GenUI broker that lets AI agents open generated UI through CLI and MCP.",
 };
 
+const noFlash = `
+  (() => {
+    try {
+      const c = new URLSearchParams(location.search).get("chrome");
+      if (c) document.documentElement.dataset.chrome = c;
+    } catch {}
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jetbrains.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: noFlash }} />
+      </head>
       <body>
         <ThemeBoot />
         {children}

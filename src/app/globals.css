@@ -1,109 +1,86 @@
 @import "tailwindcss";
 
 /* =========================================================================
-   GenUI — Future HUD interface
-   ─────────────────────────────
-   Two visual languages, one system:
-
-   • Dark  — "Deep Space Command Console"
-             Obsidian void with neon cyan/violet, CRT scanlines,
-             holographic edge glow, glitch-time motion accents.
-
-   • Light — "Polar Lab Holographic"
-             Ivory engineering paper, ice-cyan rules,
-             blueprint grid, photonic micro-highlights.
-
-   Surface anatomy (both themes):
-     · cornered HUD frame with L-bracket markers
-     · scanline / grid overlay layer
-     · pulsing status reticle + monospace meta strip
-     · open-flash edge ignition
+   GenUI — Liquid Glass (rdev/liquid-glass-react)
+   ─────────────────────────────────────────────────────────────
+   Single material. No theme split. The glass itself is rendered by
+   the library; this stylesheet provides the wallpaper underneath and
+   the typography / inner primitives that sit on top of the glass.
    ========================================================================= */
 
 :root {
-  color-scheme: light dark;
+  /* Text — three steps of white */
+  --ink:      rgba(255, 255, 255, 1.00);
+  --ink-mid:  rgba(255, 255, 255, 0.70);
+  --ink-soft: rgba(255, 255, 255, 0.45);
 
-  /* ── DARK theme — Obsidian Frost Glass ───────────── */
-  --bg:        6 10 18;
-  --bg-2:      14 22 40;
-  --bg-3:      22 32 56;
-  --bg-alpha:  0.55;
+  /* Edges — only used by inner rows/chips that sit *inside* the glass */
+  --edge:        rgba(255, 255, 255, 0.30);
+  --edge-strong: rgba(255, 255, 255, 0.50);
+  --edge-soft:   rgba(255, 255, 255, 0.18);
 
-  --fg:        228 240 255;
-  --fg-dim:    150 172 210;
-  --fg-mute:   96 116 156;
+  --spec-soft: rgba(255, 255, 255, 0.30);
 
-  --hairline:        rgba(180, 225, 255, 0.12);
-  --hairline-strong: rgba(180, 225, 255, 0.32);
-  --hi:              rgba(255, 255, 255, 0.55);
+  /* Inner surface tints (rows / chips on top of the glass) */
+  --tint-row:  rgba(255, 255, 255, 0.10);
+  --tint-chip: rgba(255, 255, 255, 0.16);
 
-  /* HUD palette */
-  --cyan:    96 224 255;
-  --cyan-2:  60 180 255;
-  --violet:  168 130 255;
-  --magenta: 255 96 180;
-  --accent:  120 200 255;
-  --warn:    255 180 80;
-  --danger:  255 88 120;
-  --grid:    rgba(140, 210, 255, 0.08);
-  --scanline: rgba(180, 230, 255, 0.05);
+  /* Radii */
+  --r-window: 28px;
+  --r-panel:  18px;
+  --r-chip:   12px;
+  --r-pill:   999px;
 
-  --shadow-deep: 0 30px 100px rgba(0, 0, 0, 0.65), 0 4px 14px rgba(0, 0, 0, 0.45);
-  --tint:        rgba(140, 210, 255, 0.06);
-  --frame-radius: 14px;
-  --corner-size:  18px;
+  /* Spacing */
+  --sp-1: 4px;  --sp-2: 8px;   --sp-3: 12px;  --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px;  --sp-8: 32px;
 
-  --blur:   28px;
-  --saturate: 200%;
-
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  /* Fonts */
+  --font-sans:
+    var(--font-sans-src), ui-sans-serif, system-ui, -apple-system,
+    "SF Pro Display", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-mono:
+    var(--font-mono-src), ui-monospace, "JetBrains Mono", Menlo, monospace;
 }
 
-html[data-theme="light"] {
-  /* ── LIGHT theme — Polar Ice Glass ──────────────── */
-  --bg:        236 246 255;
-  --bg-2:      218 234 252;
-  --bg-3:      200 222 248;
-  --bg-alpha:  0.42;
-
-  /* high-contrast text on translucent ice */
-  --fg:        6 16 36;
-  --fg-dim:    42 70 116;
-  --fg-mute:   90 118 160;
-
-  --hairline:        rgba(10, 40, 100, 0.16);
-  --hairline-strong: rgba(10, 40, 100, 0.34);
-  --hi:              rgba(255, 255, 255, 0.85);
-
-  --cyan:    0 120 190;
-  --cyan-2:  20 90 200;
-  --violet:  92 60 200;
-  --magenta: 200 40 130;
-  --accent:  30 90 210;
-  --warn:    180 110 0;
-  --danger:  198 28 64;
-  --grid:    rgba(10, 50, 140, 0.08);
-  --scanline: rgba(10, 50, 140, 0.035);
-
-  --shadow-deep:
-    0 28px 80px rgba(20, 50, 110, 0.22),
-    0 6px 20px rgba(20, 50, 110, 0.14);
-  --tint:        rgba(10, 50, 140, 0.05);
-
-  --blur:   32px;
-  --saturate: 180%;
-}
-
+/* =====================================================================
+   Base
+   ===================================================================== */
 html, body {
   background: transparent;
-  color: rgb(var(--fg));
-  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Helvetica Neue",
-    Arial, "Hiragino Sans", "Noto Sans JP", sans-serif;
-  font-feature-settings: "ss01", "cv11";
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html, body { height: 100%; }
+
+/* Drag the whole window from any non-interactive surface. The library
+   emits its own DOM around our content, so applying drag at body level
+   covers the gaps. Interactive elements opt out via .lg-no-drag or by
+   being focusable controls. */
+html[data-chrome] body {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+html[data-chrome] :where(button, a, input, select, textarea, [role="button"], .lg-no-drag, .lg-input, .lg-select, .lg-switch, .lg-icon-button, .lg-row) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
-/* In-browser preview only — gives the glass something to refract.
-   Electron windows are transparent/vibrancy and ignore this layer. */
+.mono,
+[data-mono],
+.lg-input,
+.lg-meta,
+.lg-display {
+  font-variant-numeric: tabular-nums;
+}
+.mono,
+[data-mono] {
+  font-family: var(--font-mono);
+}
+
+/* Wallpaper — what the library refracts. Strong, contrasty, organic. */
 body::before {
   content: "";
   position: fixed;
@@ -111,743 +88,185 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60% 50% at 18% 12%, rgba(120, 200, 255, 0.35), transparent 70%),
-    radial-gradient(50% 40% at 88% 18%, rgba(180, 130, 255, 0.30), transparent 70%),
-    radial-gradient(70% 60% at 70% 95%, rgba(80, 200, 220, 0.25), transparent 70%),
-    linear-gradient(160deg, #d8e8ff 0%, #b9d4f7 45%, #9fc1ee 100%);
+    radial-gradient(50% 50% at 18% 12%, rgba(80, 180, 255, 0.85), transparent 70%),
+    radial-gradient(45% 45% at 88% 20%, rgba(220, 100, 255, 0.80), transparent 70%),
+    radial-gradient(60% 60% at 70% 95%, rgba(40, 220, 200, 0.75), transparent 70%),
+    radial-gradient(40% 40% at 10% 85%, rgba(255, 160, 100, 0.55), transparent 70%),
+    linear-gradient(160deg, #061026 0%, #0e1a3a 50%, #1b144a 100%);
 }
-html[data-theme="dark"] body::before,
-html:not([data-theme="light"]) body::before {
-  background:
-    radial-gradient(60% 50% at 18% 12%, rgba(40, 100, 200, 0.40), transparent 70%),
-    radial-gradient(50% 40% at 88% 18%, rgba(120, 70, 220, 0.40), transparent 70%),
-    radial-gradient(70% 60% at 70% 95%, rgba(20, 140, 200, 0.32), transparent 70%),
-    linear-gradient(160deg, #0a1224 0%, #0d172e 50%, #1b1130 100%);
-}
+html[data-chrome] body::before { display: none !important; }
 
-/* ====================================================================
-   APP SURFACE — the HUD frame
-   =================================================================== */
-.app-surface {
+/* =====================================================================
+   .lg-content  —  shell that sits on top of the full-window glass
+   ===================================================================== */
+.lg-content {
   position: relative;
-  min-height: 100vh;
-  color: rgb(var(--fg));
-  border-radius: var(--frame-radius);
-
-  background:
-    /* top photonic spotlight */
-    radial-gradient(140% 100% at 50% -10%, rgba(var(--cyan), 0.16), transparent 55%),
-    /* bottom violet bloom */
-    radial-gradient(120% 80% at 100% 110%, rgba(var(--violet), 0.12), transparent 60%),
-    /* translucent base — alpha is low so the glass actually transmits */
-    linear-gradient(160deg,
-      rgb(var(--bg)   / var(--bg-alpha)) 0%,
-      rgb(var(--bg-2) / var(--bg-alpha)) 55%,
-      rgb(var(--bg-3) / var(--bg-alpha)) 100%);
-
-  box-shadow:
-    inset 0 1px 0 var(--hi),
-    inset 0 0 0 1px var(--hairline-strong),
-    inset 0 0 0 2px rgba(var(--cyan), 0.38),
-    0 0 0 1px rgba(var(--cyan), 0.65),
-    0 0 22px rgba(var(--cyan), 0.30),
-    0 0 64px rgba(var(--cyan), 0.14),
-    var(--shadow-deep);
-
-  backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
-  overflow: hidden;
-  isolation: isolate;
-  transform-origin: 50% 50%;
-}
-
-/* Grid + scanlines overlay — sits behind content */
-.app-surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    /* vertical grid */
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 48px 100%,
-    /* horizontal grid */
-    linear-gradient(0deg,  var(--grid) 1px, transparent 1px) 0 0 / 100% 48px,
-    /* scanlines */
-    repeating-linear-gradient(0deg,
-      var(--scanline) 0px,
-      var(--scanline) 1px,
-      transparent 1px,
-      transparent 3px);
-  mask-image: radial-gradient(120% 100% at 50% 0%, black 40%, transparent 100%);
-  -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, black 40%, transparent 100%);
-}
-
-/* Subtle vignette + photonic flares overlay */
-.app-surface::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
   z-index: 1;
-  background:
-    radial-gradient(60% 40% at 12% 8%, rgba(var(--cyan), 0.10), transparent 60%),
-    radial-gradient(40% 30% at 88% 12%, rgba(var(--violet), 0.10), transparent 60%);
-  mix-blend-mode: screen;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-8) var(--sp-8);
+  color: var(--ink);
 }
 
-html[data-theme="light"] .app-surface::after {
-  mix-blend-mode: soft-light;
-  opacity: 0.7;
-}
-
-/* ── Light theme legibility tuning ─────────────────────
-   Translucent ice glass loses contrast on light wallpapers,
-   so darken the meta strip, give tags real ink, and lay a
-   pale inner wash inside the surface to anchor text. */
-html[data-theme="light"] .app-surface {
-  background:
-    radial-gradient(140% 100% at 50% -10%, rgba(var(--cyan), 0.18), transparent 55%),
-    radial-gradient(120% 80% at 100% 110%, rgba(var(--violet), 0.10), transparent 60%),
-    /* inner ivory veil — guarantees text contrast on any wallpaper */
-    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.30) 60%, rgba(255, 255, 255, 0.40) 100%),
-    linear-gradient(160deg,
-      rgb(var(--bg)   / var(--bg-alpha)) 0%,
-      rgb(var(--bg-2) / var(--bg-alpha)) 55%,
-      rgb(var(--bg-3) / var(--bg-alpha)) 100%);
-}
-html[data-theme="light"] .hud-eyebrow {
-  color: rgb(var(--fg-dim));
-  font-weight: 600;
-}
-html[data-theme="light"] .hud-eyebrow > b {
-  color: rgb(var(--cyan-2));
-}
-html[data-theme="light"] .hud-tag {
-  color: rgb(var(--cyan-2));
-  background: rgba(20, 90, 200, 0.10);
-  box-shadow: inset 0 0 0 1px rgba(20, 90, 200, 0.45);
-}
-html[data-theme="light"] .hud-row {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.35));
-  box-shadow:
-    inset 0 0 0 1px var(--hairline),
-    inset 0 1px 0 var(--hi);
-}
-html[data-theme="light"] .hud-row:hover {
-  background: linear-gradient(180deg, rgba(var(--cyan), 0.10), rgba(255, 255, 255, 0.55));
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--cyan-2), 0.55),
-    inset 0 1px 0 var(--hi),
-    0 0 14px rgba(var(--cyan-2), 0.18);
-}
-html[data-theme="light"] .hud-field,
-html[data-theme="light"] .hud-empty {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.60), rgba(255, 255, 255, 0.40));
-  box-shadow:
-    inset 0 0 0 1px var(--hairline),
-    inset 0 1px 0 var(--hi);
-}
-html[data-theme="light"] .app-input,
-html[data-theme="light"] .app-select {
-  background: rgba(255, 255, 255, 0.65);
-}
-html[data-theme="light"] .app-input:focus,
-html[data-theme="light"] .app-select:focus {
-  background: rgba(255, 255, 255, 0.85);
-}
-html[data-theme="light"] .app-btn,
-html[data-theme="light"] .app-close {
-  background: rgba(255, 255, 255, 0.55);
-}
-html[data-theme="light"] .hud-divider {
-  background: linear-gradient(90deg,
-    rgba(var(--cyan-2), 0.65) 0%,
-    var(--hairline-strong) 14%,
-    var(--hairline) 50%,
-    transparent 100%);
-}
-html[data-theme="light"] .hud-divider::before {
-  background: rgb(var(--cyan-2));
-  box-shadow: 0 0 8px rgba(var(--cyan-2), 0.55);
-}
-html[data-theme="light"] .status-reticle::before {
-  border-color: rgba(var(--cyan-2), 0.85);
-  box-shadow: 0 0 6px rgba(var(--cyan-2), 0.45), inset 0 0 4px rgba(var(--cyan-2), 0.35);
-}
-html[data-theme="light"] .status-reticle::after {
-  background: rgb(var(--cyan-2));
-  box-shadow: 0 0 6px rgba(var(--cyan-2), 0.85);
-}
-html[data-theme="light"] .hud-frame::before,
-html[data-theme="light"] .hud-frame::after,
-html[data-theme="light"] .hud-corner::before,
-html[data-theme="light"] .hud-corner::after {
-  border-color: rgba(var(--cyan-2), 1);
-  filter: drop-shadow(0 0 5px rgba(var(--cyan-2), 0.45));
-}
-
-.app-content {
+/* =====================================================================
+   Inner primitives — rows, chips, controls
+   ===================================================================== */
+.lg-row {
   position: relative;
-  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-panel);
+  background: var(--tint-row);
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+  transition: background 220ms ease, box-shadow 220ms ease, transform 160ms ease;
+}
+.lg-row:hover {
+  background: var(--tint-chip);
+  box-shadow:
+    inset 0 0 0 1px var(--edge),
+    inset 0 1px 0 var(--spec-soft);
+}
+.lg-row:active { transform: scale(0.992); }
+
+.lg-icon-button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-chip);
+  background: var(--tint-row);
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+  transition: background 220ms ease, box-shadow 220ms ease, transform 160ms ease;
+}
+.lg-icon-button:hover {
+  background: var(--tint-chip);
+  box-shadow:
+    inset 0 0 0 1px var(--edge),
+    inset 0 1px 0 var(--spec-soft);
+}
+.lg-icon-button:active { transform: scale(0.94); }
+
+.lg-input,
+.lg-select {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-chip);
+  background: var(--tint-row);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+  transition: box-shadow 200ms ease, background 200ms ease;
+}
+.lg-input::placeholder { color: var(--ink-soft); }
+.lg-input:focus-visible,
+.lg-select:focus-visible {
+  outline: none;
+  background: var(--tint-chip);
+  box-shadow:
+    inset 0 0 0 2px var(--edge-strong),
+    inset 0 1px 0 var(--spec-soft);
 }
 
-/* ====================================================================
-   HUD corner brackets — L-shaped markers in four corners
-   =================================================================== */
-.hud-frame {
+.lg-switch {
   position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: var(--r-pill);
+  background: var(--tint-row);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+  cursor: pointer;
+  transition: background 220ms ease;
 }
-.hud-frame::before,
-.hud-frame::after,
-.hud-corner::before,
-.hud-corner::after {
+.lg-switch::after {
   content: "";
   position: absolute;
-  width: var(--corner-size);
-  height: var(--corner-size);
-  pointer-events: none;
-  z-index: 4;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  background: radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.85) 60%, rgba(255, 255, 255, 0.65) 110%);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 240ms cubic-bezier(0.4, 1.4, 0.4, 1);
 }
-/* top-left */
-.hud-frame::before {
-  top: 10px;
-  left: 10px;
-  border-top: 1.5px solid rgba(var(--cyan), 0.95);
-  border-left: 1.5px solid rgba(var(--cyan), 0.95);
-  filter: drop-shadow(0 0 6px rgba(var(--cyan), 0.65));
+.lg-switch[data-on="true"] {
+  background: rgba(255, 255, 255, 0.32);
+  box-shadow:
+    inset 0 0 0 1px var(--edge),
+    inset 0 1px 0 var(--spec-soft);
 }
-/* top-right */
-.hud-frame::after {
-  top: 10px;
-  right: 10px;
-  border-top: 1.5px solid rgba(var(--cyan), 0.95);
-  border-right: 1.5px solid rgba(var(--cyan), 0.95);
-  filter: drop-shadow(0 0 6px rgba(var(--cyan), 0.65));
+.lg-switch[data-on="true"]::after { transform: translateX(20px); }
+
+/* =====================================================================
+   Typography helpers
+   ===================================================================== */
+.lg-display {
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
 }
-/* bottom-left */
-.hud-corner::before {
-  bottom: 10px;
-  left: 10px;
-  border-bottom: 1.5px solid rgba(var(--cyan), 0.95);
-  border-left: 1.5px solid rgba(var(--cyan), 0.95);
-  filter: drop-shadow(0 0 6px rgba(var(--cyan), 0.65));
+.lg-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
-/* bottom-right */
-.hud-corner::after {
-  bottom: 10px;
-  right: 10px;
-  border-bottom: 1.5px solid rgba(var(--cyan), 0.95);
-  border-right: 1.5px solid rgba(var(--cyan), 0.95);
-  filter: drop-shadow(0 0 6px rgba(var(--cyan), 0.65));
+.lg-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.lg-meta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mid);
+}
+.lg-meta-faint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
-/* ====================================================================
-   Open motion — surface ignites
-   =================================================================== */
-.app-surface.frame--intro {
-  animation:
-    surface-pop  520ms cubic-bezier(0.2, 0.7, 0.2, 1) both,
-    edge-ignite  1100ms cubic-bezier(0.2, 0.7, 0.2, 1) 80ms both;
-}
-.app-surface.frame--intro .hud-frame::before,
-.app-surface.frame--intro .hud-frame::after,
-.app-surface.frame--intro .hud-corner::before,
-.app-surface.frame--intro .hud-corner::after {
-  animation: corner-flicker 700ms steps(8, end) both;
-}
-
-@keyframes surface-pop {
-  0%   { opacity: 0; transform: scale(0.97); filter: blur(4px); }
-  60%  { opacity: 1; filter: blur(0px); }
-  100% { transform: scale(1); }
-}
-@keyframes edge-ignite {
-  0% {
-    box-shadow:
-      inset 0 0 0 1px var(--hi),
-      inset 0 0 0 2px rgba(var(--cyan), 0),
-      0 0 0 1px rgba(var(--cyan), 0),
-      0 0 0 rgba(var(--cyan), 0),
-      var(--shadow-deep);
-  }
-  35% {
-    box-shadow:
-      inset 0 0 0 1px var(--hi),
-      inset 0 0 0 2px rgba(var(--cyan), 0.95),
-      0 0 0 1px rgba(var(--cyan), 1),
-      0 0 36px rgba(var(--cyan), 0.95),
-      0 0 110px rgba(var(--cyan), 0.40),
-      var(--shadow-deep);
-  }
-  100% {
-    box-shadow:
-      inset 0 0 0 1px var(--hi),
-      inset 0 0 0 2px rgba(var(--cyan), 0.55),
-      0 0 0 1px rgba(var(--cyan), 0.85),
-      0 0 18px rgba(var(--cyan), 0.40),
-      0 0 56px rgba(var(--cyan), 0.18),
-      var(--shadow-deep);
-  }
-}
-@keyframes corner-flicker {
-  0%, 20%, 60%   { opacity: 0; }
-  10%, 40%, 80%  { opacity: 1; }
-  100%           { opacity: 1; }
-}
-
-/* ====================================================================
-   Drag region
-   =================================================================== */
-.app-drag {
+/* =====================================================================
+   Drag / scroll utilities
+   ===================================================================== */
+.lg-drag {
   -webkit-app-region: drag;
   app-region: drag;
   user-select: none;
 }
-.app-drag :where(button, a, input, select, textarea, [role="button"]) {
+.lg-drag :where(button, a, input, select, textarea, [role="button"]) {
   -webkit-app-region: no-drag;
   app-region: no-drag;
   cursor: default;
 }
 
-/* ====================================================================
-   Typography — HUD title
-   =================================================================== */
-.app-title {
-  font-weight: 600;
-  letter-spacing: -0.005em;
+.lg-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.lg-scroll::-webkit-scrollbar-track { background: transparent; }
+.lg-scroll::-webkit-scrollbar-thumb {
+  background: var(--tint-chip);
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 0 0 1px var(--edge-soft);
 }
-.app-sub {
-  color: rgb(var(--fg-dim));
-}
-
-/* monospace eyebrow / meta strip */
-.hud-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-dim));
-}
-.hud-eyebrow > b {
-  font-weight: 700;
-  color: rgb(var(--cyan));
-}
-
-.hud-title {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: rgb(var(--fg));
-}
-html[data-theme="dark"] .hud-title,
-html:not([data-theme="light"]) .hud-title {
-  background: linear-gradient(180deg, rgb(var(--fg)) 0%, rgb(var(--fg-dim)) 140%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 18px rgba(var(--cyan), 0.20);
-}
-
-/* HUD divider — accented start */
-.hud-divider {
-  position: relative;
-  height: 1px;
-  background: linear-gradient(90deg,
-    rgba(var(--cyan), 0.55) 0%,
-    var(--hairline-strong) 12%,
-    var(--hairline) 50%,
-    transparent 100%);
-}
-.hud-divider::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: -2px;
-  width: 5px;
-  height: 5px;
-  background: rgb(var(--cyan));
-  border-radius: 999px;
-  box-shadow: 0 0 8px rgba(var(--cyan), 0.85);
-}
-
-/* ====================================================================
-   Status reticle — animated dot inside a ring
-   =================================================================== */
-.status-reticle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-}
-.status-reticle::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  border: 1px solid rgba(var(--cyan), 0.65);
-  box-shadow: 0 0 8px rgba(var(--cyan), 0.55), inset 0 0 4px rgba(var(--cyan), 0.45);
-  animation: reticle-spin 4s linear infinite, reticle-pulse 1.8s ease-in-out infinite;
-}
-.status-reticle::after {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgb(var(--cyan));
-  box-shadow: 0 0 8px rgba(var(--cyan), 0.95);
-  animation: status-core 1.8s ease-in-out infinite;
-}
-@keyframes reticle-spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes reticle-pulse {
-  0%, 100% { opacity: 0.85; }
-  50%      { opacity: 0.55; transform: scale(1.08); }
-}
-@keyframes status-core {
-  0%, 100% { opacity: 1;   transform: scale(1);    }
-  50%      { opacity: 0.7; transform: scale(0.85); }
-}
-
-/* Legacy compatibility — keep .status-dot rendering similar */
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: rgb(var(--cyan));
-  box-shadow:
-    0 0 0 3px rgba(var(--cyan), 0.16),
-    0 0 10px rgba(var(--cyan), 0.7);
-  animation: status-pulse 1.8s ease-in-out infinite;
-}
-@keyframes status-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(var(--cyan), 0.16), 0 0 10px rgba(var(--cyan), 0.7); opacity: 1; }
-  50%      { box-shadow: 0 0 0 5px rgba(var(--cyan), 0.05), 0 0 18px rgba(var(--cyan), 0.95); opacity: 0.9; }
-}
-
-/* ====================================================================
-   Close chip — bracketed HUD button
-   =================================================================== */
-.app-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  color: rgb(var(--fg-dim));
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.06), transparent),
-    var(--tint);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline-strong),
-    inset 0 1px 0 var(--hi);
-  transition: transform 140ms ease, color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-}
-.app-close:hover {
-  color: rgb(var(--danger));
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--danger), 0.65),
-    inset 0 1px 0 var(--hi),
-    0 0 14px rgba(var(--danger), 0.40);
-  background:
-    linear-gradient(180deg, rgba(var(--danger), 0.10), transparent),
-    var(--tint);
-}
-.app-close:active { transform: scale(0.94); }
-
-/* ====================================================================
-   Generic HUD button
-   =================================================================== */
-.app-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.42rem 0.9rem;
-  border-radius: 8px;
-  color: rgb(var(--fg));
-  font-size: 0.85rem;
-  letter-spacing: 0.01em;
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.08), rgba(var(--cyan), 0.02)),
-    var(--tint);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline-strong),
-    inset 0 1px 0 var(--hi);
-  transition: transform 140ms ease, color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-}
-.app-btn:hover {
-  color: rgb(var(--cyan));
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--cyan), 0.70),
-    inset 0 1px 0 var(--hi),
-    0 0 18px rgba(var(--cyan), 0.50);
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.18), rgba(var(--cyan), 0.04)),
-    var(--tint);
-}
-.app-btn:active { transform: scale(0.97); }
-
-/* ====================================================================
-   Inputs / select / switch
-   =================================================================== */
-.app-input,
-.app-select {
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  border-radius: 8px;
-  color: rgb(var(--fg));
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.04), transparent),
-    var(--tint);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline),
-    inset 0 1px 0 var(--hi);
-  transition: box-shadow 160ms ease;
-}
-.app-input:focus,
-.app-select:focus {
-  outline: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--cyan), 0.70),
-    inset 0 1px 0 var(--hi),
-    0 0 0 3px rgba(var(--cyan), 0.16),
-    0 0 16px rgba(var(--cyan), 0.20);
-}
-
-.app-switch {
-  position: relative;
-  width: 46px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--tint);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline-strong),
-    inset 0 1px 0 var(--hi);
-  cursor: pointer;
-  transition: background 200ms ease, box-shadow 200ms ease;
-}
-.app-switch::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgb(var(--cyan)), rgb(var(--violet)));
-  box-shadow: 0 1px 6px rgba(var(--cyan), 0.55);
-  transition: transform 220ms ease;
-}
-.app-switch[data-on="true"] {
-  background: linear-gradient(180deg, rgba(var(--cyan), 0.22), rgba(var(--cyan), 0.06));
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--cyan), 0.75),
-    inset 0 1px 0 var(--hi),
-    0 0 16px rgba(var(--cyan), 0.40);
-}
-.app-switch[data-on="true"]::after { transform: translateX(22px); }
-
-/* ====================================================================
-   Scrollbar / divider
-   =================================================================== */
-.app-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
-.app-scroll::-webkit-scrollbar-track { background: transparent; }
-.app-scroll::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 999px; }
-.app-scroll::-webkit-scrollbar-thumb:hover { background: rgba(var(--cyan), 0.55); }
-
-.genui-preview-scroll {
-  min-block-size: 0;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-.genui-render-root {
-  container: inline-size / genui-render;
-  color: #111827;
-  display: grid;
-  gap: clamp(0.75rem, 2.4cqi, 1.25rem);
-  inline-size: 100%;
-  max-inline-size: 100%;
-  min-inline-size: 0;
-}
-
-.genui-render-root :where(*) {
-  box-sizing: border-box;
-  min-inline-size: 0;
-}
-
-.genui-render-root :where(section, article, div, table) {
-  max-inline-size: 100%;
-}
-
-.genui-render-root :where(img, video, audio, canvas, iframe, svg) {
-  max-inline-size: 100%;
-}
-
-.genui-render-root :where(video, canvas, iframe) {
-  aspect-ratio: 16 / 9;
-  block-size: auto;
-  display: block;
-  inline-size: 100%;
-}
-
-.genui-render-root :where(table) {
-  border-collapse: collapse;
-  inline-size: 100%;
-}
-
-.genui-render-root :where(pre, code) {
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.genui-render-root :where(p, li, td, th, h1, h2, h3, h4, h5, h6, span, strong) {
-  overflow-wrap: anywhere;
-}
-
-.genui-render-root :where([style*="white-space: nowrap"]) {
-  white-space: normal !important;
-}
-
-.genui-render-root :where(audio) {
-  display: block;
-  inline-size: 100%;
-}
-
-@container genui-render (max-width: 430px) {
-  .genui-render-root {
-    gap: 0.75rem;
-  }
-
-  .genui-render-root :where([style*="grid-template-columns"]) {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-.app-divider {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--hairline), transparent);
-}
-
-/* ====================================================================
-   List row — used by main artifact list
-   =================================================================== */
-.hud-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.025), transparent);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline),
-    inset 0 1px 0 var(--hi);
-  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
-}
-.hud-row::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 18%;
-  bottom: 18%;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, rgba(var(--cyan), 0.0), rgba(var(--cyan), 0.6), rgba(var(--cyan), 0.0));
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-.hud-row:hover {
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.07), rgba(var(--cyan), 0.02));
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--cyan), 0.45),
-    inset 0 1px 0 var(--hi),
-    0 0 14px rgba(var(--cyan), 0.18);
-}
-.hud-row:hover::before { opacity: 1; }
-.hud-row:active { transform: translateY(1px); }
-
-/* ====================================================================
-   Tag / chip — for agent labels
-   =================================================================== */
-.hud-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.18rem 0.55rem;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgb(var(--cyan));
-  background: rgba(var(--cyan), 0.08);
-  border-radius: 4px;
-  box-shadow: inset 0 0 0 1px rgba(var(--cyan), 0.35);
-}
-
-/* ====================================================================
-   Empty-state hologram
-   =================================================================== */
-.hud-empty {
-  position: relative;
-  padding: 2.2rem 1.4rem;
-  text-align: center;
-  border-radius: 10px;
-  color: rgb(var(--fg-dim));
-  background:
-    radial-gradient(120% 100% at 50% 0%, rgba(var(--cyan), 0.08), transparent 70%);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline),
-    inset 0 1px 0 var(--hi);
-}
-
-/* ====================================================================
-   Field row (settings)
-   =================================================================== */
-.hud-field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1rem;
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(var(--cyan), 0.025), transparent);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline),
-    inset 0 1px 0 var(--hi);
-}
-.hud-field-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-.hud-field-hint {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-mute));
-}
-
-/* ====================================================================
-   Reduced motion
-   =================================================================== */
-@media (prefers-reduced-motion: reduce) {
-  .app-surface.frame--intro { animation: none; }
-  .status-reticle::before,
-  .status-reticle::after,
-  .status-dot { animation: none; }
-  .app-surface.frame--intro .hud-frame::before,
-  .app-surface.frame--intro .hud-frame::after,
-  .app-surface.frame--intro .hud-corner::before,
-  .app-surface.frame--intro .hud-corner::after { animation: none; }
-}
+.lg-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.30); }
