@@ -34,16 +34,20 @@
   --aether-readable-blur: 18px;
   --aether-readable-tint: rgba(186, 238, 255, 0.48);
   --aether-readable-tint-soft: rgba(104, 204, 245, 0.26);
-  --glass-label-wash: rgba(176, 238, 255, 0.20);
-  --glass-label-wash-soft: rgba(74, 178, 228, 0.10);
-  --glass-label-ink-green: rgba(210, 255, 232, 0.96);
-  --glass-label-ink-slate: rgba(228, 238, 234, 0.94);
-  --glass-label-ink-white: rgba(255, 255, 255, 0.96);
-  --glass-label-ink-blue: rgba(200, 238, 255, 0.96);
-  --glass-label-ink-amber: rgba(255, 238, 186, 0.96);
-  --glass-label-ink-red: rgba(255, 210, 220, 0.96);
+  --glass-label-wash: rgba(226, 248, 255, 0.44);
+  --glass-label-wash-soft: rgba(132, 218, 248, 0.18);
+  --glass-label-ink-green: rgba(16, 62, 48, 0.96);
+  --glass-label-ink-slate: rgba(22, 38, 42, 0.94);
+  --glass-label-ink-white: rgba(12, 30, 36, 0.94);
+  --glass-label-ink-blue: rgba(14, 58, 88, 0.96);
+  --glass-label-ink-amber: rgba(86, 58, 12, 0.96);
+  --glass-label-ink-red: rgba(104, 34, 50, 0.96);
   --glass-label-ink: var(--glass-label-ink-green);
-  --glass-label-shadow: 0 0 12px rgba(76, 203, 255, 0.24);
+  --glass-label-border: rgba(128, 226, 255, 0.30);
+  --glass-label-highlight: rgba(255, 255, 255, 0.44);
+  --glass-label-lowlight: rgba(12, 52, 68, 0.10);
+  --glass-label-glow: rgba(76, 203, 255, 0.10);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.44);
 
   /* Inner surfaces */
   --edge:        rgba(176, 238, 255, 0.46);
@@ -156,8 +160,8 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --aether-card-tint-soft: rgba(255, 255, 255, 0.07);
   --aether-readable-tint: rgba(255, 255, 255, 0.48);
   --aether-readable-tint-soft: rgba(255, 255, 255, 0.24);
-  --glass-label-wash: rgba(255, 255, 255, 0.18);
-  --glass-label-wash-soft: rgba(255, 255, 255, 0.08);
+  --glass-label-wash: rgba(255, 255, 255, 0.46);
+  --glass-label-wash-soft: rgba(255, 255, 255, 0.20);
   --edge: rgba(255, 255, 255, 0.42);
   --edge-strong: rgba(255, 255, 255, 0.56);
   --edge-soft: rgba(255, 255, 255, 0.18);
@@ -175,8 +179,8 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --aether-card-tint-soft: rgba(36, 232, 226, 0.075);
   --aether-readable-tint: rgba(190, 255, 250, 0.48);
   --aether-readable-tint-soft: rgba(132, 247, 242, 0.26);
-  --glass-label-wash: rgba(190, 255, 250, 0.20);
-  --glass-label-wash-soft: rgba(118, 243, 236, 0.10);
+  --glass-label-wash: rgba(210, 255, 252, 0.44);
+  --glass-label-wash-soft: rgba(118, 243, 236, 0.18);
 }
 
 .lg-shell[data-theme-color="violet"] {
@@ -187,8 +191,8 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --aether-card-tint-soft: rgba(156, 112, 255, 0.075);
   --aether-readable-tint: rgba(230, 214, 255, 0.46);
   --aether-readable-tint-soft: rgba(204, 178, 255, 0.24);
-  --glass-label-wash: rgba(230, 214, 255, 0.19);
-  --glass-label-wash-soft: rgba(196, 168, 255, 0.10);
+  --glass-label-wash: rgba(238, 228, 255, 0.42);
+  --glass-label-wash-soft: rgba(196, 168, 255, 0.18);
 }
 
 .lg-shell[data-theme-color="mint"] {
@@ -199,8 +203,8 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --aether-card-tint-soft: rgba(98, 230, 134, 0.07);
   --aether-readable-tint: rgba(226, 255, 232, 0.44);
   --aether-readable-tint-soft: rgba(188, 248, 202, 0.23);
-  --glass-label-wash: rgba(226, 255, 232, 0.18);
-  --glass-label-wash-soft: rgba(172, 244, 190, 0.09);
+  --glass-label-wash: rgba(232, 255, 237, 0.42);
+  --glass-label-wash-soft: rgba(172, 244, 190, 0.18);
 }
 
 .lg-shell[data-theme-color="rose"] {
@@ -211,8 +215,8 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --aether-card-tint-soft: rgba(245, 116, 160, 0.07);
   --aether-readable-tint: rgba(255, 232, 240, 0.42);
   --aether-readable-tint-soft: rgba(250, 202, 218, 0.22);
-  --glass-label-wash: rgba(255, 232, 240, 0.17);
-  --glass-label-wash-soft: rgba(248, 190, 210, 0.09);
+  --glass-label-wash: rgba(255, 238, 244, 0.40);
+  --glass-label-wash-soft: rgba(248, 190, 210, 0.17);
 }
 
 .lg-shell[data-theme-color="amber"] {
@@ -223,8 +227,8 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --aether-card-tint-soft: rgba(238, 192, 72, 0.07);
   --aether-readable-tint: rgba(255, 248, 218, 0.42);
   --aether-readable-tint-soft: rgba(246, 224, 160, 0.22);
-  --glass-label-wash: rgba(255, 248, 218, 0.17);
-  --glass-label-wash-soft: rgba(242, 214, 142, 0.09);
+  --glass-label-wash: rgba(255, 250, 226, 0.40);
+  --glass-label-wash-soft: rgba(242, 214, 142, 0.17);
 }
 
 /* Wallpaper — what the material refracts. Keep it visible; the glass
@@ -721,7 +725,7 @@ body::before,
     linear-gradient(145deg, rgba(128, 226, 255, 0.18), rgba(255, 255, 255, 0.06)),
     rgba(76, 203, 255, 0.08);
   color: var(--ink);
-  text-shadow: var(--glass-label-shadow);
+  text-shadow: var(--ink-shadow);
   box-shadow:
     inset 0 0 0 1px var(--edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.30),
@@ -918,17 +922,18 @@ body::before,
   min-height: 22px;
   max-width: 100%;
   padding: 4px 9px;
-  border: 1px solid rgba(128, 226, 255, 0.22);
+  border: 1px solid var(--glass-label-border);
   border-radius: 6px;
   background:
-    linear-gradient(90deg, var(--glass-label-wash), transparent 74%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+    linear-gradient(90deg, var(--glass-label-wash), var(--glass-label-wash-soft) 78%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
   -webkit-backdrop-filter: blur(14px) saturate(1.12) brightness(1.02);
   backdrop-filter: blur(14px) saturate(1.12) brightness(1.02);
   box-shadow:
     inset 2px 0 0 var(--theme-frame-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.20),
-    0 0 18px rgba(76, 203, 255, 0.08);
+    inset 0 1px 0 var(--glass-label-highlight),
+    inset 0 -1px 0 var(--glass-label-lowlight),
+    0 0 18px var(--glass-label-glow);
   color: var(--glass-label-ink);
   font-size: 12px;
   font-weight: 800;
@@ -958,17 +963,18 @@ body::before,
   min-height: 22px;
   max-width: 100%;
   padding: 4px 9px;
-  border: 1px solid rgba(128, 226, 255, 0.24);
+  border: 1px solid var(--glass-label-border);
   border-radius: 6px;
   background:
-    linear-gradient(90deg, var(--glass-label-wash), transparent 74%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018));
+    linear-gradient(90deg, var(--glass-label-wash), var(--glass-label-wash-soft) 78%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.08));
   -webkit-backdrop-filter: blur(14px) saturate(1.12) brightness(1.02);
   backdrop-filter: blur(14px) saturate(1.12) brightness(1.02);
   box-shadow:
     inset 2px 0 0 var(--theme-frame-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 0 18px rgba(76, 203, 255, 0.08);
+    inset 0 1px 0 var(--glass-label-highlight),
+    inset 0 -1px 0 var(--glass-label-lowlight),
+    0 0 18px var(--glass-label-glow);
   color: var(--glass-label-ink);
   font-size: 12px;
   font-weight: 800;
@@ -988,45 +994,45 @@ body::before,
 
 .lg-label-surface[data-ink="green"] {
   --glass-label-ink: var(--glass-label-ink-green);
-  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.62), 0 6px 18px rgba(25, 58, 36, 0.10);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.50);
 }
 .lg-label-surface[data-ink="slate"] {
   --glass-label-ink: var(--glass-label-ink-slate);
-  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.62), 0 6px 18px rgba(30, 42, 35, 0.10);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.48);
 }
 .lg-label-surface[data-ink="white"] {
   --glass-label-ink: var(--glass-label-ink-white);
-  --glass-label-shadow: var(--ink-shadow);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.48);
 }
 .lg-label-surface[data-ink="blue"] {
   --glass-label-ink: var(--glass-label-ink-blue);
-  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.60), 0 6px 18px rgba(24, 69, 108, 0.10);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.48);
 }
 .lg-label-surface[data-ink="amber"] {
   --glass-label-ink: var(--glass-label-ink-amber);
-  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.60), 0 6px 18px rgba(102, 73, 20, 0.10);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.48);
 }
 .lg-label-surface[data-ink="red"] {
   --glass-label-ink: var(--glass-label-ink-red);
-  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.58), 0 6px 18px rgba(117, 38, 49, 0.10);
+  --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.46);
 }
 
 .lg-label-surface[data-tone="positive"] {
-  --glass-label-wash: rgba(162, 255, 184, 0.18);
-  --glass-label-wash-soft: rgba(98, 230, 134, 0.09);
+  --glass-label-wash: rgba(218, 255, 226, 0.44);
+  --glass-label-wash-soft: rgba(98, 230, 134, 0.18);
 }
 .lg-label-surface[data-tone="warning"] {
-  --glass-label-wash: rgba(255, 226, 132, 0.18);
-  --glass-label-wash-soft: rgba(238, 192, 72, 0.09);
+  --glass-label-wash: rgba(255, 246, 210, 0.44);
+  --glass-label-wash-soft: rgba(238, 192, 72, 0.18);
 }
 .lg-label-surface[data-tone="danger"],
 .lg-label-surface[data-tone="critical"] {
-  --glass-label-wash: rgba(255, 168, 196, 0.18);
-  --glass-label-wash-soft: rgba(245, 116, 160, 0.09);
+  --glass-label-wash: rgba(255, 226, 236, 0.44);
+  --glass-label-wash-soft: rgba(245, 116, 160, 0.18);
 }
 .lg-label-surface[data-tone="info"] {
-  --glass-label-wash: rgba(128, 226, 255, 0.18);
-  --glass-label-wash-soft: rgba(76, 203, 255, 0.09);
+  --glass-label-wash: rgba(220, 248, 255, 0.44);
+  --glass-label-wash-soft: rgba(76, 203, 255, 0.18);
 }
 
 /* =====================================================================

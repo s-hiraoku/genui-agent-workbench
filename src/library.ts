@@ -1521,6 +1521,534 @@ const LineChart = defineComponent({
   },
 });
 
+function sanitizeSvgMarkup(raw: string): string {
+  let svg = raw.trim();
+  const match = svg.match(/<svg[\s\S]*<\/svg>/i);
+  if (match) svg = match[0];
+  svg = svg.replace(/<script[\s\S]*?<\/script>/gi, "");
+  svg = svg.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  svg = svg.replace(/javascript:/gi, "");
+  return svg;
+}
+
+const InlineSvg = defineComponent({
+  name: "InlineSvg",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    svg: z.string(),
+    height: z.number().int().min(80).max(720).optional(),
+    background: z.enum(["panel", "transparent", "light"]).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Inline SVG renderer for diagrams, icons, illustrations, generated vector graphics, schematics, and logos. svg is a raw <svg>…</svg> string; <script> and on* handlers are stripped. Use height to bound the render area.",
+  component: ({ props }) => {
+    const sanitized = sanitizeSvgMarkup(props.svg);
+    const bg =
+      props.background === "transparent"
+        ? "transparent"
+        : props.background === "light"
+        ? "rgba(232,244,255,0.94)"
+        : hudPanelWash;
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement("div", {
+        "aria-label": props.title ?? "SVG",
+        role: "img",
+        dangerouslySetInnerHTML: { __html: sanitized },
+        style: {
+          alignItems: "center",
+          background: bg,
+          border: `1px solid ${hudEdge}`,
+          borderRadius: 8,
+          display: "flex",
+          justifyContent: "center",
+          margin: 14,
+          minHeight: props.height ?? 240,
+          overflow: "hidden",
+          padding: 12,
+        },
+      }),
+    );
+  },
+});
+
+const MessageBubble = defineComponent({
+  name: "MessageBubble",
+  props: z.object({
+    speaker: z.string(),
+    role: z.enum(["user", "assistant", "system", "agent", "tool"]).default("assistant"),
+    time: z.string().optional(),
+    text: z.string(),
+    avatar: z.string().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Single chat bubble for a user/assistant/agent/tool message. Use standalone when one message is shown; otherwise prefer MessageThread.",
+  component: ({ props }) => {
+    const isUser = props.role === "user";
+    const tone = toneFor(props.role === "system" ? "warning" : props.role === "tool" ? "neutral" : isUser ? "info" : "positive");
+    return React.createElement(
+      "article",
+      {
+        style: {
+          alignSelf: isUser ? "flex-end" : "flex-start",
+          background: tone.background,
+          border: `1px solid ${tone.border}`,
+          borderRadius: isUser ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+          color: tone.text,
+          maxWidth: "82%",
+          padding: 12,
+          ...readableGlassStyle,
+          ...glassVars(props),
+        },
+      },
+      React.createElement(
+        "header",
+        { style: { alignItems: "center", display: "flex", gap: 8, marginBottom: 6 } },
+        props.avatar
+          ? React.createElement("img", { alt: "", src: props.avatar, style: { borderRadius: "50%", height: 22, width: 22 } })
+          : null,
+        labelElement(props.speaker, props.role === "system" ? "warning" : props.role === "tool" ? "neutral" : isUser ? "info" : "positive", "xs"),
+        props.time ? React.createElement("time", { style: { color: hudTextSoft, fontSize: 11, marginLeft: "auto" } }, props.time) : null,
+      ),
+      React.createElement(
+        "p",
+        { style: { color: tone.text, fontSize: 14, lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" } },
+        props.text,
+      ),
+    );
+  },
+});
+
+const MessageThread = defineComponent({
+  name: "MessageThread",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    messages: z.array(
+      z.object({
+        speaker: z.string(),
+        role: z.enum(["user", "assistant", "system", "agent", "tool"]).default("assistant"),
+        time: z.string().optional(),
+        text: z.string(),
+        avatar: z.string().optional(),
+      }),
+    ),
+    composer: z
+      .object({
+        placeholder: z.string().optional(),
+        sendLabel: z.string().optional(),
+      })
+      .optional(),
+    ...glassProps,
+  }),
+  description:
+    "Chat-style message thread with bubbles aligned by role (user right, others left). Use for LLM conversation previews, support/customer chats, agent-to-agent exchanges, and reviewer dialog. Optional composer renders a read-only input row.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "flex", flexDirection: "column", gap: 10, padding: 14 } },
+        props.messages.map((message, index) => {
+          const isUser = message.role === "user";
+          const tone = toneFor(message.role === "system" ? "warning" : message.role === "tool" ? "neutral" : isUser ? "info" : "positive");
+          return React.createElement(
+            "article",
+            {
+              key: `${message.speaker}:${index}`,
+              style: {
+                alignSelf: isUser ? "flex-end" : "flex-start",
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderRadius: isUser ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                color: tone.text,
+                maxWidth: "82%",
+                padding: 12,
+                ...readableGlassStyle,
+              },
+            },
+            React.createElement(
+              "header",
+              { style: { alignItems: "center", display: "flex", gap: 8, marginBottom: 6 } },
+              message.avatar
+                ? React.createElement("img", { alt: "", src: message.avatar, style: { borderRadius: "50%", height: 22, width: 22 } })
+                : null,
+              labelElement(message.speaker, message.role === "system" ? "warning" : message.role === "tool" ? "neutral" : isUser ? "info" : "positive", "xs"),
+              message.time ? React.createElement("time", { style: { color: hudTextSoft, fontSize: 11, marginLeft: "auto" } }, message.time) : null,
+            ),
+            React.createElement(
+              "p",
+              { style: { color: tone.text, fontSize: 14, lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" } },
+              message.text,
+            ),
+          );
+        }),
+        props.composer
+          ? React.createElement(
+              "div",
+              {
+                style: {
+                  alignItems: "center",
+                  background: hudPanelWash,
+                  border: `1px solid ${hudEdge}`,
+                  borderRadius: 10,
+                  display: "flex",
+                  gap: 10,
+                  marginTop: 4,
+                  padding: 10,
+                },
+              },
+              React.createElement(
+                "div",
+                {
+                  style: {
+                    background: "rgba(2,18,32,0.20)",
+                    border: `1px solid ${hudEdge}`,
+                    borderRadius: 6,
+                    color: hudTextSoft,
+                    flex: 1,
+                    fontSize: 13,
+                    padding: "8px 10px",
+                  },
+                },
+                props.composer.placeholder ?? "Type a message…",
+              ),
+              React.createElement(
+                "button",
+                {
+                  style: {
+                    background: toneFor("info").background,
+                    border: `1px solid ${toneFor("info").border}`,
+                    borderRadius: 8,
+                    color: toneFor("info").text,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    padding: "8px 14px",
+                  },
+                  type: "button",
+                },
+                props.composer.sendLabel ?? "Send",
+              ),
+            )
+          : null,
+      ),
+    ),
+});
+
+const Sparkline = defineComponent({
+  name: "Sparkline",
+  props: z.object({
+    data: z.array(z.number()),
+    height: z.number().int().min(20).max(120).optional(),
+    tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+  }),
+  description:
+    "Inline mini line chart (no axes) for showing trend next to a number. Use inside Stat or alongside labels; for full charts use LineChart.",
+  component: ({ props }) => {
+    const width = 160;
+    const height = props.height ?? 40;
+    const values = props.data.length > 0 ? props.data : [0];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = Math.max(0.0001, max - min);
+    const points = values.map((value, index) => {
+      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / span) * height;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    });
+    const tone = toneFor(props.tone);
+    return React.createElement(
+      "svg",
+      { role: "img", viewBox: `0 0 ${width} ${height}`, style: { display: "block", height, width: "100%" } },
+      React.createElement("polyline", {
+        fill: "none",
+        points: points.join(" "),
+        stroke: tone.accent,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        strokeWidth: 2.4,
+      }),
+    );
+  },
+});
+
+const Stat = defineComponent({
+  name: "Stat",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    label: z.string(),
+    value: z.string(),
+    delta: z.string().optional(),
+    tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+    spark: z.array(z.number()).optional(),
+    target: z.string().optional(),
+    footnote: z.string().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Single hero KPI: one big number with optional delta, target, spark trend, and footnote. Use when one metric matters more than the rest; for several KPIs use MetricGrid.",
+  component: ({ props }) => {
+    const tone = toneFor(props.tone);
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 8, padding: 18 } },
+        labelElement(props.label, props.tone ?? "neutral", "xs"),
+        React.createElement(
+          "div",
+          { style: { alignItems: "baseline", color: tone.text, display: "flex", flexWrap: "wrap", gap: 12 } },
+          React.createElement(
+            "strong",
+            { style: { color: tone.text, fontSize: 44, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.05 } },
+            props.value,
+          ),
+          props.delta ? labelElement(props.delta, props.tone ?? "info", "sm") : null,
+        ),
+        props.target
+          ? React.createElement("div", { style: { color: hudTextMid, fontSize: 12 } }, `Target: ${props.target}`)
+          : null,
+        props.spark && props.spark.length > 0
+          ? (() => {
+              const sparkWidth = 240;
+              const sparkHeight = 44;
+              const sparkValues = props.spark!;
+              const sMin = Math.min(...sparkValues);
+              const sMax = Math.max(...sparkValues);
+              const sSpan = Math.max(0.0001, sMax - sMin);
+              const sPoints = sparkValues.map((value, index) => {
+                const x = sparkValues.length === 1 ? sparkWidth / 2 : (index / (sparkValues.length - 1)) * sparkWidth;
+                const y = sparkHeight - ((value - sMin) / sSpan) * sparkHeight;
+                return `${x.toFixed(2)},${y.toFixed(2)}`;
+              });
+              return React.createElement(
+                "svg",
+                { role: "img", style: { display: "block", height: sparkHeight, marginTop: 6, width: "100%" }, viewBox: `0 0 ${sparkWidth} ${sparkHeight}` },
+                React.createElement("polyline", {
+                  fill: "none",
+                  points: sPoints.join(" "),
+                  stroke: tone.accent,
+                  strokeLinecap: "round",
+                  strokeLinejoin: "round",
+                  strokeWidth: 2.4,
+                }),
+              );
+            })()
+          : null,
+        props.footnote
+          ? React.createElement("p", { style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, margin: 0 } }, props.footnote)
+          : null,
+      ),
+    );
+  },
+});
+
+const GeoHeatmap = defineComponent({
+  name: "GeoHeatmap",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    unit: z.string().optional(),
+    regions: z.array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+        code: z.string().optional(),
+      }),
+    ),
+    palette: z.enum(["sky", "mint", "amber", "rose"]).optional(),
+    columns: z.number().int().min(2).max(8).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Region-shaded heatmap rendered as a grid of colored tiles (states, prefectures, countries). Each region carries a numeric value; tile color scales by value. Use for share-by-region, density, or coverage where MapView pins would be too noisy.",
+  component: ({ props }) => {
+    const palettes = {
+      sky: { from: "rgba(76,203,255,0.12)", to: "rgba(76,203,255,0.85)" },
+      mint: { from: "rgba(128,255,180,0.12)", to: "rgba(128,255,180,0.85)" },
+      amber: { from: "rgba(255,216,112,0.12)", to: "rgba(255,216,112,0.85)" },
+      rose: { from: "rgba(255,96,126,0.12)", to: "rgba(255,96,126,0.85)" },
+    } as const;
+    const palette = palettes[props.palette ?? "sky"];
+    const values = props.regions.map((r) => r.value);
+    const min = values.length ? Math.min(...values) : 0;
+    const max = values.length ? Math.max(...values) : 1;
+    const span = Math.max(0.0001, max - min);
+    const columns = props.columns ?? Math.min(6, Math.max(2, Math.ceil(Math.sqrt(props.regions.length))));
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "grid",
+            gap: 8,
+            gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+            padding: 14,
+          },
+        },
+        props.regions.map((region, index) => {
+          const ratio = (region.value - min) / span;
+          const background = `color-mix(in srgb, ${palette.to} ${Math.round(ratio * 90 + 10)}%, ${palette.from})`;
+          return React.createElement(
+            "article",
+            {
+              key: `${region.label}:${index}`,
+              style: {
+                background,
+                border: `1px solid ${hudEdge}`,
+                borderRadius: 8,
+                color: hudText,
+                display: "grid",
+                gap: 4,
+                minHeight: 78,
+                padding: 10,
+              },
+              title: `${region.label}: ${region.value}${props.unit ?? ""}`,
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "center", display: "flex", gap: 6, justifyContent: "space-between" } },
+              React.createElement("strong", { style: { color: hudText, fontSize: 13 } }, region.label),
+              region.code ? labelElement(region.code, "neutral", "xs") : null,
+            ),
+            React.createElement(
+              "div",
+              { style: { color: hudText, fontSize: 18, fontWeight: 800 } },
+              `${region.value}${props.unit ?? ""}`,
+            ),
+          );
+        }),
+      ),
+      React.createElement(
+        "div",
+        { style: { alignItems: "center", color: hudTextMid, display: "flex", fontSize: 11, gap: 8, padding: "0 14px 12px" } },
+        React.createElement("span", null, `min ${min}${props.unit ?? ""}`),
+        React.createElement("div", {
+          style: {
+            background: `linear-gradient(90deg, ${palette.from}, ${palette.to})`,
+            border: `1px solid ${hudEdge}`,
+            borderRadius: 4,
+            flex: 1,
+            height: 8,
+          },
+        }),
+        React.createElement("span", null, `max ${max}${props.unit ?? ""}`),
+      ),
+    );
+  },
+});
+
+const NotificationToast = defineComponent({
+  name: "NotificationToast",
+  props: z.object({
+    title: z.string().optional(),
+    message: z.string(),
+    severity: z.enum(["info", "positive", "warning", "danger"]).default("info"),
+    icon: z.string().optional(),
+    time: z.string().optional(),
+    action: z
+      .object({
+        label: z.string(),
+        href: z.string().optional(),
+      })
+      .optional(),
+    dismissLabel: z.string().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Compact banner-style toast for one-shot notifications: success, error, warning, or info with a single optional CTA. Use when you want a slim status strip rather than a full AlertList.",
+  component: ({ props }) => {
+    const tone = toneFor(props.severity);
+    return React.createElement(
+      "section",
+      {
+        role: "status",
+        style: {
+          ...panelStyleFor(props),
+          background: tone.background,
+          border: `1px solid ${tone.border}`,
+        },
+      },
+      React.createElement(
+        "div",
+        { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 12, padding: 14 } },
+        React.createElement(
+          "span",
+          {
+            "aria-hidden": true,
+            style: {
+              alignItems: "center",
+              background: tone.accent,
+              border: `1px solid ${tone.border}`,
+              borderRadius: 999,
+              color: hudText,
+              display: "inline-flex",
+              flexShrink: 0,
+              fontSize: 14,
+              fontWeight: 800,
+              height: 28,
+              justifyContent: "center",
+              width: 28,
+            },
+          },
+          props.icon ?? (props.severity === "danger" ? "!" : props.severity === "warning" ? "!" : props.severity === "positive" ? "✓" : "i"),
+        ),
+        React.createElement(
+          "div",
+          { style: { display: "grid", flex: 1, gap: 2, minWidth: 0 } },
+          props.title
+            ? React.createElement("strong", { style: { color: tone.text, fontSize: 14, lineHeight: 1.3 } }, props.title)
+            : null,
+          React.createElement(
+            "p",
+            { style: { color: tone.text, fontSize: 13, lineHeight: 1.5, margin: 0, overflowWrap: "anywhere" } },
+            props.message,
+          ),
+        ),
+        props.time ? React.createElement("time", { style: { color: hudTextSoft, fontSize: 11 } }, props.time) : null,
+        props.action
+          ? React.createElement(
+              props.action.href ? "a" : "button",
+              {
+                href: props.action.href,
+                rel: props.action.href ? "noreferrer" : undefined,
+                style: {
+                  background: hudPanelWash,
+                  border: `1px solid ${tone.border}`,
+                  borderRadius: 7,
+                  color: tone.text,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "6px 12px",
+                  textDecoration: "none",
+                },
+                target: props.action.href ? "_blank" : undefined,
+                type: props.action.href ? undefined : "button",
+              },
+              props.action.label,
+            )
+          : null,
+        props.dismissLabel
+          ? labelElement(props.dismissLabel, "neutral", "xs")
+          : null,
+      ),
+    );
+  },
+});
+
 const ResourceList = defineComponent({
   name: "ResourceList",
   props: z.object({
@@ -1651,6 +2179,1126 @@ const FormPanel = defineComponent({
     ),
 });
 
+// ────────────────────────────────────────────────────────────────────
+// Extended cards: media, decisions, comparison, code, schedule, people,
+// diagnostics, quick actions, transcripts, charts, trees, wizards.
+// ────────────────────────────────────────────────────────────────────
+
+const ImageGallery = defineComponent({
+  name: "ImageGallery",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    images: z.array(
+      z.object({
+        src: z.string(),
+        alt: z.string().optional(),
+        caption: z.string().optional(),
+      }),
+    ),
+    columns: z.number().int().min(1).max(6).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Image grid for screenshots, photo previews, design candidates, store/cafe imagery, and visual evidence. images = [{ src, alt, caption }].",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "grid",
+            gap: 10,
+            gridTemplateColumns: `repeat(${props.columns ?? Math.min(3, Math.max(1, props.images.length))}, minmax(0, 1fr))`,
+            padding: 14,
+          },
+        },
+        props.images.map((img, index) =>
+          React.createElement(
+            "figure",
+            {
+              key: `${img.src}:${index}`,
+              style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 10, margin: 0, overflow: "hidden" },
+            },
+            React.createElement("img", {
+              alt: img.alt ?? img.caption ?? `image ${index + 1}`,
+              src: img.src,
+              style: { aspectRatio: "4 / 3", display: "block", height: "auto", objectFit: "cover", width: "100%" },
+            }),
+            img.caption
+              ? React.createElement(
+                  "figcaption",
+                  { style: { color: hudTextMid, fontSize: 12, padding: "8px 10px" } },
+                  img.caption,
+                )
+              : null,
+          ),
+        ),
+      ),
+    ),
+});
+
+const ConfirmDialog = defineComponent({
+  name: "ConfirmDialog",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    question: z.string(),
+    detail: z.string().optional(),
+    risk: z.enum(["low", "medium", "high", "critical"]).optional(),
+    confirmLabel: z.string().optional(),
+    cancelLabel: z.string().optional(),
+    consequences: z.array(z.string()).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Single high-stakes confirmation card with one accept and one decline action. Use for delete/approve/deploy/destructive prompts and agent autonomy gates.",
+  component: ({ props }) => {
+    const tone = toneFor(
+      props.risk === "critical" || props.risk === "high" ? "danger" : props.risk === "medium" ? "warning" : "info",
+    );
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "p",
+          { style: { color: hudText, fontSize: 16, fontWeight: 700, margin: 0 } },
+          props.question,
+        ),
+        props.detail
+          ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: 0 } }, props.detail)
+          : null,
+        props.consequences && props.consequences.length > 0
+          ? React.createElement(
+              "ul",
+              { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: 0, paddingLeft: 18 } },
+              props.consequences.map((c, i) => React.createElement("li", { key: i }, c)),
+            )
+          : null,
+        React.createElement(
+          "div",
+          { style: { display: "flex", flexWrap: "wrap", gap: 8 } },
+          React.createElement(
+            "button",
+            {
+              style: {
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderRadius: 8,
+                color: tone.text,
+                fontSize: 14,
+                fontWeight: 700,
+                padding: "8px 14px",
+              },
+              type: "button",
+            },
+            props.confirmLabel ?? "Confirm",
+          ),
+          React.createElement(
+            "button",
+            {
+              style: {
+                background: hudPanelWash,
+                border: `1px solid ${hudEdge}`,
+                borderRadius: 8,
+                color: hudTextMid,
+                fontSize: 14,
+                padding: "8px 14px",
+              },
+              type: "button",
+            },
+            props.cancelLabel ?? "Cancel",
+          ),
+          props.risk ? labelElement(`risk: ${props.risk}`, props.risk === "critical" || props.risk === "high" ? "danger" : props.risk === "medium" ? "warning" : "info", "sm") : null,
+        ),
+      ),
+    );
+  },
+});
+
+const CompareTable = defineComponent({
+  name: "CompareTable",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    options: z.array(
+      z.object({
+        name: z.string(),
+        tagline: z.string().optional(),
+        recommended: z.boolean().optional(),
+        specs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+      }),
+    ),
+    specOrder: z.array(z.string()).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Side-by-side option comparison with spec rows shared across columns. Use for plan/library/API comparisons where each option has the same set of attributes.",
+  component: ({ props }) => {
+    const allKeys =
+      props.specOrder && props.specOrder.length > 0
+        ? props.specOrder
+        : Array.from(new Set(props.options.flatMap((o) => Object.keys(o.specs))));
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { overflowX: "auto", padding: 14 } },
+        React.createElement(
+          "table",
+          { style: { borderCollapse: "collapse", color: hudText, fontSize: 13, minWidth: "100%" } },
+          React.createElement(
+            "thead",
+            null,
+            React.createElement(
+              "tr",
+              null,
+              React.createElement(
+                "th",
+                { style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, fontWeight: 700, padding: "8px 10px", textAlign: "left" } },
+                "Spec",
+              ),
+              ...props.options.map((o) =>
+                React.createElement(
+                  "th",
+                  {
+                    key: o.name,
+                    style: {
+                      borderBottom: `1px solid ${hudEdge}`,
+                      color: o.recommended ? toneFor("positive").text : hudText,
+                      fontWeight: 800,
+                      padding: "8px 10px",
+                      textAlign: "left",
+                    },
+                  },
+                  o.name,
+                  o.recommended ? " ★" : "",
+                ),
+              ),
+            ),
+          ),
+          React.createElement(
+            "tbody",
+            null,
+            allKeys.map((key) =>
+              React.createElement(
+                "tr",
+                { key },
+                React.createElement(
+                  "td",
+                  { style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, padding: "8px 10px" } },
+                  key,
+                ),
+                ...props.options.map((o) =>
+                  React.createElement(
+                    "td",
+                    { key: o.name, style: { borderBottom: `1px solid ${hudEdge}`, color: hudText, padding: "8px 10px" } },
+                    formatCellValue(o.specs[key]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+});
+
+const CodeBlock = defineComponent({
+  name: "CodeBlock",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    language: z.string().optional(),
+    code: z.string(),
+    runnable: z.boolean().optional(),
+    filename: z.string().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Single code or command snippet with optional filename, language label, and runnable hint. Use whenever the answer is a piece of code to paste or a command to execute (not a diff).",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { alignItems: "center", display: "flex", gap: 8, marginBottom: 8 } },
+          props.filename ? labelElement(props.filename, "neutral", "xs") : null,
+          props.language ? labelElement(props.language, "info", "xs") : null,
+          props.runnable ? labelElement("runnable", "positive", "xs") : null,
+        ),
+        React.createElement(
+          "pre",
+          {
+            style: {
+              background: "rgba(2,18,32,0.40)",
+              border: `1px solid ${hudEdge}`,
+              borderRadius: 8,
+              color: hudText,
+              fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)",
+              fontSize: 13,
+              lineHeight: 1.55,
+              margin: 0,
+              maxHeight: 480,
+              overflow: "auto",
+              padding: 12,
+              whiteSpace: "pre",
+            },
+          },
+          props.code,
+        ),
+      ),
+    ),
+});
+
+const DataPreview = defineComponent({
+  name: "DataPreview",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    source: z.string().optional(),
+    schema: z
+      .array(z.object({ name: z.string(), type: z.string().optional(), nullable: z.boolean().optional() }))
+      .optional(),
+    sampleRows: z.array(z.record(z.string(), z.unknown())),
+    truncated: z.boolean().optional(),
+    rowCount: z.number().int().nonnegative().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Developer-facing preview of raw structured data (SQL result, CSV head, JSON sample). Shows column types and the first N rows. Use when DataTable is too formal.",
+  component: ({ props }) => {
+    const keys = props.schema?.map((c) => c.name) ?? Array.from(new Set(props.sampleRows.flatMap((r) => Object.keys(r))));
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 8, padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 6 } },
+          props.source ? labelElement(props.source, "info", "xs") : null,
+          props.rowCount !== undefined ? labelElement(`${props.rowCount} rows`, "neutral", "xs") : null,
+          props.truncated ? labelElement("truncated", "warning", "xs") : null,
+        ),
+        React.createElement(
+          "div",
+          { style: { maxHeight: 360, overflow: "auto" } },
+          React.createElement(
+            "table",
+            { style: { borderCollapse: "collapse", color: hudText, fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 12, minWidth: "100%" } },
+            React.createElement(
+              "thead",
+              null,
+              React.createElement(
+                "tr",
+                null,
+                keys.map((k) => {
+                  const schemaCol = props.schema?.find((c) => c.name === k);
+                  return React.createElement(
+                    "th",
+                    {
+                      key: k,
+                      style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, fontWeight: 700, padding: "6px 8px", textAlign: "left", whiteSpace: "nowrap" },
+                    },
+                    k,
+                    schemaCol?.type ? React.createElement("span", { style: { color: hudTextSoft, fontWeight: 400, marginLeft: 6 } }, `:${schemaCol.type}`) : null,
+                  );
+                }),
+              ),
+            ),
+            React.createElement(
+              "tbody",
+              null,
+              props.sampleRows.slice(0, 50).map((row, i) =>
+                React.createElement(
+                  "tr",
+                  { key: i },
+                  keys.map((k) =>
+                    React.createElement(
+                      "td",
+                      {
+                        key: k,
+                        style: { borderBottom: `1px solid ${hudEdge}`, color: hudText, padding: "6px 8px", whiteSpace: "nowrap" },
+                      },
+                      formatCellValue(row[k]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  },
+});
+
+const WeatherCard = defineComponent({
+  name: "WeatherCard",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    location: z.string(),
+    summary: z.string(),
+    temperature: z.union([z.string(), z.number()]).optional(),
+    feelsLike: z.union([z.string(), z.number()]).optional(),
+    highLow: z.string().optional(),
+    icon: z.string().optional(),
+    forecast: z
+      .array(z.object({ time: z.string(), summary: z.string(), temperature: z.union([z.string(), z.number()]).optional(), icon: z.string().optional() }))
+      .optional(),
+    ...glassProps,
+  }),
+  description:
+    "Today/forecast weather card with location, temperature, summary, optional hourly/daily forecast row.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title ?? props.location, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { alignItems: "baseline", display: "flex", flexWrap: "wrap", gap: 12 } },
+          props.icon ? React.createElement("span", { style: { fontSize: 36, lineHeight: 1 } }, props.icon) : null,
+          React.createElement("span", { style: { color: hudText, fontSize: 36, fontWeight: 700, letterSpacing: -0.5 } }, formatCellValue(props.temperature ?? "--")),
+          React.createElement("span", { style: { color: hudTextMid, fontSize: 14 } }, props.summary),
+          props.highLow ? labelElement(props.highLow, "neutral", "xs") : null,
+          props.feelsLike !== undefined ? labelElement(`feels ${formatCellValue(props.feelsLike)}`, "info", "xs") : null,
+        ),
+        props.forecast && props.forecast.length > 0
+          ? React.createElement(
+              "div",
+              { style: { display: "grid", gap: 8, gridTemplateColumns: `repeat(${Math.min(props.forecast.length, 6)}, minmax(0, 1fr))` } },
+              props.forecast.slice(0, 6).map((f, i) =>
+                React.createElement(
+                  "div",
+                  { key: i, style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, padding: 8, textAlign: "center" } },
+                  React.createElement("div", { style: { color: hudTextMid, fontSize: 12 } }, f.time),
+                  f.icon ? React.createElement("div", { style: { fontSize: 20 } }, f.icon) : null,
+                  React.createElement("div", { style: { color: hudText, fontSize: 14, fontWeight: 700 } }, formatCellValue(f.temperature ?? "--")),
+                  React.createElement("div", { style: { color: hudTextSoft, fontSize: 11 } }, f.summary),
+                ),
+              ),
+            )
+          : null,
+      ),
+    ),
+});
+
+const EventList = defineComponent({
+  name: "EventList",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    events: z.array(
+      z.object({
+        title: z.string(),
+        start: z.string(),
+        end: z.string().optional(),
+        location: z.string().optional(),
+        category: z.string().optional(),
+        attendees: z.array(z.string()).optional(),
+        notes: z.string().optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Today/upcoming events agenda. Use for schedules, meetings, news-of-the-day, releases scheduled by time, and calendar handoffs.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "ul",
+        { style: { display: "grid", gap: 8, listStyle: "none", margin: 0, padding: 14 } },
+        props.events.map((e, i) =>
+          React.createElement(
+            "li",
+            {
+              key: i,
+              style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, display: "grid", gap: 4, padding: 10 },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "baseline", display: "flex", flexWrap: "wrap", gap: 8 } },
+              React.createElement("span", { style: { color: hudText, fontSize: 15, fontWeight: 700 } }, e.title),
+              e.category ? labelElement(e.category, "info", "xs") : null,
+            ),
+            React.createElement(
+              "div",
+              { style: { color: hudTextMid, fontSize: 12 } },
+              e.start + (e.end ? ` — ${e.end}` : ""),
+              e.location ? ` · ${e.location}` : "",
+            ),
+            e.attendees && e.attendees.length > 0
+              ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12 } }, e.attendees.join(", "))
+              : null,
+            e.notes ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12 } }, e.notes) : null,
+          ),
+        ),
+      ),
+    ),
+});
+
+const PersonCard = defineComponent({
+  name: "PersonCard",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    people: z.array(
+      z.object({
+        name: z.string(),
+        role: z.string().optional(),
+        avatar: z.string().optional(),
+        email: z.string().optional(),
+        phone: z.string().optional(),
+        status: z.string().optional(),
+        bio: z.string().optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "People / contact card grid: name, role, avatar, contact channels, presence status. Use for team intros, reviewer lists, owner handoffs.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "grid",
+            gap: 10,
+            gridTemplateColumns: `repeat(${Math.min(3, Math.max(1, props.people.length))}, minmax(0, 1fr))`,
+            padding: 14,
+          },
+        },
+        props.people.map((p, i) =>
+          React.createElement(
+            "div",
+            { key: i, style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 10, display: "grid", gap: 6, padding: 12 } },
+            React.createElement(
+              "div",
+              { style: { alignItems: "center", display: "flex", gap: 10 } },
+              p.avatar
+                ? React.createElement("img", {
+                    alt: p.name,
+                    src: p.avatar,
+                    style: { borderRadius: 999, height: 40, objectFit: "cover", width: 40 },
+                  })
+                : React.createElement(
+                    "div",
+                    {
+                      style: {
+                        alignItems: "center",
+                        background: hudCellWash,
+                        border: `1px solid ${hudEdge}`,
+                        borderRadius: 999,
+                        color: hudText,
+                        display: "flex",
+                        fontWeight: 800,
+                        height: 40,
+                        justifyContent: "center",
+                        width: 40,
+                      },
+                    },
+                    p.name.slice(0, 2).toUpperCase(),
+                  ),
+              React.createElement(
+                "div",
+                { style: { display: "grid" } },
+                React.createElement("div", { style: { color: hudText, fontSize: 14, fontWeight: 700 } }, p.name),
+                p.role ? React.createElement("div", { style: { color: hudTextMid, fontSize: 12 } }, p.role) : null,
+              ),
+            ),
+            p.status ? labelElement(p.status, "info", "xs") : null,
+            p.bio ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: 0 } }, p.bio) : null,
+            p.email || p.phone
+              ? React.createElement(
+                  "div",
+                  { style: { color: hudTextSoft, fontSize: 12 } },
+                  [p.email, p.phone].filter(Boolean).join(" · "),
+                )
+              : null,
+          ),
+        ),
+      ),
+    ),
+});
+
+const DiagnosticsCard = defineComponent({
+  name: "DiagnosticsCard",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    checks: z.array(
+      z.object({
+        name: z.string(),
+        status: z.enum(["pass", "warn", "fail", "skip", "pending"]),
+        detail: z.string().optional(),
+        durationMs: z.number().optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Pre-flight / health-check style list of named checks each with pass|warn|fail|skip|pending. Use for CI status, env diagnostics, lint/types/tests rollups, deploy gates.",
+  component: ({ props }) => {
+    const counts = props.checks.reduce<Record<string, number>>((acc, c) => {
+      acc[c.status] = (acc[c.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { display: "flex", flexWrap: "wrap", gap: 6 } },
+          counts.pass ? labelElement(`pass ${counts.pass}`, "positive", "xs") : null,
+          counts.warn ? labelElement(`warn ${counts.warn}`, "warning", "xs") : null,
+          counts.fail ? labelElement(`fail ${counts.fail}`, "danger", "xs") : null,
+          counts.skip ? labelElement(`skip ${counts.skip}`, "neutral", "xs") : null,
+          counts.pending ? labelElement(`pending ${counts.pending}`, "info", "xs") : null,
+        ),
+        React.createElement(
+          "ul",
+          { style: { display: "grid", gap: 6, listStyle: "none", margin: 0, padding: 0 } },
+          props.checks.map((c, i) => {
+            const tone = toneFor(
+              c.status === "pass" ? "positive" : c.status === "warn" ? "warning" : c.status === "fail" ? "danger" : c.status === "pending" ? "info" : "neutral",
+            );
+            return React.createElement(
+              "li",
+              {
+                key: i,
+                style: {
+                  alignItems: "center",
+                  background: tone.background,
+                  border: `1px solid ${tone.border}`,
+                  borderRadius: 8,
+                  display: "grid",
+                  gap: 4,
+                  padding: "8px 10px",
+                },
+              },
+              React.createElement(
+                "div",
+                { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 } },
+                labelElement(c.status, c.status === "pass" ? "positive" : c.status === "warn" ? "warning" : c.status === "fail" ? "danger" : c.status === "pending" ? "info" : "neutral", "xs"),
+                React.createElement("span", { style: { color: hudText, fontSize: 13, fontWeight: 700 } }, c.name),
+                c.durationMs !== undefined ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 11 } }, `${c.durationMs}ms`) : null,
+              ),
+              c.detail ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.4, margin: 0 } }, c.detail) : null,
+            );
+          }),
+        ),
+      ),
+    );
+  },
+});
+
+const QuickActions = defineComponent({
+  name: "QuickActions",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    actions: z.array(
+      z.object({
+        label: z.string(),
+        icon: z.string().optional(),
+        tone: z.enum(["neutral", "info", "positive", "warning", "danger"]).optional(),
+        hint: z.string().optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Tile-style row of short next-step buttons. Use for command palettes, home dashboards, recurring shortcuts. Different from ActionPanel — no description per item, optimized for picking quickly.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            display: "grid",
+            gap: 8,
+            gridTemplateColumns: `repeat(${Math.min(4, Math.max(2, props.actions.length))}, minmax(0, 1fr))`,
+            padding: 14,
+          },
+        },
+        props.actions.map((a, i) => {
+          const tone = toneFor(a.tone ?? "info");
+          return React.createElement(
+            "button",
+            {
+              key: i,
+              style: {
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderRadius: 10,
+                color: tone.text,
+                cursor: "pointer",
+                display: "grid",
+                gap: 4,
+                padding: "10px 12px",
+                textAlign: "left",
+              },
+              type: "button",
+            },
+            React.createElement(
+              "span",
+              { style: { alignItems: "center", display: "flex", fontSize: 14, fontWeight: 700, gap: 6 } },
+              a.icon ? React.createElement("span", null, a.icon) : null,
+              a.label,
+            ),
+            a.hint ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 11 } }, a.hint) : null,
+          );
+        }),
+      ),
+    ),
+});
+
+const TranscriptView = defineComponent({
+  name: "TranscriptView",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    messages: z.array(
+      z.object({
+        speaker: z.string(),
+        role: z.enum(["user", "agent", "system", "human"]).optional(),
+        time: z.string().optional(),
+        text: z.string(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Conversation / transcript view. Use for support ticket replays, agent-to-agent exchanges, meeting notes, LLM dialog dumps. Distinguish speakers by role.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "ol",
+        { style: { display: "grid", gap: 8, listStyle: "none", margin: 0, padding: 14 } },
+        props.messages.map((m, i) => {
+          const tone = toneFor(
+            m.role === "agent" ? "info" : m.role === "system" ? "neutral" : m.role === "user" ? "positive" : "warning",
+          );
+          return React.createElement(
+            "li",
+            {
+              key: i,
+              style: {
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
+                borderRadius: 8,
+                display: "grid",
+                gap: 4,
+                padding: 10,
+              },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "baseline", color: hudTextMid, display: "flex", flexWrap: "wrap", fontSize: 12, gap: 8 } },
+              React.createElement("strong", { style: { color: tone.text } }, m.speaker),
+              m.role ? labelElement(m.role, m.role === "user" ? "positive" : m.role === "agent" ? "info" : "neutral", "xs") : null,
+              m.time ? React.createElement("span", null, m.time) : null,
+            ),
+            React.createElement("p", { style: { color: hudText, fontSize: 13, lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" } }, m.text),
+          );
+        }),
+      ),
+    ),
+});
+
+const DonutChart = defineComponent({
+  name: "DonutChart",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    total: z.union([z.string(), z.number()]).optional(),
+    segments: z.array(
+      z.object({
+        label: z.string(),
+        value: z.number(),
+        tone: z.enum(["neutral", "info", "positive", "warning", "danger"]).optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Donut/pie composition chart. Use for share/breakdown/composition data (capacity by team, test outcomes, traffic by source) where parts sum to a whole.",
+  component: ({ props }) => {
+    const total = props.segments.reduce((sum, s) => sum + s.value, 0) || 1;
+    let cumulative = 0;
+    const gradient = props.segments
+      .map((seg) => {
+        const tone = toneFor(seg.tone ?? "info");
+        const start = (cumulative / total) * 360;
+        cumulative += seg.value;
+        const end = (cumulative / total) * 360;
+        return `${tone.border} ${start}deg ${end}deg`;
+      })
+      .join(", ");
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { alignItems: "center", display: "grid", gap: 16, gridTemplateColumns: "180px 1fr", padding: 14 } },
+        React.createElement(
+          "div",
+          {
+            style: {
+              alignItems: "center",
+              background: `conic-gradient(${gradient})`,
+              borderRadius: 999,
+              display: "flex",
+              height: 180,
+              justifyContent: "center",
+              position: "relative",
+              width: 180,
+            },
+          },
+          React.createElement(
+            "div",
+            {
+              style: {
+                alignItems: "center",
+                background: hudPanelWash,
+                border: `1px solid ${hudEdge}`,
+                borderRadius: 999,
+                color: hudText,
+                display: "flex",
+                fontSize: 18,
+                fontWeight: 700,
+                height: 110,
+                justifyContent: "center",
+                width: 110,
+              },
+            },
+            formatCellValue(props.total ?? total),
+          ),
+        ),
+        React.createElement(
+          "ul",
+          { style: { display: "grid", gap: 4, listStyle: "none", margin: 0, padding: 0 } },
+          props.segments.map((seg, i) => {
+            const tone = toneFor(seg.tone ?? "info");
+            const pct = ((seg.value / total) * 100).toFixed(1);
+            return React.createElement(
+              "li",
+              { key: i, style: { alignItems: "center", color: hudText, display: "flex", fontSize: 13, gap: 8 } },
+              React.createElement("span", { style: { background: tone.border, borderRadius: 3, height: 10, width: 10 } }),
+              React.createElement("span", { style: { flex: 1 } }, seg.label),
+              React.createElement("span", { style: { color: hudTextMid } }, `${seg.value} (${pct}%)`),
+            );
+          }),
+        ),
+      ),
+    );
+  },
+});
+
+type TreeNode = {
+  label: string;
+  meta?: string;
+  children?: TreeNode[];
+};
+const treeNodeSchema: z.ZodType<TreeNode> = z.lazy(() =>
+  z.object({
+    label: z.string(),
+    meta: z.string().optional(),
+    children: z.array(treeNodeSchema).optional(),
+  }),
+);
+
+function renderTreeNode(node: TreeNode, depth: number): React.ReactNode {
+  return React.createElement(
+    "li",
+    { key: `${depth}:${node.label}`, style: { color: hudText, fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 13, paddingLeft: depth * 14 } },
+    React.createElement(
+      "span",
+      { style: { display: "inline-flex", gap: 6 } },
+      React.createElement("span", { style: { color: hudTextSoft } }, node.children && node.children.length > 0 ? "▾" : "•"),
+      React.createElement("span", null, node.label),
+      node.meta ? React.createElement("span", { style: { color: hudTextSoft } }, ` ${node.meta}`) : null,
+    ),
+    node.children && node.children.length > 0
+      ? React.createElement(
+          "ul",
+          { style: { listStyle: "none", margin: 0, padding: 0 } },
+          node.children.map((c) => renderTreeNode(c, depth + 1)),
+        )
+      : null,
+  );
+}
+
+const TreeView = defineComponent({
+  name: "TreeView",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    nodes: z.array(treeNodeSchema),
+    ...glassProps,
+  }),
+  description:
+    "Indented hierarchy view. Use for file trees, JSON shape, org charts, dependency trees, anything nested.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "ul",
+        { style: { listStyle: "none", margin: 0, padding: 14 } },
+        props.nodes.map((n) => renderTreeNode(n, 0)),
+      ),
+    ),
+});
+
+const AnimationCard = defineComponent({
+  name: "AnimationCard",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    src: z.string(),
+    format: z.enum(["lottie", "video", "gif", "svg", "auto"]).optional(),
+    poster: z.string().optional(),
+    caption: z.string().optional(),
+    loop: z.boolean().optional(),
+    autoplay: z.boolean().optional(),
+    speed: z.number().min(0.1).max(4).optional(),
+    aspectRatio: z.string().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Animation showcase card for lightweight motion clips: Lottie JSON, looping video, animated GIF/SVG, or PNG sequences. Use for empty states, micro-interactions, success/error animations, branding moments, onboarding hooks.",
+  component: ({ props }) => {
+    const format =
+      props.format && props.format !== "auto"
+        ? props.format
+        : /\.json$/i.test(props.src)
+          ? "lottie"
+          : /\.(mp4|webm|mov|m4v)(\?|$)/i.test(props.src)
+            ? "video"
+            : /\.svg(\?|$)/i.test(props.src)
+              ? "svg"
+              : "gif";
+    const aspect = props.aspectRatio ?? "16 / 9";
+    const playbackRate = props.speed ?? 1;
+    const loop = props.loop ?? true;
+    const autoplay = props.autoplay ?? true;
+
+    const mediaStyle: React.CSSProperties = {
+      aspectRatio: aspect,
+      background: hudPanelWash,
+      border: `1px solid ${hudEdge}`,
+      borderRadius: 10,
+      display: "block",
+      height: "auto",
+      objectFit: "cover",
+      width: "100%",
+    };
+
+    const media =
+      format === "video"
+        ? React.createElement("video", {
+            autoPlay: autoplay,
+            controls: !autoplay,
+            loop,
+            muted: true,
+            playsInline: true,
+            poster: props.poster,
+            ref: (el: HTMLVideoElement | null) => {
+              if (el) el.playbackRate = playbackRate;
+            },
+            src: props.src,
+            style: mediaStyle,
+          })
+        : format === "lottie"
+          ? React.createElement(
+              "div",
+              {
+                style: { ...mediaStyle, alignItems: "center", color: hudTextMid, display: "flex", fontSize: 12, justifyContent: "center", padding: 14, textAlign: "center" },
+              },
+              `Lottie animation\n${props.src}`,
+            )
+          : format === "svg"
+            ? React.createElement("object", { data: props.src, style: mediaStyle, type: "image/svg+xml" })
+            : React.createElement("img", { alt: props.caption ?? props.title ?? "animation", src: props.src, style: mediaStyle });
+
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 8, padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 6 } },
+          labelElement(format, "info", "xs"),
+          loop ? labelElement("loop", "neutral", "xs") : null,
+          props.speed !== undefined && props.speed !== 1 ? labelElement(`${props.speed}×`, "info", "xs") : null,
+          autoplay ? labelElement("autoplay", "positive", "xs") : null,
+        ),
+        media,
+        props.caption ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: 0 } }, props.caption) : null,
+      ),
+    );
+  },
+});
+
+const WizardForm = defineComponent({
+  name: "WizardForm",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    steps: z.array(
+      z.object({
+        label: z.string(),
+        status: z.enum(["done", "active", "pending"]).optional(),
+        fields: z
+          .array(
+            z.object({
+              label: z.string(),
+              value: z.string().optional(),
+              type: z.enum(["text", "number", "date", "select", "checkbox", "textarea"]).default("text"),
+              required: z.boolean().optional(),
+              help: z.string().optional(),
+            }),
+          )
+          .optional(),
+        instructions: z.string().optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Multi-step wizard combining ProgressStepper-style stages with per-step form fields. Use for onboarding, configuration flows, multi-stage approvals.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "ol",
+        { style: { display: "grid", gap: 12, listStyle: "none", margin: 0, padding: 14 } },
+        props.steps.map((s, i) => {
+          const tone = toneFor(s.status === "done" ? "positive" : s.status === "active" ? "info" : "neutral");
+          return React.createElement(
+            "li",
+            {
+              key: i,
+              style: { background: tone.background, border: `1px solid ${tone.border}`, borderRadius: 10, display: "grid", gap: 8, padding: 12 },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "center", display: "flex", gap: 8 } },
+              React.createElement(
+                "span",
+                {
+                  style: {
+                    alignItems: "center",
+                    background: hudPanelWash,
+                    border: `1px solid ${tone.border}`,
+                    borderRadius: 999,
+                    color: tone.text,
+                    display: "flex",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    height: 22,
+                    justifyContent: "center",
+                    width: 22,
+                  },
+                },
+                String(i + 1),
+              ),
+              React.createElement("span", { style: { color: hudText, fontSize: 14, fontWeight: 700 } }, s.label),
+              s.status ? labelElement(s.status, s.status === "done" ? "positive" : s.status === "active" ? "info" : "neutral", "xs") : null,
+            ),
+            s.instructions ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: 0 } }, s.instructions) : null,
+            s.fields && s.fields.length > 0
+              ? React.createElement(
+                  "div",
+                  { style: { display: "grid", gap: 8 } },
+                  s.fields.map((f, fi) =>
+                    React.createElement(
+                      "div",
+                      {
+                        key: fi,
+                        style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, display: "grid", gap: 4, padding: 8 },
+                      },
+                      React.createElement(
+                        "div",
+                        { style: { alignItems: "center", color: hudTextMid, display: "flex", fontSize: 12, fontWeight: 700, gap: 6 } },
+                        labelElement(f.label, "neutral", "xs"),
+                        f.required ? labelElement("required", "danger", "xs") : null,
+                      ),
+                      React.createElement(
+                        "div",
+                        {
+                          style: {
+                            background: "rgba(2,18,32,0.20)",
+                            border: `1px solid ${hudEdge}`,
+                            borderRadius: 6,
+                            color: f.value ? hudText : hudTextSoft,
+                            fontSize: 13,
+                            minHeight: f.type === "textarea" ? 64 : 32,
+                            padding: "6px 8px",
+                            whiteSpace: "pre-wrap",
+                          },
+                        },
+                        f.value || "Not provided",
+                      ),
+                      f.help ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 12 } }, f.help) : null,
+                    ),
+                  ),
+                )
+              : null,
+          );
+        }),
+      ),
+    ),
+});
+
 const componentGroups: ComponentGroup[] = [
   ...(openuiLibrary.componentGroups ?? []),
   {
@@ -1700,11 +3348,101 @@ const componentGroups: ComponentGroup[] = [
   },
   {
     name: "Media",
-    components: ["AudioPlayer", "VideoPlayer"],
+    components: ["AudioPlayer", "VideoPlayer", "ImageGallery", "AnimationCard"],
     notes: [
       "- Use AudioPlayer for music, generated speech/audio, podcasts, meeting recordings, and sound previews. Never autoplay.",
       "- Use VideoPlayer for demos, screen recordings, walkthroughs, clips, tutorials, and visual evidence. Never autoplay.",
+      "- Use ImageGallery for screenshots, product photos, design candidates, store/cafe imagery, and any caption-bearing image grid.",
+      "- Use AnimationCard for short motion clips (Lottie JSON, looping video, animated GIF/SVG): empty states, micro-interactions, success/error animations, onboarding hooks.",
       "- Prefer caller-provided media URLs. If no URL is available, explain that media source is required or use a clearly labeled sample only for demos.",
+    ],
+  },
+  {
+    name: "Decisions",
+    components: ["ConfirmDialog", "CompareTable", "QuickActions"],
+    notes: [
+      "- Use ConfirmDialog whenever the user must say yes/no to a single high-stakes action (delete, deploy, approve, autonomous-run gate).",
+      "- Use CompareTable when 2-4 options share the same set of attributes (plan tiers, libraries, APIs) and the user has to pick one.",
+      "- Use QuickActions when the goal is to offer short, tile-style shortcuts with no per-item explanation — pick lots of things quickly.",
+    ],
+  },
+  {
+    name: "Code & Data",
+    components: ["CodeBlock", "DataPreview", "TreeView"],
+    notes: [
+      "- Use CodeBlock for a single snippet of code or a command. CodeDiff is for changes; CodeBlock is for new code to paste or run.",
+      "- Use DataPreview for raw structured data inspection (SQL result, CSV head, JSON sample) with column types — devs read it, not stakeholders.",
+      "- Use TreeView for any hierarchy: file tree, JSON shape, org chart, dependency tree, nested config.",
+    ],
+  },
+  {
+    name: "Schedule & People",
+    components: ["WeatherCard", "EventList", "PersonCard"],
+    notes: [
+      "- Use WeatherCard for weather, atmosphere conditions, daily/hourly forecasts.",
+      "- Use EventList for today/upcoming events, agendas, scheduled releases, news-of-the-day with explicit times.",
+      "- Use PersonCard for team intros, reviewer lists, owner handoffs, on-call contacts.",
+    ],
+  },
+  {
+    name: "Diagnostics & Conversations",
+    components: ["DiagnosticsCard", "TranscriptView", "WizardForm"],
+    notes: [
+      "- Use DiagnosticsCard for named checks with pass|warn|fail|skip|pending — CI status, env probes, deploy gates, lint/types/tests rollups.",
+      "- Use TranscriptView for conversation logs, agent-to-agent exchanges, ticket replays, LLM dialog dumps.",
+      "- Use WizardForm for multi-step onboarding or configuration flows that pair stages with per-stage inputs.",
+    ],
+  },
+  {
+    name: "Charts (extra)",
+    components: ["DonutChart"],
+    notes: [
+      "- Use DonutChart (also good for pie-style display) for share/composition data where the parts sum to a whole (capacity by team, traffic by source).",
+      "- Prefer BarChart for rankings and LineChart for trends; DonutChart is specifically for composition.",
+    ],
+  },
+  {
+    name: "Vector",
+    components: ["InlineSvg"],
+    notes: [
+      "- Use InlineSvg whenever the user asks for SVG, vector graphics, diagrams, schematics, logos, icons, or hand-drawn illustrations.",
+      "- The svg prop must be a complete <svg>…</svg> string with a viewBox; <script> and on* handlers are stripped automatically.",
+      "- Set height (in pixels) to bound the render area, and background = panel | transparent | light.",
+    ],
+  },
+  {
+    name: "Conversation",
+    components: ["MessageThread", "MessageBubble"],
+    notes: [
+      "- Use MessageThread for chat-style conversation previews: LLM dialogs, support chats, agent-to-agent exchanges. Each message has speaker, role (user|assistant|system|agent|tool), text, optional time/avatar. User bubbles right-align; others left-align.",
+      "- Use MessageBubble standalone when only one message is shown (last reply, quoted snippet). For full conversations, prefer MessageThread.",
+      "- MessageThread differs from TranscriptView: bubbles + role-based alignment instead of a flat time-stamped log.",
+    ],
+  },
+  {
+    name: "Hero KPI",
+    components: ["Stat", "Sparkline"],
+    notes: [
+      "- Use Stat when one metric dominates (today's revenue, current SLA, primary error rate). Supports value, delta, target, spark trend, footnote.",
+      "- Use Sparkline inline next to a label/value when you only need a tiny trend with no axes. For full charts use LineChart.",
+      "- Prefer MetricGrid for 3+ peer KPIs; Stat is for the one number that matters most.",
+    ],
+  },
+  {
+    name: "Region Maps",
+    components: ["GeoHeatmap"],
+    notes: [
+      "- Use GeoHeatmap for share/density/coverage by region (states, prefectures, countries). Each region has label, value, optional code. Tile color scales by value.",
+      "- Use palette = sky | mint | amber | rose to match the data tone.",
+      "- Choose MapView for individual points and GeoHeatmap for whole-region values.",
+    ],
+  },
+  {
+    name: "Notifications",
+    components: ["NotificationToast"],
+    notes: [
+      "- Use NotificationToast for one-shot banners: success/warning/error/info with severity, optional icon, time, single CTA action, and dismiss label.",
+      "- Use AlertList when there are several risks to scan; NotificationToast is the slim single-line counterpart.",
     ],
   },
 ];
@@ -1730,6 +3468,28 @@ const customComponents = [
   MapView,
   AudioPlayer,
   VideoPlayer,
+  ImageGallery,
+  ConfirmDialog,
+  CompareTable,
+  CodeBlock,
+  DataPreview,
+  WeatherCard,
+  EventList,
+  PersonCard,
+  DiagnosticsCard,
+  QuickActions,
+  TranscriptView,
+  DonutChart,
+  TreeView,
+  WizardForm,
+  AnimationCard,
+  InlineSvg,
+  MessageBubble,
+  MessageThread,
+  Sparkline,
+  Stat,
+  GeoHeatmap,
+  NotificationToast,
 ];
 const customComponentNames = new Set([
   "Card",
@@ -1752,6 +3512,28 @@ const customComponentNames = new Set([
   "MapView",
   "AudioPlayer",
   "VideoPlayer",
+  "ImageGallery",
+  "ConfirmDialog",
+  "CompareTable",
+  "CodeBlock",
+  "DataPreview",
+  "WeatherCard",
+  "EventList",
+  "PersonCard",
+  "DiagnosticsCard",
+  "QuickActions",
+  "TranscriptView",
+  "DonutChart",
+  "TreeView",
+  "WizardForm",
+  "AnimationCard",
+  "InlineSvg",
+  "MessageBubble",
+  "MessageThread",
+  "Sparkline",
+  "Stat",
+  "GeoHeatmap",
+  "NotificationToast",
 ]);
 const baseComponents = Object.entries(openuiLibrary.components)
   .filter(([name]) => !customComponentNames.has(name))
@@ -1786,6 +3568,28 @@ export const promptOptions: PromptOptions = {
     "For map requests, use MapView(title, description, center, zoom, height, markers) as part of the UI. Include useful marker labels and colors.",
     "For audio or music requests, use AudioPlayer(title, description, tracks). Do not autoplay. Prefer provided audio URLs.",
     "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters). Do not autoplay. Prefer provided video URLs.",
+    "For screenshots, photo grids, and visual evidence, prefer ImageGallery(title, description, images, columns).",
+    "For single high-stakes confirmation (delete, approve, deploy, autonomous-run gate), prefer ConfirmDialog(title, description, question, detail, risk, confirmLabel, cancelLabel, consequences).",
+    "For side-by-side option comparison with shared specs, prefer CompareTable(title, description, options, specOrder). Each option has { name, tagline, recommended, specs }.",
+    "For a single code or command snippet to paste or run, prefer CodeBlock(title, description, language, code, runnable, filename). Use CodeDiff only for changes.",
+    "For raw structured data inspection (SQL result, CSV head, JSON sample), prefer DataPreview(title, description, source, schema, sampleRows, truncated, rowCount).",
+    "For weather forecasts and atmosphere conditions, prefer WeatherCard(title, description, location, summary, temperature, feelsLike, highLow, icon, forecast).",
+    "For schedules, agendas, today/upcoming events, prefer EventList(title, description, events). Each event has { title, start, end, location, category, attendees, notes }.",
+    "For team intros, reviewer lists, owner handoffs, prefer PersonCard(title, description, people). Each person has { name, role, avatar, email, phone, status, bio }.",
+    "For CI/env health checks with pass|warn|fail|skip|pending statuses, prefer DiagnosticsCard(title, description, checks).",
+    "For tile-style shortcut rows without per-item descriptions, prefer QuickActions(title, description, actions). Use ActionPanel when each action needs its own description.",
+    "For chat or transcript replays, prefer TranscriptView(title, description, messages). Each message has { speaker, role, time, text }.",
+    "For share/composition charts where parts sum to a whole, prefer DonutChart(title, description, total, segments).",
+    "For any hierarchy (file tree, JSON shape, org chart, dependency tree), prefer TreeView(title, description, nodes). Nodes are recursive: { label, meta, children }.",
+    "For multi-step onboarding or configuration flows with per-stage inputs, prefer WizardForm(title, description, steps).",
+    "For short motion clips (Lottie JSON, looping video, animated GIF/SVG), prefer AnimationCard(title, description, src, format, poster, caption, loop, autoplay, speed, aspectRatio). Format auto-detects from src extension.",
+    "For SVG, vector diagrams, schematics, logos, or icons, prefer InlineSvg(title, description, svg, height, background). svg is a full <svg…>…</svg> string with a viewBox. Set height in pixels and background = panel | transparent | light.",
+    "For chat-style conversations (LLM dialogs, support chats, agent-to-agent exchanges), prefer MessageThread(title, description, messages, composer). Each message has { speaker, role: user|assistant|system|agent|tool, time, text, avatar }. User bubbles right-align.",
+    "For a single chat message shown standalone, prefer MessageBubble(speaker, role, time, text, avatar).",
+    "When one metric dominates (today's number, the primary KPI), prefer Stat(title, description, label, value, delta, tone, spark, target, footnote). For multiple peer KPIs, use MetricGrid instead.",
+    "For tiny inline trend lines next to a value with no axes, prefer Sparkline(data, height, tone). For full charts use LineChart.",
+    "For share/density/coverage by region (states, prefectures, countries), prefer GeoHeatmap(title, description, unit, regions, palette, columns). Each region has { label, value, code }. Use MapView for individual points instead.",
+    "For one-shot status banners (success/warning/error/info with a single CTA), prefer NotificationToast(title, message, severity, icon, time, action, dismissLabel). Use AlertList for multi-item risk lists.",
   ],
   examples: [
     ...(openuiPromptOptions.examples ?? []),
@@ -1842,14 +3646,14 @@ actions = ActionPanel("Review outcome", "Next step", [a1])
 a1 = { label: "Apply after approval", priority: "medium", owner: "agent" }`,
     `Map example:
 
-root = Card([header, map, followups])
+root = Card([header, map, actions])
 header = CardHeader("Tokyo Customer Map", "Priority customer sites around central Tokyo")
 map = MapView("Customer locations", "Markers show priority by color", { lat: 35.6812, lng: 139.7671 }, 11, 360, [tokyo, shinjuku, shinagawa])
 tokyo = { lat: 35.6812, lng: 139.7671, label: "Tokyo Station", description: "Enterprise account", color: "red" }
 shinjuku = { lat: 35.6909, lng: 139.7003, label: "Shinjuku", description: "Support escalation", color: "yellow" }
 shinagawa = { lat: 35.6285, lng: 139.7388, label: "Shinagawa", description: "Expansion candidate", color: "green" }
-followups = FollowUpBlock([fu1])
-fu1 = FollowUpItem("Filter to high priority only")`,
+actions = ActionPanel("Next actions", "Use the mapped sites to decide the handoff", [a1])
+a1 = { label: "Filter to high priority only", priority: "medium", owner: "agent" }`,
     `Audio example:
 
 root = Card([header, player])
@@ -1863,5 +3667,37 @@ root = Card([header, video])
 header = CardHeader("Feature Walkthrough", "Watch the prototype flow")
 video = VideoPlayer("Checkout demo", "Screen recording with key moments", "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4", null, "Transcript or notes can go here.", [chapter1])
 chapter1 = { time: "00:05", title: "Main interaction", description: "User opens the popup and reviews the generated UI" }`,
+    `SVG example:
+
+root = Card([header, art])
+header = CardHeader("Brand mark", "Inline SVG rendered by the broker")
+art = InlineSvg("Logo", "Vector mark for the active workspace", "<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 120 120\\"><defs><linearGradient id=\\"g\\" x1=\\"0\\" x2=\\"1\\" y1=\\"0\\" y2=\\"1\\"><stop offset=\\"0%\\" stop-color=\\"#4ccbff\\"/><stop offset=\\"100%\\" stop-color=\\"#80ffb4\\"/></linearGradient></defs><circle cx=\\"60\\" cy=\\"60\\" r=\\"48\\" fill=\\"url(#g)\\" opacity=\\"0.85\\"/><path d=\\"M30 78 L60 30 L90 78 Z\\" fill=\\"rgba(2,18,32,0.78)\\" stroke=\\"#f4fcff\\" stroke-width=\\"3\\" stroke-linejoin=\\"round\\"/></svg>", 280)`,
+    `Chat thread example:
+
+root = Card([header, thread])
+header = CardHeader("Support Conversation", "Latest exchange with the customer")
+thread = MessageThread("Ticket #SUP-1842", "Live transcript", [m1, m2, m3], { placeholder: "返信を入力", sendLabel: "Send" })
+m1 = { speaker: "Customer", role: "user", time: "10:02", text: "Checkout fails at the final step." }
+m2 = { speaker: "Agent", role: "assistant", time: "10:03", text: "Confirming the payment owner is paged. Could you share the order ID?" }
+m3 = { speaker: "Tool", role: "tool", time: "10:04", text: "payments.lookup → order O-99821 found, status: pending" }`,
+    `Hero stat example:
+
+root = Card([stat])
+stat = Stat("Today", "リアルタイム売上", "Revenue", "¥2.41M", "+12.4%", "positive", [180, 220, 195, 240, 260, 250, 310], "¥2.30M", "前日比でEnterprise契約2件分が押し上げ")`,
+    `Region heatmap example:
+
+root = Card([header, map])
+header = CardHeader("売上シェア (都道府県別)", "今四半期の構成比")
+map = GeoHeatmap("Prefecture share", "色が濃いほど高シェア", "%", [r1, r2, r3, r4, r5, r6], "sky", 3)
+r1 = { label: "Tokyo", code: "JP-13", value: 32 }
+r2 = { label: "Osaka", code: "JP-27", value: 18 }
+r3 = { label: "Aichi", code: "JP-23", value: 12 }
+r4 = { label: "Fukuoka", code: "JP-40", value: 9 }
+r5 = { label: "Hokkaido", code: "JP-01", value: 7 }
+r6 = { label: "Kanagawa", code: "JP-14", value: 14 }`,
+    `Notification toast example:
+
+root = Card([toast])
+toast = NotificationToast("デプロイ完了", "本番リリースが成功しました", "positive", "✓", "10:42", { label: "リリースノートを開く", href: "https://example.com/release" })`,
   ],
 };

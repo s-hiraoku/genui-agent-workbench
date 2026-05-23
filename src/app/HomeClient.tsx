@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { LiquidGlassSurface } from "./_ui/LiquidGlassSurface";
 
 type Artifact = {
@@ -129,6 +129,7 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
       setError(e instanceof Error ? e.message : "Failed to save design settings");
     }
   };
+  const close = () => window.close();
 
   return (
     <LiquidGlassSurface themeColor={design.themeColorPreset}>
@@ -141,11 +142,21 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
                   <span className="lg-label">GenUI Popup Broker</span>
                   <h1 className="lg-title truncate">Artifact Workbench</h1>
                 </div>
-                <div className="rounded-[18px] border border-white/45 bg-white/20 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
-                  <div className="lg-display">{count}</div>
-                  <div className="lg-meta">
-                    artifact{count === 1 ? "" : "s"}
+                <div className="flex shrink-0 items-start gap-3">
+                  <div className="rounded-[18px] border border-white/45 bg-white/20 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
+                    <div className="lg-display">{count}</div>
+                    <div className="lg-meta">
+                      artifact{count === 1 ? "" : "s"}
+                    </div>
                   </div>
+                  <button
+                    className="lg-icon-button"
+                    onClick={close}
+                    type="button"
+                    aria-label="Close"
+                  >
+                    <X size={16} strokeWidth={1.5} />
+                  </button>
                 </div>
               </div>
               <p className="lg-meta max-w-xl">
