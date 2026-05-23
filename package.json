@@ -9,7 +9,6 @@
     "electron:dev": "npm run electron:build && electron_config_cache=${electron_config_cache:-/private/tmp/electron-cache} electron dist-electron/electron/main.js",
     "electron:pack": "npm run build && npm run electron:build && electron-builder --mac",
     "genui": "tsx scripts/genui-cli.ts",
-    "genui:mcp": "tsx scripts/genui-mcp.ts",
     "start": "next start",
     "test": "vitest run",
     "lint": "eslint"
@@ -30,13 +29,11 @@
     }
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@openuidev/react-headless": "latest",
     "@openuidev/react-lang": "latest",
     "@openuidev/react-ui": "latest",
     "lucide-react": "^1.16.0",
     "next": "16.1.6",
-    "openai": "^6.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "zod": "^4.4.3",

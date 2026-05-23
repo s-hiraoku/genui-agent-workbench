@@ -12,7 +12,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "GenUI Popup Broker",
   description:
-    "A resident GenUI broker that lets AI agents open generated UI through CLI and MCP.",
+    "A resident GenUI broker that lets AI agents open OpenUI Lang popups through the CLI.",
 };
 
 const noFlash = `

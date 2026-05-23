@@ -6,279 +6,104 @@ import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { loadArtifact } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
-import { library } from "../src/library";
-import { renderGenUI } from "../src/server/genui/render";
+import { library, promptOptions } from "../src/library";
+import { renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 
 const genuiTestRoot = path.join(process.cwd(), ".genui-test");
 let genuiDir = "";
 
+const sampleOpenUILang = [
+  "root = Card([header, metrics, actions])",
+  'header = CardHeader("Build Review", "Agent-generated popup")',
+  'metrics = MetricGrid("Summary", "Current checks", [m1, m2])',
+  'm1 = { label: "Tests", value: "68 passed", tone: "positive" }',
+  'm2 = { label: "Lint", value: "passed", tone: "positive" }',
+  'actions = ActionPanel("Next Actions", "Recommended handoff", [a1])',
+  'a1 = { label: "Open popup", priority: "medium", owner: "agent", description: "Send OpenUI Lang through the CLI" }',
+].join("\n");
+
 beforeEach(async () => {
-  process.env.GENUI_MOCK_RENDER = "1";
   genuiDir = path.join(genuiTestRoot, randomUUID());
   process.env.GENUI_DATA_DIR = genuiDir;
   await fs.rm(genuiDir, { force: true, recursive: true });
 });
 
 afterEach(async () => {
-  delete process.env.GENUI_MOCK_RENDER;
   delete process.env.GENUI_DATA_DIR;
   await fs.rm(genuiDir, { force: true, recursive: true });
 });
 
 describe("renderGenUI", () => {
-  it("normalizes input and stores an artifact", async () => {
+  it("stores caller-provided OpenUI Lang as a provided artifact", async () => {
     const result = await renderGenUI({
-      prompt: "売上ダッシュボードを作って",
+      openuiLang: sampleOpenUILang,
       agentId: "test-agent",
-      title: "Sales Popup",
+      title: "Build Popup",
+      context: { source: "unit-test" },
     });
 
     expect(result.artifact.artifactId).toMatch(/^art_/);
     expect(result.artifact.agentId).toBe("test-agent");
-    expect(result.artifact.title).toBe("Sales Popup");
-    expect(result.artifact.generationMode).toBe("fallback");
-    expect(result.artifact.locale).toBe("ja");
+    expect(result.artifact.title).toBe("Build Popup");
+    expect(result.artifact.generationMode).toBe("provided");
     expect(result.previewPath).toBe(`/preview/${result.artifact.artifactId}`);
 
     const saved = await loadArtifact(result.artifact.artifactId);
-    expect(saved?.openuiLang).toContain("root = Card");
+    expect(saved?.openuiLang).toBe(sampleOpenUILang);
+    expect(saved?.context).toMatchObject({ source: "unit-test" });
   });
 
-  it("rejects empty prompts", async () => {
-    await expect(renderGenUI({ prompt: "   " })).rejects.toThrow("prompt is required");
+  it("rejects empty OpenUI Lang", async () => {
+    await expect(renderGenUI({ openuiLang: "   " })).rejects.toThrow("openuiLang is required");
   });
 
-  it("uses MapView in mock fallback for map prompts", async () => {
-    const result = await renderGenUI({
-      prompt: "東京の顧客拠点を地図で表示して",
-      agentId: "test-agent",
-    });
-
-    expect(result.artifact.openuiLang).toContain("MapView");
-    expect(result.artifact.openuiLang).toContain("tokyo");
+  it("rejects OpenUI Lang with unknown components", async () => {
+    await expect(renderGenUI({ openuiLang: "root = MissingCard()" })).rejects.toThrow(
+      "Invalid OpenUI Lang",
+    );
   });
 
-  it("uses MetricGrid and ActionPanel in sales fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "売上ダッシュボードを作って。KPIと次のアクションを表示して。",
-      agentId: "test-agent",
-    });
-
-    expect(result.artifact.openuiLang).toContain("MetricGrid");
-    expect(result.artifact.openuiLang).toContain("ActionPanel");
-  });
-
-  it("uses support-focused fallback for support prompts", async () => {
-    const result = await renderGenUI({
-      prompt: "顧客サポートの状況を可視化して。緊急度別のカードと推奨アクションを出して。",
-      agentId: "test-agent",
-    });
-
-    expect(result.artifact.mockData).toBe("support");
-    expect(result.artifact.openuiLang).toContain("Support health");
-    expect(result.artifact.openuiLang).toContain("ActionPanel");
-  });
-
-  it("uses TimelinePanel in timeline fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "障害対応の流れをタイムラインで説明して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("TimelinePanel");
-  });
-
-  it("uses DecisionMatrix in decision fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "3つの案を比較して推奨案を出して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("DecisionMatrix");
-  });
-
-  it("uses DataTable with caller-provided context rows", async () => {
-    const result = await renderGenUI({
-      prompt: "このrowsを表で表示して",
-      mockData: "none",
-      context: {
-        columns: [
-          { key: "id", label: "ID" },
-          { key: "status", label: "Status" },
-        ],
-        rows: [
-          { id: "A-1", status: "blocked", owner: "Ito" },
-          { id: "A-2", status: "ready", owner: "Sato" },
-        ],
-      },
-    });
-
-    expect(result.artifact.openuiLang).toContain("DataTable");
-    expect(result.artifact.openuiLang).toContain("A-1");
-    expect(result.artifact.context).toMatchObject({ rows: expect.any(Array) });
-  });
-
-  it("uses TaskBoard in task fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "作業状況をタスクボードで表示して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("TaskBoard");
-  });
-
-  it("uses CodeDiff in diff fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "この変更差分をレビュー用UIで表示して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("CodeDiff");
-  });
-
-  it("uses chart components in chart fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "カテゴリ別の件数と直近推移をチャートで表示して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("BarChart");
-    expect(result.artifact.openuiLang).toContain("LineChart");
-  });
-
-  it("uses caller-provided rows for line chart fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "各アプリのダウンロード数を折れ線グラフで表示して",
-      mockData: "none",
-      design: { glassPreset: "milky", labelInkPreset: "green" },
-      context: {
-        rows: [
-          { app: "Canvas", downloads: 12400 },
-          { app: "Drive", downloads: 17600 },
-        ],
-      },
-    });
-
-    expect(result.artifact.openuiLang).toContain("LineChart");
-    expect(result.artifact.openuiLang).toContain("Canvas");
-    expect(result.artifact.openuiLang).toContain("17600");
-    expect(result.artifact.openuiLang).toContain('"milky"');
-  });
-
-  it("uses AlertList in risk fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "リスクと警告をseverity別に表示して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("AlertList");
-  });
-
-  it("uses ProgressStepper in progress fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "作業の進行状況をステップで表示して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("ProgressStepper");
-  });
-
-  it("uses ResourceList in resource fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "関連ファイルと参考URLをリソース一覧で表示して",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("ResourceList");
-  });
-
-  it("uses FormPanel in form fallback", async () => {
-    const result = await renderGenUI({
-      prompt: "入力内容をフォーム確認UIで表示して。不足項目も示して。",
-      mockData: "none",
-    });
-
-    expect(result.artifact.openuiLang).toContain("FormPanel");
-  });
-
-  it("uses AudioPlayer in mock fallback for audio prompts", async () => {
-    const result = await renderGenUI({
-      prompt: "音楽プレーヤーを表示して",
-      agentId: "test-agent",
-    });
-
-    expect(result.artifact.openuiLang).toContain("AudioPlayer");
-  });
-
-  it("uses VideoPlayer in mock fallback for video prompts", async () => {
-    const result = await renderGenUI({
-      prompt: "動画プレーヤーを表示して",
-      agentId: "test-agent",
-    });
-
-    expect(result.artifact.openuiLang).toContain("VideoPlayer");
+  it("validates representative OpenUI Lang", () => {
+    expect(() => validateOpenUILang(sampleOpenUILang)).not.toThrow();
   });
 });
 
 describe("agent interface scaffold", () => {
-  it("documents custom components for agents", () => {
-    expect(componentCatalog.map((item) => item.name)).toEqual(
-      expect.arrayContaining([
-        "Label",
-        "MetricGrid",
-        "KeyValuePanel",
-        "AlertList",
-        "ProgressStepper",
-        "BarChart",
-        "LineChart",
-        "ResourceList",
-        "FormPanel",
-        "ActionPanel",
-        "TimelinePanel",
-        "DecisionMatrix",
-        "DataTable",
-        "TaskBoard",
-        "CodeDiff",
-        "MapView",
-        "AudioPlayer",
-        "VideoPlayer",
-      ]),
-    );
+  it("publishes direct OpenUI Lang CLI guidance", () => {
+    expect(agentUsageGuide.preferredFlow.join("\n")).toContain("prompt-spec");
+    expect(agentUsageGuide.cli.open).toContain("--openui-lang-file");
+    expect(agentUsageGuide.purpose).toContain("The agent generates OpenUI Lang");
   });
 
-  it("exposes an agent usage guide with CLI and MCP affordances", () => {
-    expect(agentUsageGuide.cli.open).toContain("npm run genui -- popup");
-    expect(agentUsageGuide.mcpTools.map((tool) => tool.name)).toEqual(
-      expect.arrayContaining(["genui.open_popup", "genui.close_popup", "genui.list_components", "genui.usage_guide"]),
-    );
+  it("builds an OpenUI prompt spec with custom components", () => {
+    const promptSpec = library.prompt(promptOptions);
+    expect(promptSpec).toContain("MetricGrid");
+    expect(promptSpec).toContain("ActionPanel");
+    expect(promptSpec).toContain("MapView");
   });
 
-  it("keeps the documented guide control API available for the CLI", async () => {
-    const electronMain = await fs.readFile(path.join(process.cwd(), "electron/main.ts"), "utf8");
-    expect(electronMain).toContain('url.pathname === "/v1/guide"');
-    expect(electronMain).toContain("agentUsageGuide");
-  });
-
-  it("builds the OpenUI schema without duplicate component ids", () => {
-    expect(() => library.toJSONSchema()).not.toThrow();
-    expect(Object.keys(library.components)).toEqual(expect.arrayContaining(["Card", "CardHeader", "BarChart", "LineChart"]));
+  it("exposes a component catalog without duplicate names", () => {
+    const names = componentCatalog.map((component) => component.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable"]));
   });
 });
 
 describe("broker state", () => {
-  it("persists the current local control URL", async () => {
+  it("persists and reads broker state under GENUI_DATA_DIR", async () => {
     await writeBrokerState({
       controlUrl: "http://127.0.0.1:48231",
       nextUrl: "http://127.0.0.1:3000",
-      pid: 123,
-      brokerProtocolVersion: "0.2.0",
-      appVersion: "0.1.0",
-      updatedAt: "2026-05-22T00:00:00.000Z",
+      pid: 1234,
+      brokerProtocolVersion: "test",
+      appVersion: "0.0.0",
+      updatedAt: "2026-01-01T00:00:00.000Z",
     });
 
     await expect(readBrokerState()).resolves.toMatchObject({
       controlUrl: "http://127.0.0.1:48231",
       nextUrl: "http://127.0.0.1:3000",
+      pid: 1234,
     });
   });
 });

@@ -371,7 +371,7 @@ function pickPreset(input: RenderGenUIInput): SizePreset {
 }
 
 function inferPresetFromInput(input: RenderGenUIInput): SizePreset {
-  const text = `${input.prompt ?? ""} ${input.title ?? ""}`.toLowerCase();
+  const text = `${input.openuiLang ?? ""} ${input.title ?? ""}`.toLowerCase();
   if (/\b(full ?screen|kiosk|cinema|theater)\b/.test(text)) return "cinema";
   if (/\b(dashboard|grid|board|matrix|map)\b/.test(text)) return "stage";
   if (/\b(table|list|report|spreadsheet|long)\b/.test(text)) return "wide";

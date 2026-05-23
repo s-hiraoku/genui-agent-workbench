@@ -1,6 +1,5 @@
-export type GenUIMockDataMode = "auto" | "sales" | "support" | "none";
 export type GenUILocale = "auto" | "ja" | "en";
-export type GenUIGenerationMode = "llm" | "fallback";
+export type GenUIGenerationMode = "provided";
 export type GenUIGlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
 export type GenUILabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
 export type GenUIWindowAnimationPreset = "center" | "left" | "right" | "top" | "fade";
@@ -24,11 +23,10 @@ export type GenUISizePreset =
   | "fullscreen";
 
 export type RenderGenUIInput = {
-  prompt: string;
+  openuiLang: string;
   agentId?: string;
   title?: string;
   context?: Record<string, unknown>;
-  mockData?: GenUIMockDataMode;
   locale?: GenUILocale;
   size?: GenUISizePreset;
   width?: number;
@@ -38,17 +36,13 @@ export type RenderGenUIInput = {
 
 export type GenUIArtifact = {
   artifactId: string;
-  prompt: string;
   agentId?: string;
   title: string;
   openuiLang: string;
   createdAt: string;
   generationMode: GenUIGenerationMode;
-  model: string;
   locale: GenUILocale;
-  mockData: GenUIMockDataMode;
   context?: Record<string, unknown>;
-  requiredTools: string[];
 };
 
 export type RenderGenUIResult = {
