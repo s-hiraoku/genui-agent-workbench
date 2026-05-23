@@ -145,7 +145,7 @@ Design defaults can be changed from:
 
 Available presets:
 
-- `themeColorPreset`: `blue` (default), `cyan`, `violet`, `mint`, `rose`, `amber`, `white`
+- `themeColorPreset`: `tactical` (default), `blue`, `cyan`, `violet`, `mint`, `rose`, `amber`, `white`, `midnight`, `forest`, `crimson`, `graphite`
 - `glassPreset`: `clear`, `pane`, `milky` (default), `dense`, `mint`, `sky`, `rose`, `amber`
 - `labelInkPreset`: `green` (default), `slate`, `white`, `blue`, `amber`, `red`
 - `windowAnimationPreset`: `center` (default), `left`, `right`, `top`, `fade`

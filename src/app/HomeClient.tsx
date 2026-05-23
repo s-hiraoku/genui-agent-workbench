@@ -17,7 +17,19 @@ type HomeClientProps = {
 
 type GlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
 type LabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
-type ThemeColorPreset = "blue" | "cyan" | "violet" | "mint" | "rose" | "amber" | "white";
+type ThemeColorPreset =
+  | "tactical"
+  | "blue"
+  | "cyan"
+  | "violet"
+  | "mint"
+  | "rose"
+  | "amber"
+  | "white"
+  | "midnight"
+  | "forest"
+  | "crimson"
+  | "graphite";
 type WindowAnimationPreset = "center" | "left" | "right" | "top" | "fade";
 type DesignSettings = {
   glassPreset: GlassPreset;
@@ -34,7 +46,7 @@ type SettingsResponse = {
 const DESIGN_DEFAULTS: DesignSettings = {
   glassPreset: "milky",
   labelInkPreset: "green",
-  themeColorPreset: "blue",
+  themeColorPreset: "tactical",
   windowAnimationPreset: "center",
 };
 
@@ -59,6 +71,7 @@ const labelInkOptions: Array<{ value: LabelInkPreset; label: string }> = [
 ];
 
 const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
+  { value: "tactical", label: "Tactical" },
   { value: "blue", label: "Blue" },
   { value: "cyan", label: "Cyan" },
   { value: "violet", label: "Violet" },
@@ -66,6 +79,10 @@ const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
   { value: "rose", label: "Rose" },
   { value: "amber", label: "Amber" },
   { value: "white", label: "White" },
+  { value: "midnight", label: "Midnight" },
+  { value: "forest", label: "Forest" },
+  { value: "crimson", label: "Crimson" },
+  { value: "graphite", label: "Graphite" },
 ];
 
 const windowAnimationOptions: Array<{ value: WindowAnimationPreset; label: string }> = [

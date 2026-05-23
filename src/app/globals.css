@@ -10,32 +10,32 @@
 
 :root {
   /* Text */
-  --ink:      rgba(255, 255, 255, 0.96);
-  --ink-mid:  rgba(255, 255, 255, 0.78);
-  --ink-soft: rgba(255, 255, 255, 0.58);
-  --ink-shadow: 0 1px 2px rgba(20, 28, 22, 0.34), 0 8px 24px rgba(20, 28, 22, 0.22);
+  --ink:      rgba(255, 255, 255, 0.98);
+  --ink-mid:  rgba(255, 255, 255, 0.90);
+  --ink-soft: rgba(255, 255, 255, 0.75);
+  --ink-shadow: 0 1px 2px rgba(20, 28, 22, 0.46), 0 8px 24px rgba(20, 28, 22, 0.28);
 
   /* Aether material tokens */
-  --theme-frame: rgba(122, 222, 255, 0.86);
-  --theme-frame-soft: rgba(122, 222, 255, 0.56);
-  --theme-frame-glow: rgba(76, 203, 255, 0.72);
+  --theme-frame: rgba(72, 114, 184, 0.78);
+  --theme-frame-soft: rgba(72, 114, 184, 0.36);
+  --theme-frame-glow: rgba(48, 86, 150, 0.34);
   --aether-window-blur: 7px;
-  --aether-window-saturate: 1.18;
-  --aether-window-brightness: 1.01;
-  --aether-window-tint: rgba(122, 222, 255, 0.045);
-  --aether-window-tint-soft: rgba(122, 222, 255, 0.018);
-  --aether-window-reflection: rgba(180, 240, 255, 0.62);
+  --aether-window-saturate: 1.06;
+  --aether-window-brightness: 1;
+  --aether-window-tint: rgba(42, 72, 116, 0.07);
+  --aether-window-tint-soft: rgba(42, 72, 116, 0.026);
+  --aether-window-reflection: rgba(176, 194, 220, 0.42);
   --aether-card-blur: 18px;
-  --aether-card-saturate: 1.34;
-  --aether-card-brightness: 1.05;
-  --aether-card-tint: rgba(112, 218, 255, 0.18);
-  --aether-card-tint-soft: rgba(74, 178, 228, 0.075);
-  --aether-card-reflection: rgba(170, 238, 255, 0.42);
+  --aether-card-saturate: 1.08;
+  --aether-card-brightness: 1.01;
+  --aether-card-tint: rgba(54, 88, 136, 0.22);
+  --aether-card-tint-soft: rgba(40, 64, 104, 0.10);
+  --aether-card-reflection: rgba(174, 190, 214, 0.30);
   --aether-readable-blur: 18px;
-  --aether-readable-tint: rgba(186, 238, 255, 0.48);
-  --aether-readable-tint-soft: rgba(104, 204, 245, 0.26);
-  --glass-label-wash: rgba(226, 248, 255, 0.44);
-  --glass-label-wash-soft: rgba(132, 218, 248, 0.18);
+  --aether-readable-tint: rgba(126, 152, 188, 0.42);
+  --aether-readable-tint-soft: rgba(74, 102, 146, 0.22);
+  --glass-label-wash: rgba(172, 190, 216, 0.34);
+  --glass-label-wash-soft: rgba(86, 116, 158, 0.14);
   --glass-label-ink-green: rgba(16, 62, 48, 0.96);
   --glass-label-ink-slate: rgba(22, 38, 42, 0.94);
   --glass-label-ink-white: rgba(12, 30, 36, 0.94);
@@ -43,29 +43,29 @@
   --glass-label-ink-amber: rgba(86, 58, 12, 0.96);
   --glass-label-ink-red: rgba(104, 34, 50, 0.96);
   --glass-label-ink: var(--glass-label-ink-green);
-  --glass-label-border: rgba(128, 226, 255, 0.30);
-  --glass-label-highlight: rgba(255, 255, 255, 0.44);
-  --glass-label-lowlight: rgba(12, 52, 68, 0.10);
-  --glass-label-glow: rgba(76, 203, 255, 0.10);
+  --glass-label-border: rgba(122, 146, 180, 0.28);
+  --glass-label-highlight: rgba(255, 255, 255, 0.30);
+  --glass-label-lowlight: rgba(12, 28, 44, 0.12);
+  --glass-label-glow: rgba(48, 86, 150, 0.06);
   --glass-label-shadow: 0 1px 0 rgba(255, 255, 255, 0.44);
 
   /* Inner surfaces */
-  --edge:        rgba(176, 238, 255, 0.46);
-  --edge-strong: rgba(92, 205, 255, 0.56);
-  --edge-soft:   rgba(92, 205, 255, 0.18);
-  --spec-soft: rgba(204, 248, 255, 0.58);
+  --edge:        rgba(134, 156, 188, 0.38);
+  --edge-strong: rgba(166, 184, 210, 0.46);
+  --edge-soft:   rgba(88, 114, 148, 0.16);
+  --spec-soft: rgba(198, 210, 226, 0.40);
   --glass-base-wash: var(--aether-window-tint);
   --glass-pane-wash: var(--aether-card-tint);
   --glass-pane-wash-soft: var(--aether-card-tint-soft);
-  --glass-panel-wash: rgba(150, 228, 255, 0.24);
+  --glass-panel-wash: rgba(92, 120, 154, 0.20);
   --glass-readable-wash: var(--aether-readable-tint);
   --glass-readable-wash-soft: var(--aether-readable-tint-soft);
-  --glass-button-wash: rgba(190, 242, 255, 0.62);
-  --glass-surface-noise: rgba(122, 222, 255, 0.12);
-  --tint-row:  rgba(76, 203, 255, 0.11);
-  --tint-chip: rgba(76, 203, 255, 0.18);
-  --tint-solid: rgba(22, 66, 92, 0.30);
-  --focus-ring: rgba(86, 204, 255, 0.74);
+  --glass-button-wash: rgba(176, 194, 220, 0.46);
+  --glass-surface-noise: rgba(72, 114, 184, 0.08);
+  --tint-row:  rgba(72, 114, 184, 0.10);
+  --tint-chip: rgba(72, 114, 184, 0.16);
+  --tint-solid: rgba(32, 52, 82, 0.34);
+  --focus-ring: rgba(112, 146, 196, 0.78);
   --danger: rgb(164, 62, 86);
 
   --scrollbar-thumb: rgba(99, 124, 74, 0.30);
@@ -150,85 +150,195 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   overflow: hidden;
 }
 
+.lg-shell[data-theme-color="tactical"] {
+  --theme-frame: rgba(72, 138, 82, 0.84);
+  --theme-frame-soft: rgba(72, 138, 82, 0.34);
+  --theme-frame-glow: rgba(38, 92, 48, 0.26);
+  --aether-window-tint: rgba(18, 42, 24, 0.12);
+  --aether-window-tint-soft: rgba(18, 42, 24, 0.05);
+  --aether-card-tint: rgba(38, 82, 48, 0.28);
+  --aether-card-tint-soft: rgba(24, 54, 32, 0.14);
+  --aether-readable-tint: rgba(94, 142, 94, 0.40);
+  --aether-readable-tint-soft: rgba(56, 108, 62, 0.20);
+  --glass-label-wash: rgba(118, 158, 106, 0.32);
+  --glass-label-wash-soft: rgba(72, 138, 82, 0.14);
+  --edge: rgba(130, 180, 118, 0.34);
+  --edge-strong: rgba(168, 204, 146, 0.44);
+  --edge-soft: rgba(72, 138, 82, 0.14);
+  --spec-soft: rgba(176, 204, 150, 0.32);
+  --tint-row: rgba(72, 138, 82, 0.13);
+  --tint-chip: rgba(126, 156, 78, 0.18);
+  --tint-solid: rgba(34, 66, 40, 0.28);
+  --focus-ring: rgba(158, 184, 96, 0.82);
+}
+
 .lg-shell[data-theme-color="white"] {
-  --theme-frame: rgba(255, 255, 255, 0.86);
-  --theme-frame-soft: rgba(255, 255, 255, 0.56);
-  --theme-frame-glow: rgba(255, 255, 255, 0.58);
-  --aether-window-tint: rgba(255, 255, 255, 0.025);
+  --theme-frame: rgba(220, 226, 234, 0.78);
+  --theme-frame-soft: rgba(220, 226, 234, 0.34);
+  --theme-frame-glow: rgba(196, 204, 216, 0.26);
+  --aether-window-tint: rgba(220, 226, 234, 0.030);
   --aether-window-tint-soft: rgba(255, 255, 255, 0);
-  --aether-card-tint: rgba(255, 255, 255, 0.16);
-  --aether-card-tint-soft: rgba(255, 255, 255, 0.07);
-  --aether-readable-tint: rgba(255, 255, 255, 0.48);
-  --aether-readable-tint-soft: rgba(255, 255, 255, 0.24);
-  --glass-label-wash: rgba(255, 255, 255, 0.46);
-  --glass-label-wash-soft: rgba(255, 255, 255, 0.20);
-  --edge: rgba(255, 255, 255, 0.42);
-  --edge-strong: rgba(255, 255, 255, 0.56);
-  --edge-soft: rgba(255, 255, 255, 0.18);
-  --spec-soft: rgba(255, 255, 255, 0.54);
+  --aether-card-tint: rgba(210, 218, 228, 0.14);
+  --aether-card-tint-soft: rgba(210, 218, 228, 0.06);
+  --aether-readable-tint: rgba(230, 234, 240, 0.38);
+  --aether-readable-tint-soft: rgba(210, 218, 228, 0.18);
+  --glass-label-wash: rgba(230, 234, 240, 0.34);
+  --glass-label-wash-soft: rgba(210, 218, 228, 0.14);
+  --edge: rgba(226, 232, 240, 0.34);
+  --edge-strong: rgba(240, 244, 248, 0.44);
+  --edge-soft: rgba(210, 218, 228, 0.14);
+  --spec-soft: rgba(240, 244, 248, 0.38);
   --tint-row: rgba(255, 255, 255, 0.10);
   --tint-chip: rgba(255, 255, 255, 0.16);
   --tint-solid: rgba(255, 255, 255, 0.14);
 }
 
 .lg-shell[data-theme-color="cyan"] {
-  --theme-frame: rgba(92, 255, 240, 0.86);
-  --theme-frame-soft: rgba(92, 255, 240, 0.56);
-  --theme-frame-glow: rgba(36, 232, 226, 0.70);
-  --aether-card-tint: rgba(92, 255, 240, 0.18);
-  --aether-card-tint-soft: rgba(36, 232, 226, 0.075);
-  --aether-readable-tint: rgba(190, 255, 250, 0.48);
-  --aether-readable-tint-soft: rgba(132, 247, 242, 0.26);
-  --glass-label-wash: rgba(210, 255, 252, 0.44);
-  --glass-label-wash-soft: rgba(118, 243, 236, 0.18);
+  --theme-frame: rgba(38, 134, 148, 0.78);
+  --theme-frame-soft: rgba(38, 134, 148, 0.34);
+  --theme-frame-glow: rgba(24, 96, 112, 0.30);
+  --aether-card-tint: rgba(30, 112, 128, 0.20);
+  --aether-card-tint-soft: rgba(22, 82, 96, 0.09);
+  --aether-readable-tint: rgba(96, 166, 178, 0.38);
+  --aether-readable-tint-soft: rgba(48, 126, 140, 0.20);
+  --glass-label-wash: rgba(118, 178, 188, 0.32);
+  --glass-label-wash-soft: rgba(42, 128, 142, 0.14);
 }
 
 .lg-shell[data-theme-color="violet"] {
-  --theme-frame: rgba(194, 156, 255, 0.86);
-  --theme-frame-soft: rgba(194, 156, 255, 0.54);
-  --theme-frame-glow: rgba(156, 112, 255, 0.68);
-  --aether-card-tint: rgba(194, 156, 255, 0.17);
-  --aether-card-tint-soft: rgba(156, 112, 255, 0.075);
-  --aether-readable-tint: rgba(230, 214, 255, 0.46);
-  --aether-readable-tint-soft: rgba(204, 178, 255, 0.24);
-  --glass-label-wash: rgba(238, 228, 255, 0.42);
-  --glass-label-wash-soft: rgba(196, 168, 255, 0.18);
+  --theme-frame: rgba(104, 88, 158, 0.78);
+  --theme-frame-soft: rgba(104, 88, 158, 0.34);
+  --theme-frame-glow: rgba(74, 60, 126, 0.30);
+  --aether-card-tint: rgba(88, 72, 142, 0.20);
+  --aether-card-tint-soft: rgba(66, 52, 112, 0.09);
+  --aether-readable-tint: rgba(142, 128, 184, 0.38);
+  --aether-readable-tint-soft: rgba(108, 92, 156, 0.20);
+  --glass-label-wash: rgba(160, 150, 194, 0.32);
+  --glass-label-wash-soft: rgba(106, 92, 158, 0.14);
 }
 
 .lg-shell[data-theme-color="mint"] {
-  --theme-frame: rgba(162, 255, 184, 0.82);
-  --theme-frame-soft: rgba(162, 255, 184, 0.52);
-  --theme-frame-glow: rgba(98, 230, 134, 0.64);
-  --aether-card-tint: rgba(162, 255, 184, 0.16);
-  --aether-card-tint-soft: rgba(98, 230, 134, 0.07);
-  --aether-readable-tint: rgba(226, 255, 232, 0.44);
-  --aether-readable-tint-soft: rgba(188, 248, 202, 0.23);
-  --glass-label-wash: rgba(232, 255, 237, 0.42);
-  --glass-label-wash-soft: rgba(172, 244, 190, 0.18);
+  --theme-frame: rgba(62, 132, 92, 0.76);
+  --theme-frame-soft: rgba(62, 132, 92, 0.32);
+  --theme-frame-glow: rgba(42, 96, 66, 0.28);
+  --aether-card-tint: rgba(52, 116, 80, 0.19);
+  --aether-card-tint-soft: rgba(38, 86, 60, 0.08);
+  --aether-readable-tint: rgba(112, 164, 134, 0.36);
+  --aether-readable-tint-soft: rgba(70, 132, 92, 0.18);
+  --glass-label-wash: rgba(132, 178, 150, 0.30);
+  --glass-label-wash-soft: rgba(62, 132, 92, 0.13);
 }
 
 .lg-shell[data-theme-color="rose"] {
-  --theme-frame: rgba(255, 168, 196, 0.82);
-  --theme-frame-soft: rgba(255, 168, 196, 0.52);
-  --theme-frame-glow: rgba(245, 116, 160, 0.62);
-  --aether-card-tint: rgba(255, 168, 196, 0.15);
-  --aether-card-tint-soft: rgba(245, 116, 160, 0.07);
-  --aether-readable-tint: rgba(255, 232, 240, 0.42);
-  --aether-readable-tint-soft: rgba(250, 202, 218, 0.22);
-  --glass-label-wash: rgba(255, 238, 244, 0.40);
-  --glass-label-wash-soft: rgba(248, 190, 210, 0.17);
+  --theme-frame: rgba(154, 72, 96, 0.76);
+  --theme-frame-soft: rgba(154, 72, 96, 0.32);
+  --theme-frame-glow: rgba(116, 46, 70, 0.28);
+  --aether-card-tint: rgba(136, 58, 82, 0.18);
+  --aether-card-tint-soft: rgba(104, 42, 64, 0.08);
+  --aether-readable-tint: rgba(184, 116, 136, 0.34);
+  --aether-readable-tint-soft: rgba(150, 78, 104, 0.18);
+  --glass-label-wash: rgba(198, 142, 158, 0.30);
+  --glass-label-wash-soft: rgba(154, 72, 96, 0.13);
 }
 
 .lg-shell[data-theme-color="amber"] {
-  --theme-frame: rgba(255, 226, 132, 0.82);
-  --theme-frame-soft: rgba(255, 226, 132, 0.50);
-  --theme-frame-glow: rgba(238, 192, 72, 0.60);
-  --aether-card-tint: rgba(255, 226, 132, 0.15);
-  --aether-card-tint-soft: rgba(238, 192, 72, 0.07);
-  --aether-readable-tint: rgba(255, 248, 218, 0.42);
-  --aether-readable-tint-soft: rgba(246, 224, 160, 0.22);
-  --glass-label-wash: rgba(255, 250, 226, 0.40);
-  --glass-label-wash-soft: rgba(242, 214, 142, 0.17);
+  --theme-frame: rgba(176, 126, 42, 0.76);
+  --theme-frame-soft: rgba(176, 126, 42, 0.32);
+  --theme-frame-glow: rgba(126, 86, 26, 0.28);
+  --aether-card-tint: rgba(150, 100, 34, 0.18);
+  --aether-card-tint-soft: rgba(112, 74, 24, 0.08);
+  --aether-readable-tint: rgba(198, 154, 82, 0.34);
+  --aether-readable-tint-soft: rgba(164, 116, 52, 0.18);
+  --glass-label-wash: rgba(210, 170, 104, 0.30);
+  --glass-label-wash-soft: rgba(176, 126, 42, 0.13);
+}
+
+/* --- Solid theme presets --------------------------------------------
+   Restrained palettes for operational popups: subdued frames, low
+   chroma glow, and darker surface tints so the UI reads less fanciful. */
+
+.lg-shell[data-theme-color="midnight"] {
+  --theme-frame: rgba(48, 64, 132, 0.82);
+  --theme-frame-soft: rgba(48, 64, 132, 0.36);
+  --theme-frame-glow: rgba(26, 38, 92, 0.34);
+  --aether-window-tint: rgba(18, 26, 54, 0.11);
+  --aether-window-tint-soft: rgba(18, 26, 54, 0.045);
+  --aether-card-tint: rgba(44, 58, 118, 0.26);
+  --aether-card-tint-soft: rgba(30, 42, 92, 0.13);
+  --aether-readable-tint: rgba(82, 96, 150, 0.42);
+  --aether-readable-tint-soft: rgba(54, 70, 126, 0.22);
+  --glass-label-wash: rgba(100, 112, 164, 0.34);
+  --glass-label-wash-soft: rgba(48, 64, 132, 0.15);
+  --edge: rgba(120, 132, 180, 0.34);
+  --edge-strong: rgba(156, 168, 206, 0.44);
+  --edge-soft: rgba(48, 64, 132, 0.15);
+  --spec-soft: rgba(160, 170, 206, 0.34);
+  --tint-row: rgba(48, 64, 132, 0.13);
+  --tint-chip: rgba(82, 96, 150, 0.18);
+  --tint-solid: rgba(34, 46, 96, 0.24);
+}
+
+.lg-shell[data-theme-color="forest"] {
+  --theme-frame: rgba(44, 104, 72, 0.80);
+  --theme-frame-soft: rgba(44, 104, 72, 0.34);
+  --theme-frame-glow: rgba(28, 76, 50, 0.32);
+  --aether-window-tint: rgba(16, 48, 30, 0.10);
+  --aether-window-tint-soft: rgba(16, 48, 30, 0.04);
+  --aether-card-tint: rgba(40, 96, 66, 0.24);
+  --aether-card-tint-soft: rgba(28, 72, 48, 0.12);
+  --aether-readable-tint: rgba(84, 136, 104, 0.40);
+  --aether-readable-tint-soft: rgba(52, 112, 76, 0.20);
+  --glass-label-wash: rgba(104, 156, 122, 0.32);
+  --glass-label-wash-soft: rgba(44, 104, 72, 0.14);
+  --edge: rgba(120, 176, 138, 0.34);
+  --edge-strong: rgba(160, 204, 172, 0.44);
+  --edge-soft: rgba(44, 104, 72, 0.15);
+  --spec-soft: rgba(160, 200, 174, 0.34);
+  --tint-row: rgba(44, 104, 72, 0.13);
+  --tint-chip: rgba(84, 136, 104, 0.17);
+  --tint-solid: rgba(36, 86, 60, 0.23);
+}
+
+.lg-shell[data-theme-color="crimson"] {
+  --theme-frame: rgba(148, 44, 62, 0.80);
+  --theme-frame-soft: rgba(148, 44, 62, 0.34);
+  --theme-frame-glow: rgba(104, 28, 44, 0.32);
+  --aether-window-tint: rgba(58, 12, 22, 0.10);
+  --aether-window-tint-soft: rgba(58, 12, 22, 0.04);
+  --aether-card-tint: rgba(132, 38, 56, 0.24);
+  --aether-card-tint-soft: rgba(96, 28, 44, 0.12);
+  --aether-readable-tint: rgba(176, 82, 98, 0.40);
+  --aether-readable-tint-soft: rgba(146, 54, 74, 0.20);
+  --glass-label-wash: rgba(190, 108, 120, 0.32);
+  --glass-label-wash-soft: rgba(148, 44, 62, 0.14);
+  --edge: rgba(204, 124, 136, 0.34);
+  --edge-strong: rgba(224, 164, 174, 0.44);
+  --edge-soft: rgba(148, 44, 62, 0.15);
+  --spec-soft: rgba(222, 164, 174, 0.34);
+  --tint-row: rgba(148, 44, 62, 0.13);
+  --tint-chip: rgba(176, 82, 98, 0.17);
+  --tint-solid: rgba(118, 34, 52, 0.23);
+}
+
+.lg-shell[data-theme-color="graphite"] {
+  --theme-frame: rgba(92, 102, 116, 0.78);
+  --theme-frame-soft: rgba(92, 102, 116, 0.32);
+  --theme-frame-glow: rgba(58, 66, 78, 0.28);
+  --aether-window-tint: rgba(22, 28, 36, 0.10);
+  --aether-window-tint-soft: rgba(22, 28, 36, 0.04);
+  --aether-card-tint: rgba(78, 88, 102, 0.22);
+  --aether-card-tint-soft: rgba(56, 66, 80, 0.11);
+  --aether-readable-tint: rgba(128, 140, 154, 0.36);
+  --aether-readable-tint-soft: rgba(96, 108, 124, 0.18);
+  --glass-label-wash: rgba(150, 160, 174, 0.30);
+  --glass-label-wash-soft: rgba(92, 102, 116, 0.13);
+  --edge: rgba(164, 174, 188, 0.32);
+  --edge-strong: rgba(190, 200, 212, 0.42);
+  --edge-soft: rgba(92, 102, 116, 0.14);
+  --spec-soft: rgba(190, 200, 212, 0.32);
+  --tint-row: rgba(92, 102, 116, 0.12);
+  --tint-chip: rgba(128, 140, 154, 0.16);
+  --tint-solid: rgba(70, 80, 94, 0.22);
 }
 
 /* Wallpaper — what the material refracts. Keep it visible; the glass
@@ -269,9 +379,9 @@ body::before,
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.74),
     0 0 0 4px var(--theme-frame),
-    0 0 0 10px var(--theme-frame-soft),
-    0 0 30px 8px var(--theme-frame-glow),
-    0 0 76px 18px var(--theme-frame-glow),
+    0 0 0 8px var(--theme-frame-soft),
+    0 0 20px 5px var(--theme-frame-glow),
+    0 0 44px 10px var(--theme-frame-glow),
     0 26px 80px rgba(8, 22, 14, 0.24);
 }
 
@@ -289,11 +399,11 @@ body::before,
   border: 2px solid var(--theme-frame);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.62),
-    0 0 18px 4px var(--theme-frame),
-    0 0 54px 14px var(--theme-frame-glow),
+    0 0 12px 3px var(--theme-frame),
+    0 0 30px 8px var(--theme-frame-glow),
     inset 0 0 0 1px rgba(255, 255, 255, 0.54),
-    inset 0 0 26px var(--theme-frame-soft);
-  opacity: 0.96;
+    inset 0 0 18px var(--theme-frame-soft);
+  opacity: 0.88;
 }
 
 .lg-window-frame::after {
@@ -303,7 +413,27 @@ body::before,
     radial-gradient(90% 72% at 50% 0%, var(--theme-frame-glow), transparent 64%),
     radial-gradient(85% 80% at 50% 100%, var(--theme-frame-soft), transparent 70%);
   filter: blur(18px);
-  opacity: 0.82;
+  opacity: 0.58;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  animation: lg-window-frame-glow-pulse 5.6s ease-in-out 1.4s infinite;
+}
+
+@keyframes lg-window-frame-glow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.50;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.70;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-window-frame::after {
+    animation: none;
+  }
 }
 
 .lg-window-frame[data-animation="left"] {
@@ -517,13 +647,15 @@ body::before,
   z-index: 1;
   isolation: isolate;
   overflow: hidden;
-  border: 1px solid rgba(128, 226, 255, 0.22);
+  border: 1px solid var(--edge-soft);
   border-radius: 14px;
   color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
   text-shadow: var(--ink-shadow);
   box-shadow:
     0 18px 58px rgba(0, 12, 24, 0.22),
-    0 0 30px rgba(76, 203, 255, 0.08),
+    0 0 20px var(--edge-soft),
     0 1px 0 rgba(255, 255, 255, 0.18) inset;
 }
 
@@ -534,8 +666,9 @@ body::before,
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 86% at 18% 0%, rgba(190, 244, 255, 0.20), transparent 44%),
-    radial-gradient(90% 95% at 100% 100%, rgba(76, 203, 255, 0.08), transparent 52%),
+    radial-gradient(120% 86% at 18% 0%, var(--edge-soft), transparent 44%),
+    radial-gradient(90% 95% at 100% 100%, var(--tint-row), transparent 52%),
+    linear-gradient(180deg, rgba(2, 18, 32, 0.26), rgba(2, 18, 32, 0.20)),
     linear-gradient(145deg, var(--aether-card-tint), var(--aether-card-tint-soft) 54%, rgba(2, 18, 32, 0.05)),
     linear-gradient(180deg, rgba(255, 255, 255, 0.040), rgba(255, 255, 255, 0.006));
   -webkit-backdrop-filter:
@@ -547,7 +680,7 @@ body::before,
     saturate(var(--aether-card-saturate))
     brightness(var(--aether-card-brightness));
   box-shadow:
-    inset 0 0 0 1px rgba(128, 226, 255, 0.16),
+    inset 0 0 0 1px var(--edge-soft),
     inset 0 1px 0 rgba(255, 255, 255, 0.34),
     inset 0 -1px 0 rgba(0, 12, 24, 0.18),
     inset 18px 14px 44px rgba(190, 244, 255, 0.06),
@@ -557,6 +690,14 @@ body::before,
 .lg-card-content > * {
   position: relative;
   z-index: 1;
+}
+
+/* Force text-shadow inheritance down into inline-styled OpenUI cards so
+   <p style="color: ...">  rendered by the library still gets the dark
+   shadow that keeps text legible over the glass surface. */
+.lg-card-content,
+.lg-card-content :where(p, span, div, li, h1, h2, h3, h4, h5, h6, button, a) {
+  text-shadow: var(--ink-shadow);
 }
 
 .lg-card-content[data-variant="clear"]::before {
@@ -570,7 +711,7 @@ body::before,
 
 .lg-card-content[data-variant="sunk"]::before {
   background:
-    linear-gradient(145deg, rgba(128, 226, 255, 0.16), rgba(42, 128, 172, 0.09) 62%, rgba(2, 18, 32, 0.05)),
+    linear-gradient(145deg, var(--aether-card-tint), var(--aether-card-tint-soft) 62%, rgba(2, 18, 32, 0.08)),
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
 }
 
@@ -583,7 +724,8 @@ body::before,
 .lg-card-header h2 {
   margin: 0;
   color: var(--ink);
-  font-size: 16px;
+  text-shadow: var(--ink-shadow);
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.25;
@@ -639,7 +781,7 @@ body::before,
   padding: var(--sp-4) var(--sp-5);
   border-radius: var(--r-panel);
   background:
-    linear-gradient(90deg, rgba(76, 203, 255, 0.08), transparent 34%),
+    linear-gradient(90deg, var(--edge-soft), transparent 34%),
     var(--tint-row);
   color: var(--ink);
   text-shadow: var(--ink-shadow);
@@ -651,7 +793,7 @@ body::before,
 }
 .lg-row:hover {
   background:
-    linear-gradient(90deg, rgba(76, 203, 255, 0.13), transparent 38%),
+    linear-gradient(90deg, var(--tint-chip), transparent 38%),
     var(--tint-chip);
   box-shadow:
     inset 0 0 0 1px var(--edge),
@@ -696,7 +838,7 @@ body::before,
   padding: 4px;
   border-radius: var(--r-chip);
   background:
-    linear-gradient(145deg, rgba(128, 226, 255, 0.10), rgba(255, 255, 255, 0.035)),
+    linear-gradient(145deg, var(--edge-soft), rgba(255, 255, 255, 0.035)),
     var(--tint-row);
   box-shadow:
     inset 0 0 0 1px var(--edge-soft),
@@ -722,14 +864,14 @@ body::before,
 .lg-menu-link:hover,
 .lg-menu-link[data-active="true"] {
   background:
-    linear-gradient(145deg, rgba(128, 226, 255, 0.18), rgba(255, 255, 255, 0.06)),
-    rgba(76, 203, 255, 0.08);
+    linear-gradient(145deg, var(--tint-chip), rgba(255, 255, 255, 0.05)),
+    var(--tint-row);
   color: var(--ink);
   text-shadow: var(--ink-shadow);
   box-shadow:
     inset 0 0 0 1px var(--edge),
     inset 0 1px 0 rgba(255, 255, 255, 0.30),
-    0 0 18px rgba(76, 203, 255, 0.16);
+    0 0 12px var(--edge-soft);
 }
 
 .lg-menu-link:focus-visible {
@@ -772,8 +914,8 @@ body::before,
 }
 
 .lg-theme-swatch {
-  --swatch-color: rgba(122, 222, 255, 0.86);
-  --swatch-color-soft: rgba(122, 222, 255, 0.10);
+  --swatch-color: rgba(72, 138, 82, 0.88);
+  --swatch-color-soft: rgba(72, 138, 82, 0.11);
   display: inline-flex;
   min-width: 0;
   min-height: 34px;
@@ -792,7 +934,7 @@ body::before,
   padding: 9px 10px;
   text-shadow: var(--ink-shadow);
   box-shadow:
-    inset 0 0 0 1px rgba(128, 226, 255, 0.14),
+    inset 0 0 0 1px var(--edge-soft),
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 0 0 0 var(--swatch-color);
   transition: background 180ms ease, box-shadow 180ms ease, transform 160ms ease;
@@ -801,7 +943,7 @@ body::before,
 .lg-theme-swatch:hover {
   background:
     linear-gradient(90deg, var(--swatch-color-soft), rgba(255, 255, 255, 0.04) 48%, transparent),
-    rgba(76, 203, 255, 0.07);
+    var(--tint-row);
 }
 
 .lg-theme-swatch:active {
@@ -818,7 +960,7 @@ body::before,
     inset 0 0 0 1px var(--swatch-color),
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 3px 0 0 var(--swatch-color),
-    0 0 18px rgba(76, 203, 255, 0.18);
+    0 0 12px var(--swatch-color-soft);
 }
 
 .lg-theme-swatch-mark {
@@ -826,37 +968,56 @@ body::before,
   height: 14px;
   flex: 0 0 auto;
   border-radius: 3px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.72), transparent 32%),
-    linear-gradient(180deg, var(--swatch-color), rgba(255, 255, 255, 0.10));
+  background: var(--swatch-color);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.38),
-    0 0 12px var(--swatch-color);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    0 0 7px var(--swatch-color-soft);
+}
+
+.lg-theme-swatch[data-color="tactical"] {
+  --swatch-color: rgba(72, 138, 82, 0.88);
+  --swatch-color-soft: rgba(72, 138, 82, 0.12);
 }
 
 .lg-theme-swatch[data-color="cyan"] {
-  --swatch-color: rgba(92, 255, 240, 0.84);
-  --swatch-color-soft: rgba(92, 255, 240, 0.10);
+  --swatch-color: rgba(38, 134, 148, 0.82);
+  --swatch-color-soft: rgba(38, 134, 148, 0.10);
 }
 .lg-theme-swatch[data-color="violet"] {
-  --swatch-color: rgba(194, 156, 255, 0.82);
-  --swatch-color-soft: rgba(194, 156, 255, 0.10);
+  --swatch-color: rgba(104, 88, 158, 0.82);
+  --swatch-color-soft: rgba(104, 88, 158, 0.10);
 }
 .lg-theme-swatch[data-color="mint"] {
-  --swatch-color: rgba(162, 255, 184, 0.80);
-  --swatch-color-soft: rgba(162, 255, 184, 0.10);
+  --swatch-color: rgba(62, 132, 92, 0.80);
+  --swatch-color-soft: rgba(62, 132, 92, 0.10);
 }
 .lg-theme-swatch[data-color="rose"] {
-  --swatch-color: rgba(255, 168, 196, 0.80);
-  --swatch-color-soft: rgba(255, 168, 196, 0.10);
+  --swatch-color: rgba(154, 72, 96, 0.80);
+  --swatch-color-soft: rgba(154, 72, 96, 0.10);
 }
 .lg-theme-swatch[data-color="amber"] {
-  --swatch-color: rgba(255, 226, 132, 0.80);
-  --swatch-color-soft: rgba(255, 226, 132, 0.10);
+  --swatch-color: rgba(176, 126, 42, 0.80);
+  --swatch-color-soft: rgba(176, 126, 42, 0.10);
 }
 .lg-theme-swatch[data-color="white"] {
-  --swatch-color: rgba(255, 255, 255, 0.84);
-  --swatch-color-soft: rgba(255, 255, 255, 0.08);
+  --swatch-color: rgba(220, 226, 234, 0.82);
+  --swatch-color-soft: rgba(220, 226, 234, 0.08);
+}
+.lg-theme-swatch[data-color="midnight"] {
+  --swatch-color: rgba(48, 64, 132, 0.86);
+  --swatch-color-soft: rgba(48, 64, 132, 0.12);
+}
+.lg-theme-swatch[data-color="forest"] {
+  --swatch-color: rgba(44, 104, 72, 0.86);
+  --swatch-color-soft: rgba(44, 104, 72, 0.12);
+}
+.lg-theme-swatch[data-color="crimson"] {
+  --swatch-color: rgba(148, 44, 62, 0.86);
+  --swatch-color-soft: rgba(148, 44, 62, 0.12);
+}
+.lg-theme-swatch[data-color="graphite"] {
+  --swatch-color: rgba(92, 102, 116, 0.84);
+  --swatch-color-soft: rgba(92, 102, 116, 0.12);
 }
 
 .lg-switch {
@@ -1018,21 +1179,21 @@ body::before,
 }
 
 .lg-label-surface[data-tone="positive"] {
-  --glass-label-wash: rgba(218, 255, 226, 0.44);
-  --glass-label-wash-soft: rgba(98, 230, 134, 0.18);
+  --glass-label-wash: rgba(150, 190, 142, 0.34);
+  --glass-label-wash-soft: rgba(72, 138, 82, 0.14);
 }
 .lg-label-surface[data-tone="warning"] {
-  --glass-label-wash: rgba(255, 246, 210, 0.44);
-  --glass-label-wash-soft: rgba(238, 192, 72, 0.18);
+  --glass-label-wash: rgba(206, 170, 96, 0.34);
+  --glass-label-wash-soft: rgba(176, 126, 42, 0.14);
 }
 .lg-label-surface[data-tone="danger"],
 .lg-label-surface[data-tone="critical"] {
-  --glass-label-wash: rgba(255, 226, 236, 0.44);
-  --glass-label-wash-soft: rgba(245, 116, 160, 0.18);
+  --glass-label-wash: rgba(194, 112, 126, 0.34);
+  --glass-label-wash-soft: rgba(148, 44, 62, 0.14);
 }
 .lg-label-surface[data-tone="info"] {
-  --glass-label-wash: rgba(220, 248, 255, 0.44);
-  --glass-label-wash-soft: rgba(76, 203, 255, 0.18);
+  --glass-label-wash: rgba(132, 160, 196, 0.34);
+  --glass-label-wash-soft: rgba(72, 114, 184, 0.14);
 }
 
 /* =====================================================================
@@ -1072,13 +1233,13 @@ body::before,
 }
 
 .lg-preview {
-  --openui-foreground: rgba(255, 255, 255, 0.30);
-  --openui-popover-background: rgba(255, 255, 255, 0.42);
-  --openui-sunk: rgba(255, 255, 255, 0.26);
-  --openui-sunk-deep: rgba(255, 255, 255, 0.34);
-  --openui-highlight: rgba(255, 255, 255, 0.36);
-  --openui-border-default: rgba(105, 126, 82, 0.18);
-  --openui-border-interactive: rgba(105, 126, 82, 0.26);
+  --openui-foreground: rgba(8, 26, 42, 0.32);
+  --openui-popover-background: rgba(8, 26, 42, 0.42);
+  --openui-sunk: rgba(2, 18, 32, 0.26);
+  --openui-sunk-deep: rgba(2, 18, 32, 0.34);
+  --openui-highlight: var(--tint-chip);
+  --openui-border-default: var(--edge-soft);
+  --openui-border-interactive: var(--edge);
   --openui-shadow-m: none;
   border-radius: var(--r-panel);
   border: 0;
@@ -1093,11 +1254,13 @@ body::before,
 }
 
 .lg-preview :where(.openui-card-card, .openui-card-sunk) {
-  background-color: rgba(255, 255, 255, 0.32);
-  border-color: rgba(255, 255, 255, 0.46);
+  background-color: rgba(8, 26, 42, 0.32);
+  background-image: linear-gradient(180deg, rgba(2, 18, 32, 0.20), rgba(2, 18, 32, 0.10));
+  border-color: var(--edge);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.58),
-    0 10px 28px rgba(49, 68, 44, 0.10);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px var(--edge-soft),
+    0 10px 28px rgba(0, 12, 24, 0.20);
 }
 
 @media (max-width: 520px) {
@@ -1120,3 +1283,5 @@ body::before,
     --scrollbar-track: rgb(255, 255, 255);
   }
 }
+
+/* theme-color presets v4 reload (frame breathe) */

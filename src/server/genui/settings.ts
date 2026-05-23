@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: BrokerSettings = {
   design: {
     glassPreset: "milky",
     labelInkPreset: "green",
-    themeColorPreset: "blue",
+    themeColorPreset: "tactical",
     windowAnimationPreset: "center",
   },
 };
@@ -65,7 +65,20 @@ export function sanitizePort(value: unknown): number | null {
 
 const GLASS_PRESETS = new Set<GenUIGlassPreset>(["clear", "pane", "milky", "dense", "mint", "sky", "rose", "amber"]);
 const LABEL_INK_PRESETS = new Set<GenUILabelInkPreset>(["green", "slate", "white", "blue", "amber", "red"]);
-const THEME_COLOR_PRESETS = new Set<GenUIThemeColorPreset>(["blue", "cyan", "violet", "mint", "rose", "amber", "white"]);
+const THEME_COLOR_PRESETS = new Set<GenUIThemeColorPreset>([
+  "tactical",
+  "blue",
+  "cyan",
+  "violet",
+  "mint",
+  "rose",
+  "amber",
+  "white",
+  "midnight",
+  "forest",
+  "crimson",
+  "graphite",
+]);
 const WINDOW_ANIMATION_PRESETS = new Set<GenUIWindowAnimationPreset>(["center", "left", "right", "top", "fade"]);
 
 function sanitizeDesign(value: unknown): GenUIDesignSettings {
