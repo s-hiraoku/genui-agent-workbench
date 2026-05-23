@@ -48,11 +48,14 @@ Ask the CLI how an agent should use it:
 npm run genui -- agent-instructions
 npm run genui -- prompt-spec
 npm run genui -- components
+npm run genui -- examples
 ```
 
 Open a popup from OpenUI Lang:
 
 ```bash
+npm run --silent genui -- examples --name build-review > ui.openui
+npm run genui -- validate --openui-lang-file ui.openui
 npm run genui -- popup \
   --agent-id codex \
   --title "Build Review" \
@@ -67,6 +70,16 @@ cat ui.openui | npm run genui -- popup \
   --agent-id codex \
   --title "Build Review" \
   --stdin-openui
+```
+
+Wait until the popup is closed:
+
+```bash
+npm run genui -- popup \
+  --agent-id codex \
+  --title "Build Review" \
+  --openui-lang-file ui.openui \
+  --wait
 ```
 
 Close and inspect:

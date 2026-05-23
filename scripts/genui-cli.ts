@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { readBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
+import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
+import { OpenUILangValidationError, validateOpenUILang } from "../src/server/genui/render";
 import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import { library, promptOptions } from "../src/library";
 
@@ -188,7 +190,7 @@ async function popup(options: CliOptions): Promise<unknown> {
   const sizeOption = typeof options.size === "string" ? options.size : undefined;
   const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
   const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
-  return requestJson(`${controlUrl}/v1/popups`, {
+  const result = await requestJson(`${controlUrl}/v1/popups`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -202,6 +204,12 @@ async function popup(options: CliOptions): Promise<unknown> {
       height: Number.isFinite(heightOption) ? heightOption : undefined,
     }),
   });
+
+  if (options.wait === true) {
+    return waitForPopup(controlUrl, result, options);
+  }
+
+  return result;
 }
 
 async function close(options: CliOptions): Promise<unknown> {
@@ -223,6 +231,66 @@ async function status(options: CliOptions): Promise<unknown> {
   return result;
 }
 
+async function waitForPopup(
+  controlUrl: string,
+  opened: Record<string, unknown>,
+  options: CliOptions,
+): Promise<Record<string, unknown>> {
+  const popupId = typeof opened.popupId === "string" ? opened.popupId : "";
+  if (!popupId) return opened;
+
+  const timeoutMs =
+    typeof options["wait-timeout-ms"] === "string" ? Number(options["wait-timeout-ms"]) : 0;
+  const deadline = timeoutMs > 0 ? Date.now() + timeoutMs : Number.POSITIVE_INFINITY;
+
+  while (Date.now() < deadline) {
+    const current = await requestJson(`${controlUrl}/v1/popups/${popupId}`);
+    if (current.status === "closed" || current.status === "failed") {
+      return current;
+    }
+    await sleep(750);
+  }
+
+  throw new Error(`Timed out waiting for popup ${popupId} after ${timeoutMs}ms.`);
+}
+
+async function validateCommand(options: CliOptions): Promise<unknown> {
+  const openuiLang = (await resolveOpenUILang(options)).trim();
+  if (openuiLang.length === 0) {
+    throw new Error("--openui-lang, --openui-lang-file, or --stdin-openui is required");
+  }
+
+  try {
+    validateOpenUILang(openuiLang);
+    return { valid: true };
+  } catch (error) {
+    if (error instanceof OpenUILangValidationError) {
+      return { valid: false, error: error.message };
+    }
+    throw error;
+  }
+}
+
+function examples(options: CliOptions): unknown {
+  if (typeof options.name === "string") {
+    const example = getGenUIExample(options.name);
+    if (!example) {
+      throw new Error(`Unknown example "${options.name}". Available: ${genUIExamples.map((item) => item.name).join(", ")}`);
+    }
+    return options.json === true ? example : example.openuiLang;
+  }
+
+  return {
+    examples: genUIExamples.map(({ name, title, description, size }) => ({
+      name,
+      title,
+      description,
+      size,
+      command: `npm run --silent genui -- examples --name ${name} > ${name}.openui`,
+    })),
+  };
+}
+
 function promptSpec(): string {
   return [
     "You are generating OpenUI Lang for GenUI Popup Broker.",
@@ -242,7 +310,8 @@ Workflow:
 1. Run \`npm run genui -- prompt-spec\` and use that output as your OpenUI Lang authoring guide.
 2. Generate OpenUI Lang yourself using only the listed components.
 3. Open the popup with \`npm run genui -- popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
-4. Use \`npm run genui -- components\` for the concise component catalog.
+4. Validate before opening with \`npm run genui -- validate --openui-lang-file <file>\`.
+5. Use \`npm run genui -- examples\` and \`npm run genui -- components\` for examples and the concise component catalog.
 
 Do not send natural-language prompts to GenUI. The CLI/broker is an OpenUI Lang popup runtime, not a UI-planning LLM.
 Never include secrets in OpenUI Lang or context.`;
@@ -255,7 +324,11 @@ Usage:
   npm run genui -- agent-instructions
   npm run genui -- prompt-spec
   npm run genui -- components
+  npm run genui -- examples
+  npm run --silent genui -- examples --name build-review > ui.openui
+  npm run genui -- validate --openui-lang-file ui.openui
   npm run genui -- popup --openui-lang-file ui.openui --agent-id codex --title "Build Review"
+  npm run genui -- popup --openui-lang-file ui.openui --wait
   npm run genui -- close --popup-id "<popupId>"
   npm run genui -- status
 
@@ -272,6 +345,10 @@ Options:
   --width <px>              Override window width (>= 240)
   --height <px>             Override window height (>= 200)
   --no-start                Do not auto-start the broker for popup
+  --wait                    Wait until the popup is closed or failed
+  --wait-timeout-ms <ms>    Timeout for --wait. Omit for no timeout
+  --name <example>          Select an example for the examples command
+  --json                    Return selected example as JSON
 `);
 }
 
@@ -280,6 +357,15 @@ async function main(): Promise<void> {
 
   if (command === "popup") {
     console.log(JSON.stringify(await popup(options), null, 2));
+    return;
+  }
+
+  if (command === "validate") {
+    const result = await validateCommand(options);
+    console.log(JSON.stringify(result, null, 2));
+    if ((result as { valid?: unknown }).valid === false) {
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -295,6 +381,16 @@ async function main(): Promise<void> {
 
   if (command === "components") {
     console.log(JSON.stringify({ brokerProtocolVersion: BROKER_PROTOCOL_VERSION, components: componentCatalog }, null, 2));
+    return;
+  }
+
+  if (command === "examples") {
+    const result = examples(options);
+    if (typeof result === "string") {
+      console.log(result);
+    } else {
+      console.log(JSON.stringify(result, null, 2));
+    }
     return;
   }
 

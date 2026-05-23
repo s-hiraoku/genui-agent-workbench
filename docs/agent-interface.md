@@ -15,15 +15,22 @@ The broker is not a UI-planning LLM. Do not send natural-language prompts as the
 
 1. Run `npm run genui -- agent-instructions` if the agent has not used GenUI before.
 2. Run `npm run genui -- prompt-spec` and use the output as the OpenUI Lang authoring guide.
-3. Generate OpenUI Lang using only listed components.
-4. Open a popup:
+3. Use `npm run genui -- examples` for known-good starter snippets when useful.
+4. Generate OpenUI Lang using only listed components.
+5. Validate before opening:
+
+```bash
+npm run genui -- validate --openui-lang-file ui.openui
+```
+
+6. Open a popup:
 
 ```bash
 npm run genui -- popup --agent-id codex --title "Decision Review" --size wide --openui-lang-file ui.openui
 ```
 
-5. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
-6. Close when done:
+7. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
+8. Close when done:
 
 ```bash
 npm run genui -- close --popup-id "<popupId>"
@@ -47,7 +54,11 @@ a1 = { label: "Use direct CLI route", priority: "high", owner: "agent", descript
 npm run genui -- agent-instructions
 npm run genui -- prompt-spec
 npm run genui -- components
+npm run genui -- examples
+npm run --silent genui -- examples --name build-review > ui.openui
+npm run genui -- validate --openui-lang-file ui.openui
 npm run genui -- popup --openui-lang-file ui.openui --title "Status" --agent-id codex
+npm run genui -- popup --openui-lang-file ui.openui --title "Status" --agent-id codex --wait
 npm run genui -- status
 npm run genui -- close --popup-id "<popupId>"
 ```

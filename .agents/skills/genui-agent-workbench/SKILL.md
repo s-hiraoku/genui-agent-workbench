@@ -28,7 +28,10 @@ The product goal is to make GenUI the visual explanation layer that agents reach
 - Start broker: `npm run electron:dev`
 - Inspect agent instructions: `npm run genui -- agent-instructions`
 - Inspect OpenUI prompt spec: `npm run genui -- prompt-spec`
+- Inspect examples: `npm run genui -- examples`
+- Validate OpenUI Lang: `npm run genui -- validate --openui-lang-file ui.openui`
 - Open popup: `npm run genui -- popup --openui-lang-file ui.openui --agent-id codex`
+- Open and wait: `npm run genui -- popup --openui-lang-file ui.openui --wait`
 - Close popup: `npm run genui -- close --popup-id "<popupId>"`
 - Inspect agent guide: `npm run genui -- guide`
 - Inspect components: `npm run genui -- components`

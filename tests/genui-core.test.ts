@@ -6,6 +6,7 @@ import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { loadArtifact } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
+import { genUIExamples } from "../src/server/genui/examples";
 import { library, promptOptions } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 
@@ -70,12 +71,21 @@ describe("renderGenUI", () => {
   it("validates representative OpenUI Lang", () => {
     expect(() => validateOpenUILang(sampleOpenUILang)).not.toThrow();
   });
+
+  it("keeps all shipped examples parser-valid", () => {
+    expect(genUIExamples.length).toBeGreaterThan(0);
+    for (const example of genUIExamples) {
+      expect(() => validateOpenUILang(example.openuiLang)).not.toThrow();
+    }
+  });
 });
 
 describe("agent interface scaffold", () => {
   it("publishes direct OpenUI Lang CLI guidance", () => {
     expect(agentUsageGuide.preferredFlow.join("\n")).toContain("prompt-spec");
+    expect(agentUsageGuide.preferredFlow.join("\n")).toContain("validate");
     expect(agentUsageGuide.cli.open).toContain("--openui-lang-file");
+    expect(agentUsageGuide.cli.openAndWait).toContain("--wait");
     expect(agentUsageGuide.purpose).toContain("The agent generates OpenUI Lang");
   });
 

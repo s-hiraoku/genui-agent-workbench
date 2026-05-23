@@ -6,7 +6,9 @@ export const agentUsageGuide = {
     "Use GenUI Popup Broker when an AI agent needs to show a local visual popup. The agent generates OpenUI Lang; the CLI/broker validates, stores, and renders it.",
   preferredFlow: [
     "Run `npm run genui -- prompt-spec` to learn the OpenUI Lang syntax and available components.",
+    "Use `npm run genui -- examples` for known-good starter OpenUI Lang.",
     "Generate OpenUI Lang in the agent. Do not send a natural-language UI request to the broker.",
+    "Validate the generated OpenUI Lang with `npm run genui -- validate --openui-lang-file <file>`.",
     "Open the popup with `npm run genui -- popup --openui-lang-file <file> --title <title> --agent-id <agent>`.",
     "Use `npm run genui -- components` for a concise component catalog.",
     "Close the popup with `npm run genui -- close --popup-id <popupId>` when it is no longer useful.",
@@ -14,11 +16,15 @@ export const agentUsageGuide = {
   cli: {
     agentInstructions: "npm run genui -- agent-instructions",
     promptSpec: "npm run genui -- prompt-spec",
+    examples: "npm run genui -- examples",
+    validate: "npm run genui -- validate --openui-lang-file ui.openui",
     components: "npm run genui -- components",
     open:
       "npm run genui -- popup --agent-id <agent> --title <title> --size panel --openui-lang-file ui.openui",
     openFromStdin:
       "cat ui.openui | npm run genui -- popup --agent-id <agent> --title <title> --stdin-openui",
+    openAndWait:
+      "npm run genui -- popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait",
     close: "npm run genui -- close --popup-id <popupId>",
     status: "npm run genui -- status",
   },
