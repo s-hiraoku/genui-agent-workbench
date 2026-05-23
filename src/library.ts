@@ -998,7 +998,7 @@ const DataTable = defineComponent({
             props.rows.map((row, rowIndex) =>
               React.createElement(
                 "tr",
-                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "rgba(2,18,32,0.08)" : "rgba(76,203,255,0.045)" } },
+                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "rgba(2,18,32,0.08)" : "rgba(72,138,82,0.045)" } },
                 props.columns.map((column) =>
                   React.createElement(
                     "td",
@@ -1442,11 +1442,11 @@ const BarChart = defineComponent({
   component: ({ props }) => {
     const unit = props.unit ?? "";
     const toneColor: Record<string, string> = {
-      positive: "rgba(132, 244, 188, 0.92)",
-      info: "rgba(120, 220, 255, 0.92)",
-      warning: "rgba(255, 196, 132, 0.92)",
-      danger: "rgba(255, 132, 156, 0.92)",
-      neutral: "rgba(186, 220, 248, 0.78)",
+      positive: "rgba(126, 174, 86, 0.92)",
+      info: "rgba(72, 114, 138, 0.90)",
+      warning: "rgba(176, 142, 72, 0.92)",
+      danger: "rgba(148, 72, 82, 0.92)",
+      neutral: "rgba(154, 170, 150, 0.78)",
     };
     const tooltipFormatter = (value: unknown) =>
       `${typeof value === "number" ? value.toLocaleString() : String(value)}${unit}`;
@@ -1500,7 +1500,7 @@ const BarChart = defineComponent({
                 fontSize: 12,
               },
               labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
-              cursor: { fill: "rgba(120, 220, 255, 0.08)" },
+              cursor: { fill: "rgba(72, 138, 82, 0.08)" },
               formatter: tooltipFormatter,
             }),
             React.createElement(
@@ -1841,11 +1841,11 @@ const Sparkline = defineComponent({
     const values = props.data.length > 0 ? props.data : [0];
     const series = values.map((value, index) => ({ index, value }));
     const toneColor: Record<string, string> = {
-      positive: "rgba(132, 244, 188, 0.92)",
+      positive: "rgba(126, 174, 86, 0.92)",
       info: chartPalette.line,
-      warning: "rgba(255, 196, 132, 0.92)",
-      danger: "rgba(255, 132, 156, 0.92)",
-      neutral: "rgba(186, 220, 248, 0.78)",
+      warning: "rgba(176, 142, 72, 0.92)",
+      danger: "rgba(148, 72, 82, 0.92)",
+      neutral: "rgba(154, 170, 150, 0.78)",
     };
     const stroke = toneColor[props.tone ?? "info"] ?? toneColor.info;
     return React.createElement(
@@ -1970,8 +1970,8 @@ const GeoHeatmap = defineComponent({
     "Region-shaded heatmap rendered as a grid of colored tiles (states, prefectures, countries). Each region carries a numeric value; tile color scales by value. Use for share-by-region, density, or coverage where MapView pins would be too noisy.",
   component: ({ props }) => {
     const palettes = {
-      sky: { from: "rgba(76,203,255,0.12)", to: "rgba(76,203,255,0.85)" },
-      mint: { from: "rgba(128,255,180,0.12)", to: "rgba(128,255,180,0.85)" },
+      sky: { from: "rgba(72,114,138,0.12)", to: "rgba(72,114,138,0.82)" },
+      mint: { from: "rgba(72,138,82,0.12)", to: "rgba(126,174,86,0.82)" },
       amber: { from: "rgba(255,216,112,0.12)", to: "rgba(255,216,112,0.85)" },
       rose: { from: "rgba(255,96,126,0.12)", to: "rgba(255,96,126,0.85)" },
     } as const;
