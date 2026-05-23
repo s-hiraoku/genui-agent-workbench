@@ -14,16 +14,20 @@ type PreviewClientProps = {
   artifactTitle: string;
   artifactId: string;
   agentLabel?: string;
+  animation?: string;
   popupId?: string;
   controlUrl?: string;
   size?: string;
+  themeColor?: string;
 };
 
 export function PreviewClient({
   openuiLang,
   artifactTitle,
+  animation,
   popupId,
   controlUrl,
+  themeColor,
 }: PreviewClientProps) {
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
@@ -51,10 +55,10 @@ export function PreviewClient({
   }, [closePopup]);
 
   return (
-    <LiquidGlassSurface>
+    <LiquidGlassSurface animation={animation} themeColor={themeColor}>
       <div className="lg-content h-full">
         <header className="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
-          <h1 className="lg-title truncate">{artifactTitle}</h1>
+          <h1 className="lg-title min-w-0 truncate">{artifactTitle}</h1>
           <button
             className="lg-icon-button"
             onClick={closePopup}
@@ -65,7 +69,7 @@ export function PreviewClient({
           </button>
         </header>
 
-        <main className="lg-scroll flex-1 overflow-auto">
+        <main className="lg-scroll lg-preview flex-1 overflow-auto">
           <Renderer response={openuiLang} library={library} />
         </main>
       </div>

@@ -6,6 +6,7 @@ import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { loadArtifact } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
+import { library } from "../src/library";
 import { renderGenUI } from "../src/server/genui/render";
 
 const genuiTestRoot = path.join(process.cwd(), ".genui-test");
@@ -145,6 +146,25 @@ describe("renderGenUI", () => {
     expect(result.artifact.openuiLang).toContain("LineChart");
   });
 
+  it("uses caller-provided rows for line chart fallback", async () => {
+    const result = await renderGenUI({
+      prompt: "各アプリのダウンロード数を折れ線グラフで表示して",
+      mockData: "none",
+      design: { glassPreset: "milky", labelInkPreset: "green" },
+      context: {
+        rows: [
+          { app: "Canvas", downloads: 12400 },
+          { app: "Drive", downloads: 17600 },
+        ],
+      },
+    });
+
+    expect(result.artifact.openuiLang).toContain("LineChart");
+    expect(result.artifact.openuiLang).toContain("Canvas");
+    expect(result.artifact.openuiLang).toContain("17600");
+    expect(result.artifact.openuiLang).toContain('"milky"');
+  });
+
   it("uses AlertList in risk fallback", async () => {
     const result = await renderGenUI({
       prompt: "リスクと警告をseverity別に表示して",
@@ -204,6 +224,7 @@ describe("agent interface scaffold", () => {
   it("documents custom components for agents", () => {
     expect(componentCatalog.map((item) => item.name)).toEqual(
       expect.arrayContaining([
+        "Label",
         "MetricGrid",
         "KeyValuePanel",
         "AlertList",
@@ -236,6 +257,11 @@ describe("agent interface scaffold", () => {
     const electronMain = await fs.readFile(path.join(process.cwd(), "electron/main.ts"), "utf8");
     expect(electronMain).toContain('url.pathname === "/v1/guide"');
     expect(electronMain).toContain("agentUsageGuide");
+  });
+
+  it("builds the OpenUI schema without duplicate component ids", () => {
+    expect(() => library.toJSONSchema()).not.toThrow();
+    expect(Object.keys(library.components)).toEqual(expect.arrayContaining(["Card", "CardHeader", "BarChart", "LineChart"]));
   });
 });
 

@@ -8,6 +8,13 @@ export type ComponentCatalogItem = {
 
 export const componentCatalog: ComponentCatalogItem[] = [
   {
+    name: "Label",
+    category: "Agent Explanation",
+    description: "Reusable Liquid Glass label/badge for status, priority, count, tag, and compact text surfaces. Supports glassPreset and inkPreset.",
+    useCases: ["status badge", "priority label", "tag", "count pill", "compact metadata"],
+    examplePrompt: "ステータスや優先度はLabelで表示して。glassPresetも使って。",
+  },
+  {
     name: "MetricGrid",
     category: "Agent Explanation",
     description: "Responsive KPI/status grid for dashboards, health checks, progress summaries, and executive snapshots.",

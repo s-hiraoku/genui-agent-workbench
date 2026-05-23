@@ -271,7 +271,15 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
 
   if (req.method === "POST" && url.pathname === "/v1/settings") {
     const body = await readRequestJson(req);
-    const next = sanitizeSettings({ ...settings, ...(body as Partial<BrokerSettings>) });
+    const patch = body as Partial<BrokerSettings>;
+    const next = sanitizeSettings({
+      ...settings,
+      ...patch,
+      design: {
+        ...settings.design,
+        ...(typeof patch.design === "object" && patch.design !== null ? patch.design : {}),
+      },
+    });
     await applySettings(next);
     sendJson(res, 200, { settings, themeResolved: resolveTheme(settings.theme) });
     return;
@@ -409,7 +417,8 @@ function nextWindowPosition(geometry: WindowGeometry): { x: number; y: number } 
 }
 
 async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
-  const result = await renderGenUI(input);
+  const renderInput: RenderGenUIInput = { ...input, design: input.design ?? settings.design };
+  const result = await renderGenUI(renderInput);
   const popupId = createId("pop");
   const title = input.title ?? `${input.agentId ?? "Agent"} GenUI`;
   const theme = resolveTheme(settings.theme);
@@ -424,12 +433,13 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     `&theme=${theme}` +
     `&chrome=hud` +
     `&size=${preset}` +
+    `&animation=${settings.design.windowAnimationPreset}` +
+    `&themeColor=${settings.design.themeColorPreset}` +
     `&agent=${encodeURIComponent(input.agentId ?? "agent")}`;
 
-  // liquid-glass-react renders the glass material inside the page;
-  // the BrowserWindow itself just needs to be transparent so the
-  // page-level wallpaper + glass can come through. No OS vibrancy —
-  // it would double-frost the captured backdrop.
+  // The page renders the Aether-style glass material itself. The
+  // BrowserWindow stays transparent so the page-level wallpaper and
+  // frosted CSS layers can show through without OS vibrancy.
   const window = new BrowserWindow({
     title,
     width: geometry.width,
@@ -475,8 +485,8 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     popup.window = undefined;
   });
 
-  await window.loadURL(previewUrl);
   window.show();
+  await window.loadURL(previewUrl);
   window.focus();
   popup.status = "open";
 
@@ -558,6 +568,8 @@ function openSettingsWindow(): void {
     `${nextUrl}/settings` +
     `?controlUrl=${encodeURIComponent(controlUrl)}` +
     `&theme=${theme}` +
+    `&animation=${settings.design.windowAnimationPreset}` +
+    `&themeColor=${settings.design.themeColorPreset}` +
     `&chrome=hud`;
   void settingsWindow.loadURL(settingsUrl);
 }
@@ -573,7 +585,7 @@ async function restartService(): Promise<void> {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     const theme = resolveTheme(settings.theme);
     settingsWindow.loadURL(
-      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&theme=${theme}&chrome=hud`,
+      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&themeColor=${settings.design.themeColorPreset}&chrome=hud`,
     );
   }
 }

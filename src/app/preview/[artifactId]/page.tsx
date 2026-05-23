@@ -9,13 +9,15 @@ type PreviewPageProps = {
     controlUrl?: string;
     size?: string;
     agent?: string;
+    animation?: string;
+    themeColor?: string;
     theme?: string;
   }>;
 };
 
 export default async function PreviewPage({ params, searchParams }: PreviewPageProps) {
   const { artifactId } = await params;
-  const { popupId, controlUrl, size, agent } = await searchParams;
+  const { popupId, controlUrl, size, agent, animation, themeColor } = await searchParams;
   const artifact = await loadArtifact(artifactId);
 
   if (!artifact) {
@@ -27,10 +29,12 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
       artifactId={artifact.artifactId}
       artifactTitle={artifact.title}
       agentLabel={agent ?? artifact.agentId}
+      animation={animation}
       controlUrl={controlUrl}
       openuiLang={artifact.openuiLang}
       popupId={popupId}
       size={size}
+      themeColor={themeColor}
     />
   );
 }

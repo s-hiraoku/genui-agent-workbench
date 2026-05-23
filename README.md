@@ -151,6 +151,7 @@ The MCP server expects the Electron broker to already be running. It resolves th
 
 Agent explanation components:
 
+- `Label`: reusable Liquid Glass status, priority, tag, count, and compact metadata badge.
 - `MetricGrid`: KPI/status cards for dashboards, health checks, and progress summaries.
 - `KeyValuePanel`: metadata, environment details, customer facts, and compact evidence.
 - `AlertList`: risks, blockers, warnings, validation findings, and confirmations.
@@ -173,6 +174,8 @@ Media and spatial components:
 - `VideoPlayer`: video player with poster, chapters, and transcript support.
 
 The renderer also adds popup-specific layout hardening: stable scroll boundaries, container-query aware content, media aspect-ratio constraints, table wrapping, and overflow protection.
+
+Custom Liquid Glass components accept `glassPreset`, `glassColor`, and `glassOpacity`. Prefer `glassPreset`: `clear`, `pane`, `milky`, `dense`, `mint`, `sky`, `rose`, or `amber`. The shell theme uses `themeColorPreset`: `blue`, `cyan`, `violet`, `mint`, `rose`, `amber`, or `white`. `Label` also accepts `inkPreset`: `green`, `slate`, `white`, `blue`, `amber`, or `red`. Window opening uses `windowAnimationPreset`: `center`, `left`, `right`, `top`, or `fade`.
 
 ## Agent Prompt Patterns
 

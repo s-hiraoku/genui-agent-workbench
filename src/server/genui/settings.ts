@@ -1,6 +1,13 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getGenUIRoot } from "./artifacts";
+import type {
+  GenUIDesignSettings,
+  GenUIGlassPreset,
+  GenUILabelInkPreset,
+  GenUIThemeColorPreset,
+  GenUIWindowAnimationPreset,
+} from "./types";
 
 export type AppearanceTheme = "auto" | "dark" | "light";
 
@@ -9,6 +16,7 @@ export type BrokerSettings = {
   launchAtLogin: boolean;
   controlPort: number | null;
   nextPort: number | null;
+  design: GenUIDesignSettings;
 };
 
 const SETTINGS_FILE = "settings.json";
@@ -18,6 +26,12 @@ export const DEFAULT_SETTINGS: BrokerSettings = {
   launchAtLogin: false,
   controlPort: null,
   nextPort: null,
+  design: {
+    glassPreset: "milky",
+    labelInkPreset: "green",
+    themeColorPreset: "blue",
+    windowAnimationPreset: "center",
+  },
 };
 
 export function getSettingsPath(): string {
@@ -28,7 +42,7 @@ export async function readSettings(): Promise<BrokerSettings> {
   try {
     const raw = await fs.readFile(getSettingsPath(), "utf8");
     const parsed = JSON.parse(raw) as Partial<BrokerSettings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    return sanitizeSettings({ ...DEFAULT_SETTINGS, ...parsed });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return { ...DEFAULT_SETTINGS };
@@ -49,6 +63,28 @@ export function sanitizePort(value: unknown): number | null {
   return Math.floor(n);
 }
 
+const GLASS_PRESETS = new Set<GenUIGlassPreset>(["clear", "pane", "milky", "dense", "mint", "sky", "rose", "amber"]);
+const LABEL_INK_PRESETS = new Set<GenUILabelInkPreset>(["green", "slate", "white", "blue", "amber", "red"]);
+const THEME_COLOR_PRESETS = new Set<GenUIThemeColorPreset>(["blue", "cyan", "violet", "mint", "rose", "amber", "white"]);
+const WINDOW_ANIMATION_PRESETS = new Set<GenUIWindowAnimationPreset>(["center", "left", "right", "top", "fade"]);
+
+function sanitizeDesign(value: unknown): GenUIDesignSettings {
+  const input = typeof value === "object" && value !== null ? (value as Partial<GenUIDesignSettings>) : {};
+  const glassPreset = GLASS_PRESETS.has(input.glassPreset as GenUIGlassPreset)
+    ? (input.glassPreset as GenUIGlassPreset)
+    : DEFAULT_SETTINGS.design.glassPreset;
+  const labelInkPreset = LABEL_INK_PRESETS.has(input.labelInkPreset as GenUILabelInkPreset)
+    ? (input.labelInkPreset as GenUILabelInkPreset)
+    : DEFAULT_SETTINGS.design.labelInkPreset;
+  const themeColorPreset = THEME_COLOR_PRESETS.has(input.themeColorPreset as GenUIThemeColorPreset)
+    ? (input.themeColorPreset as GenUIThemeColorPreset)
+    : DEFAULT_SETTINGS.design.themeColorPreset;
+  const windowAnimationPreset = WINDOW_ANIMATION_PRESETS.has(input.windowAnimationPreset as GenUIWindowAnimationPreset)
+    ? (input.windowAnimationPreset as GenUIWindowAnimationPreset)
+    : DEFAULT_SETTINGS.design.windowAnimationPreset;
+  return { glassPreset, labelInkPreset, themeColorPreset, windowAnimationPreset };
+}
+
 export function sanitizeSettings(input: Partial<BrokerSettings>): BrokerSettings {
   const theme: AppearanceTheme =
     input.theme === "dark" || input.theme === "light" || input.theme === "auto" ? input.theme : DEFAULT_SETTINGS.theme;
@@ -57,5 +93,6 @@ export function sanitizeSettings(input: Partial<BrokerSettings>): BrokerSettings
     launchAtLogin: Boolean(input.launchAtLogin),
     controlPort: sanitizePort(input.controlPort),
     nextPort: sanitizePort(input.nextPort),
+    design: sanitizeDesign(input.design),
   };
 }

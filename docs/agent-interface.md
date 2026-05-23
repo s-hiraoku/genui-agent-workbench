@@ -119,6 +119,24 @@ npm run genui -- guide
 
 Prefer presets before custom `width` and `height`.
 
+## Glass Presets
+
+Custom Liquid Glass components accept `glassPreset`, `glassColor`, and `glassOpacity`. Prefer `glassPreset` first:
+
+- `clear`: lightest glass.
+- `pane`: default transparent pane.
+- `milky`: readable frosted glass.
+- `dense`: strongest milky layer.
+- `mint`, `sky`, `rose`, `amber`: tinted milky layers.
+
+Use `glassColor` and `glassOpacity` only when the preset needs a specific override.
+
+The shell theme color is controlled by `themeColorPreset`: `blue`, `cyan`, `violet`, `mint`, `rose`, `amber`, or `white`. The default is `blue`.
+
+`Label` also accepts `inkPreset`: `green`, `slate`, `white`, `blue`, `amber`, or `red`. Use `green` for default milky labels.
+
+Window open animation is controlled by `windowAnimationPreset`: `center`, `left`, `right`, `top`, or `fade`.
+
 ## Prompt Style
 
 Good prompts tell the broker what the user needs to understand or decide:

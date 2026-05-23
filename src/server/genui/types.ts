@@ -1,6 +1,16 @@
 export type GenUIMockDataMode = "auto" | "sales" | "support" | "none";
 export type GenUILocale = "auto" | "ja" | "en";
 export type GenUIGenerationMode = "llm" | "fallback";
+export type GenUIGlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
+export type GenUILabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
+export type GenUIWindowAnimationPreset = "center" | "left" | "right" | "top" | "fade";
+export type GenUIThemeColorPreset = "blue" | "cyan" | "violet" | "mint" | "rose" | "amber" | "white";
+export type GenUIDesignSettings = {
+  glassPreset: GenUIGlassPreset;
+  labelInkPreset: GenUILabelInkPreset;
+  themeColorPreset: GenUIThemeColorPreset;
+  windowAnimationPreset: GenUIWindowAnimationPreset;
+};
 
 export type GenUISizePreset =
   | "compact"
@@ -23,6 +33,7 @@ export type RenderGenUIInput = {
   size?: GenUISizePreset;
   width?: number;
   height?: number;
+  design?: GenUIDesignSettings;
 };
 
 export type GenUIArtifact = {

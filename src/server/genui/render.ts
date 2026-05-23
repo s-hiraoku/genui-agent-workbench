@@ -42,6 +42,7 @@ function normalizeInput(input: RenderGenUIInput): Required<Pick<RenderGenUIInput
 function buildSystemPrompt(input: ReturnType<typeof normalizeInput>, selectedMockData: GenUIMockDataMode): string {
   const mockData = getMockData(selectedMockData, input.prompt);
   const locale = detectLocale(input.prompt, input.locale);
+  const design = input.design;
 
   return [
     library.prompt(promptOptions),
@@ -55,6 +56,9 @@ function buildSystemPrompt(input: ReturnType<typeof normalizeInput>, selectedMoc
     "When the user asks for maps, locations, stores, sites, routes, incidents, or geography, include MapView with center coordinates and meaningful markers.",
     "When the user asks for music, audio, recordings, podcasts, voice notes, or sound previews, include AudioPlayer. Never autoplay.",
     "When the user asks for video, demos, screen recordings, clips, tutorials, or walkthroughs, include VideoPlayer. Never autoplay.",
+    design
+      ? `Use the configured Liquid Glass defaults unless the user explicitly asks otherwise: themeColorPreset="${design.themeColorPreset}", glassPreset="${design.glassPreset}", Label inkPreset="${design.labelInkPreset}". Window animation is handled by the shell as "${design.windowAnimationPreset}".`
+      : "Use the default Liquid Glass preset and readable Label ink preset.",
     locale === "ja" ? "Use concise Japanese labels and copy." : "Use concise English labels and copy.",
     "",
     "Caller context:",
@@ -63,6 +67,7 @@ function buildSystemPrompt(input: ReturnType<typeof normalizeInput>, selectedMoc
         agentId: input.agentId,
         title: input.title,
         context: input.context,
+        design: input.design,
         mockData,
       },
       null,
@@ -137,6 +142,47 @@ function createContextTableOpenUILang(input: ReturnType<typeof normalizeInput>, 
   return lines.join("\n");
 }
 
+function designArg(input: ReturnType<typeof normalizeInput>): string {
+  return input.design?.glassPreset ? `, "${q(input.design.glassPreset)}"` : "";
+}
+
+function numericContextPoints(rows: Record<string, unknown>[]): Array<{ label: string; value: number }> {
+  return rows
+    .map((row, index) => {
+      const label = String(row.label ?? row.name ?? row.app ?? row.application ?? row.title ?? `Item ${index + 1}`);
+      const rawValue = row.value ?? row.downloads ?? row.count ?? row.total;
+      const value = typeof rawValue === "number" ? rawValue : Number(rawValue);
+      return Number.isFinite(value) ? { label, value } : null;
+    })
+    .filter((point): point is { label: string; value: number } => Boolean(point));
+}
+
+function createContextLineChartOpenUILang(input: ReturnType<typeof normalizeInput>, rows: Record<string, unknown>[]): string | null {
+  const points = numericContextPoints(rows).slice(0, 10);
+  if (points.length === 0) return null;
+
+  const title = input.title ?? "Download Report";
+  const total = points.reduce((sum, point) => sum + point.value, 0);
+  const top = points.reduce((best, point) => (point.value > best.value ? point : best), points[0]);
+  const average = Math.round(total / points.length);
+  const glass = designArg(input);
+  return [
+    "root = Card([header, metrics, trend, actions])",
+    `header = CardHeader("${q(title)}", "アプリ別ダウンロード数のサンプルレポート"${glass})`,
+    `metrics = MetricGrid("Summary", "対象アプリ ${points.length} 件", [m1, m2, m3]${glass})`,
+    `m1 = { label: "Total", value: "${total.toLocaleString()}", tone: "positive", description: "全アプリの合計ダウンロード数" }`,
+    `m2 = { label: "Top app", value: "${q(top.label)}", delta: "${top.value.toLocaleString()}", tone: "info", description: "最もダウンロードされたアプリ" }`,
+    `m3 = { label: "Average", value: "${average.toLocaleString()}", tone: "neutral", description: "アプリあたりの平均" }`,
+    `trend = LineChart("Downloads by app", "アプリ別のダウンロード数を折れ線で比較", " downloads", [${points
+      .map((_, index) => `p${index + 1}`)
+      .join(", ")}]${glass})`,
+    ...points.map((point, index) => `p${index + 1} = { label: "${q(point.label)}", value: ${point.value} }`),
+    `actions = ActionPanel("読み取りポイント", "このレポートから見えること", [a1, a2]${glass})`,
+    `a1 = { label: "${q(top.label)} が最大", priority: "high", owner: "report", description: "${top.value.toLocaleString()} downloadsで最も強い需要があります" }`,
+    `a2 = { label: "平均との差を確認", priority: "medium", owner: "report", description: "平均 ${average.toLocaleString()} downloads を基準に伸びしろを比較できます" }`,
+  ].join("\n");
+}
+
 function createFallbackOpenUILang(input: ReturnType<typeof normalizeInput>): string {
   const title = input.title ?? "GenUI Popup";
   const prompt = q(input.prompt);
@@ -157,11 +203,12 @@ function createFallbackOpenUILang(input: ReturnType<typeof normalizeInput>): str
   const selectedMockData = selectMockDataMode(input.prompt, input.mockData);
   const rows = contextRows(input);
 
-  if (wantsTable && rows.length > 0) {
-    return createContextTableOpenUILang(input, rows);
-  }
-
   if (wantsChart) {
+    const contextChart = createContextLineChartOpenUILang(input, rows);
+    if (contextChart) {
+      return contextChart;
+    }
+
     return [
       "root = Card([header, bars, trend, actions])",
       `header = CardHeader("${q(title)}", "Agent-generated chart view")`,
@@ -179,6 +226,10 @@ function createFallbackOpenUILang(input: ReturnType<typeof normalizeInput>): str
       "actions = ActionPanel(\"次のアクション\", \"チャートを実データ化するには\", [a1])",
       "a1 = { label: \"data pointsをcontextで渡す\", priority: \"medium\", owner: \"calling agent\" }",
     ].join("\n");
+  }
+
+  if (wantsTable && rows.length > 0) {
+    return createContextTableOpenUILang(input, rows);
   }
 
   if (wantsForm) {

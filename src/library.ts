@@ -11,36 +11,257 @@ type MapMarker = {
   color?: "red" | "blue" | "green" | "yellow" | "purple" | "gray";
 };
 
-const markerColors: Record<NonNullable<MapMarker["color"]>, string> = {
-  blue: "#2563eb",
-  gray: "#525252",
-  green: "#16a34a",
-  purple: "#7c3aed",
-  red: "#dc2626",
-  yellow: "#ca8a04",
+const gapMap: Record<string, string> = {
+  none: "0",
+  xs: "6px",
+  s: "8px",
+  m: "12px",
+  l: "18px",
+  xl: "24px",
+  "2xl": "36px",
 };
 
+const alignMap: Record<string, React.CSSProperties["alignItems"]> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  stretch: "stretch",
+  baseline: "baseline",
+};
+
+const justifyMap: Record<string, React.CSSProperties["justifyContent"]> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  between: "space-between",
+  around: "space-around",
+  evenly: "space-evenly",
+};
+
+const glassPresets = {
+  clear: { color: "white", opacity: 0.18 },
+  pane: { color: "white", opacity: 0.34 },
+  milky: { color: "white", opacity: 0.52 },
+  dense: { color: "white", opacity: 0.68 },
+  mint: { color: "rgb(226, 255, 214)", opacity: 0.44 },
+  sky: { color: "rgb(224, 244, 255)", opacity: 0.44 },
+  rose: { color: "rgb(255, 232, 239)", opacity: 0.46 },
+  amber: { color: "rgb(255, 247, 214)", opacity: 0.46 },
+} as const;
+
+type GlassPreset = keyof typeof glassPresets;
+const labelInkPresets = ["green", "slate", "white", "blue", "amber", "red"] as const;
+type LabelInkPreset = (typeof labelInkPresets)[number];
+
+const glassProps = {
+  glassPreset: z.enum(["clear", "pane", "milky", "dense", "mint", "sky", "rose", "amber"]).optional(),
+  glassColor: z.string().optional(),
+  glassOpacity: z.number().min(0).max(1).optional(),
+};
+
+type GlassProps = {
+  glassPreset?: GlassPreset;
+  glassColor?: string;
+  glassOpacity?: number;
+};
+
+type CSSVars = React.CSSProperties & Record<`--${string}`, string | number>;
+
+function clampOpacity(value: number): number {
+  if (!Number.isFinite(value)) return 0.42;
+  return Math.max(0, Math.min(1, value));
+}
+
+function glassMix(color: string, opacity: number): string {
+  return `color-mix(in srgb, ${color} ${Math.round(clampOpacity(opacity) * 100)}%, transparent)`;
+}
+
+function glassVars(props?: GlassProps, baseOpacity = 0.42): CSSVars {
+  if (!props?.glassPreset && !props?.glassColor && props?.glassOpacity === undefined) {
+    return {};
+  }
+
+  const preset = props.glassPreset ? glassPresets[props.glassPreset] : undefined;
+  const color = props.glassColor ?? preset?.color ?? "white";
+  const opacity = clampOpacity(props.glassOpacity ?? preset?.opacity ?? baseOpacity);
+  return {
+    "--aether-card-tint": glassMix(color, opacity),
+    "--aether-card-tint-soft": glassMix(color, opacity * 0.42),
+    "--glass-pane-wash": glassMix(color, opacity),
+    "--glass-pane-wash-soft": glassMix(color, opacity * 0.42),
+    "--glass-readable-wash": glassMix(color, Math.max(0.56, opacity + 0.18)),
+    "--glass-readable-wash-soft": glassMix(color, Math.max(0.38, opacity + 0.02)),
+    "--glass-label-wash": glassMix(color, Math.max(0.62, opacity + 0.22)),
+    "--glass-label-wash-soft": glassMix(color, Math.max(0.42, opacity + 0.06)),
+  };
+}
+
+const Card = defineComponent({
+  name: "Card",
+  props: z.object({
+    children: z.array(z.any()),
+    variant: z.enum(["card", "sunk", "clear"]).optional(),
+    direction: z.enum(["row", "column"]).optional(),
+    wrap: z.boolean().optional(),
+    gap: z.enum(["none", "xs", "s", "m", "l", "xl", "2xl"]).optional(),
+    align: z.enum(["start", "center", "end", "stretch", "baseline"]).optional(),
+    justify: z.enum(["start", "center", "end", "between", "around", "evenly"]).optional(),
+    ...glassProps,
+  }),
+  description:
+    'Liquid Glass container. variant: "card" (default glass plate) | "sunk" (slightly denser glass) | "clear" (no inset padding). Always full width. Accepts Stack flex params and glassPreset/glassColor/glassOpacity.',
+  component: ({ props, renderNode }) => {
+    const isClear = props.variant === "clear";
+    return React.createElement(
+      "div",
+      {
+        className: "lg-glass-card-wrap",
+        "data-variant": props.variant ?? "card",
+        style: {
+          flex: 1,
+          minWidth: 0,
+          width: "100%",
+        },
+      },
+      React.createElement(
+        "div",
+        {
+          className: "lg-card-content",
+          "data-variant": props.variant ?? "card",
+          style: {
+            ...glassVars(props),
+            alignItems: alignMap[props.align ?? "stretch"] ?? "stretch",
+            display: "flex",
+            flex: 1,
+            flexDirection: props.direction ?? "column",
+            flexWrap: props.wrap ? "wrap" : "nowrap",
+            gap: gapMap[props.gap ?? "m"] ?? gapMap.m,
+            justifyContent: justifyMap[props.justify ?? "start"] ?? "flex-start",
+            minWidth: 0,
+            padding: isClear ? 0 : 18,
+            width: "100%",
+          },
+        },
+        renderNode(props.children),
+      ),
+    );
+  },
+});
+
+const CardHeader = defineComponent({
+  name: "CardHeader",
+  props: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    ...glassProps,
+  }),
+  description: "Header with optional title and subtitle, styled for Liquid Glass cards.",
+  component: ({ props }) =>
+    React.createElement(
+      "header",
+      { className: "lg-card-header" },
+      props.title ? React.createElement("h2", null, props.title) : null,
+      props.subtitle ? React.createElement("p", null, props.subtitle) : null,
+    ),
+});
+
+function labelElement(
+  text: string,
+  toneValue: string = "neutral",
+  size: "xs" | "sm" = "sm",
+  style?: React.CSSProperties,
+  inkPreset: LabelInkPreset = "green",
+): React.ReactElement {
+  return React.createElement(
+    "span",
+    {
+      className: "lg-label-surface",
+      "data-ink": inkPreset,
+      "data-size": size,
+      "data-tone": toneValue,
+      style,
+    },
+    text,
+  );
+}
+
+const Label = defineComponent({
+  name: "Label",
+  props: z.object({
+    text: z.string(),
+    tone: z.enum(["positive", "neutral", "warning", "danger", "info", "critical"]).optional(),
+    size: z.enum(["xs", "sm"]).optional(),
+    inkPreset: z.enum(labelInkPresets).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Reusable milky Liquid Glass label/badge. Use for every status, priority, metric label, tag, count, and compact text surface. Supports glassPreset, glassColor, glassOpacity, and inkPreset.",
+  component: ({ props }) => labelElement(props.text, props.tone, props.size, glassVars(props, 0.64), props.inkPreset),
+});
+
+const markerColors: Record<NonNullable<MapMarker["color"]>, string> = {
+  blue: "rgba(70, 132, 196, 0.72)",
+  gray: "rgba(88, 105, 94, 0.66)",
+  green: "rgba(105, 151, 70, 0.74)",
+  purple: "rgba(142, 104, 184, 0.70)",
+  red: "rgba(190, 92, 104, 0.72)",
+  yellow: "rgba(190, 162, 72, 0.72)",
+};
+
+const hudText = "rgba(244, 252, 255, 0.94)";
+const hudTextMid = "rgba(216, 236, 245, 0.72)";
+const hudTextSoft = "rgba(186, 214, 226, 0.56)";
+const hudEdge = "rgba(128, 226, 255, 0.18)";
+const hudEdgeStrong = "rgba(128, 226, 255, 0.32)";
+const hudLine = "rgba(76, 203, 255, 0.42)";
+const hudPanelWash = "rgba(2, 18, 32, 0.18)";
+const hudCellWash = "rgba(76, 203, 255, 0.08)";
+
 const toneStyles: Record<string, { accent: string; background: string; border: string; text: string }> = {
-  critical: { accent: "#dc2626", background: "#fef2f2", border: "#fecaca", text: "#7f1d1d" },
-  danger: { accent: "#dc2626", background: "#fef2f2", border: "#fecaca", text: "#7f1d1d" },
-  warning: { accent: "#d97706", background: "#fffbeb", border: "#fde68a", text: "#78350f" },
-  positive: { accent: "#16a34a", background: "#f0fdf4", border: "#bbf7d0", text: "#14532d" },
-  neutral: { accent: "#525252", background: "#fafafa", border: "#e5e5e5", text: "#171717" },
-  info: { accent: "#2563eb", background: "#eff6ff", border: "#bfdbfe", text: "#1e3a8a" },
+  critical: { accent: "rgba(255, 96, 126, 0.78)", background: "linear-gradient(90deg, rgba(255,96,126,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 96, 126, 0.32)", text: "rgba(255, 218, 226, 0.96)" },
+  danger: { accent: "rgba(255, 96, 126, 0.74)", background: "linear-gradient(90deg, rgba(255,96,126,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 96, 126, 0.30)", text: "rgba(255, 218, 226, 0.96)" },
+  warning: { accent: "rgba(255, 216, 112, 0.76)", background: "linear-gradient(90deg, rgba(255,216,112,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 216, 112, 0.30)", text: "rgba(255, 240, 196, 0.96)" },
+  positive: { accent: "rgba(128, 255, 180, 0.76)", background: "linear-gradient(90deg, rgba(128,255,180,0.11), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(128, 255, 180, 0.28)", text: "rgba(218, 255, 235, 0.96)" },
+  neutral: { accent: "rgba(180, 226, 242, 0.58)", background: "linear-gradient(90deg, rgba(128,226,255,0.075), rgba(2,18,32,0.16) 48%, rgba(255,255,255,0.018))", border: "rgba(128, 226, 255, 0.18)", text: hudText },
+  info: { accent: "rgba(76, 203, 255, 0.76)", background: "linear-gradient(90deg, rgba(76,203,255,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(76, 203, 255, 0.30)", text: "rgba(216, 246, 255, 0.96)" },
 };
 
 function toneFor(value?: string) {
   return toneStyles[value ?? "neutral"] ?? toneStyles.neutral;
 }
 
-const panelStyle: React.CSSProperties = {
-  background: "#ffffff",
-  border: "1px solid #d4d4d4",
-  borderRadius: 8,
-  boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
-  color: "#171717",
+const panelBaseStyle: React.CSSProperties = {
+  background:
+    "linear-gradient(145deg, var(--aether-card-tint), rgba(2,18,32,0.16) 58%, rgba(255,255,255,0.018)), linear-gradient(90deg, rgba(76,203,255,0.08), transparent 42%)",
+  backdropFilter: "blur(var(--aether-card-blur)) saturate(var(--aether-card-saturate)) brightness(var(--aether-card-brightness))",
+  border: `1px solid ${hudEdge}`,
+  borderRadius: 10,
+  boxShadow: `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 24px rgba(76,203,255,0.06), 0 14px 36px rgba(0,12,24,0.20)`,
+  color: hudText,
   overflow: "hidden",
+  WebkitBackdropFilter: "blur(var(--aether-card-blur)) saturate(var(--aether-card-saturate)) brightness(var(--aether-card-brightness))",
 };
+
+function panelStyleFor(props?: GlassProps): React.CSSProperties {
+  return {
+    ...glassVars(props),
+    ...panelBaseStyle,
+  };
+}
+
+const readableGlassStyle: React.CSSProperties = {
+  backdropFilter: "blur(var(--aether-readable-blur)) saturate(1.12) brightness(1.02)",
+  boxShadow:
+    `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 18px rgba(76,203,255,0.05), 0 10px 24px rgba(0,12,24,0.14)`,
+  WebkitBackdropFilter: "blur(var(--aether-readable-blur)) saturate(1.12) brightness(1.02)",
+};
+
+function accentedReadableGlassStyle(tone: { border: string }): React.CSSProperties {
+  return {
+    ...readableGlassStyle,
+    boxShadow: `${readableGlassStyle.boxShadow}, inset 0 0 28px ${tone.border}, 0 0 26px ${tone.border}`,
+  };
+}
 
 function panelHeader(title?: string, description?: string): React.ReactNode {
   if (!title && !description) {
@@ -49,12 +270,12 @@ function panelHeader(title?: string, description?: string): React.ReactNode {
 
   return React.createElement(
     "div",
-    { style: { borderBottom: "1px solid #e5e5e5", padding: "12px 14px" } },
-    title ? React.createElement("h3", { style: { color: "#171717", fontSize: 16, fontWeight: 700, margin: 0 } }, title) : null,
+    { style: { borderBottom: `1px solid ${hudEdge}`, padding: "12px 14px" } },
+    title ? React.createElement("h3", { style: { color: hudText, fontSize: 16, fontWeight: 760, letterSpacing: 0, margin: 0 } }, title) : null,
     description
       ? React.createElement(
           "p",
-          { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: title ? "4px 0 0" : 0 } },
+          { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: title ? "4px 0 0" : 0 } },
           description,
         )
       : null,
@@ -116,6 +337,7 @@ const MapView = defineComponent({
         }),
       )
       .default([]),
+    ...glassProps,
   }),
   description:
     "Interactive-looking map panel backed by OpenStreetMap tiles. Use for locations, routes, store/customer/site maps, regional incidents, and geo dashboards. Markers need lat/lng, label, optional description, and optional color.",
@@ -151,38 +373,15 @@ const MapView = defineComponent({
 
     return React.createElement(
       "section",
-      {
-        style: {
-          background: "#ffffff",
-          border: "1px solid #d4d4d4",
-          borderRadius: 8,
-          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.08)",
-          overflow: "hidden",
-        },
-      },
-      props.title || props.description
-        ? React.createElement(
-            "div",
-            { style: { borderBottom: "1px solid #e5e5e5", padding: "12px 14px" } },
-            props.title
-              ? React.createElement("h3", { style: { color: "#171717", fontSize: 16, fontWeight: 700, margin: 0 } }, props.title)
-              : null,
-            props.description
-              ? React.createElement(
-                  "p",
-                  { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: props.title ? "4px 0 0" : 0 } },
-                  props.description,
-                )
-              : null,
-          )
-        : null,
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
       React.createElement(
         "div",
         {
           role: "img",
           "aria-label": props.title ?? "Map",
           style: {
-            background: "#dbeafe",
+            background: "rgba(232,244,255,0.14)",
             height,
             overflow: "hidden",
             position: "relative",
@@ -227,9 +426,9 @@ const MapView = defineComponent({
             React.createElement("div", {
               style: {
                 background: color,
-                border: "2px solid #fff",
-                borderRadius: "999px 999px 999px 0",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+                border: `1px solid ${hudEdgeStrong}`,
+                borderRadius: "8px 8px 8px 0",
+                boxShadow: `0 0 16px ${color}, inset 0 1px 0 rgba(255,255,255,0.38)`,
                 height: 20,
                 transform: "rotate(-45deg)",
                 width: 20,
@@ -239,10 +438,11 @@ const MapView = defineComponent({
               "div",
               {
                 style: {
-                  background: "rgba(255,255,255,0.95)",
-                  border: "1px solid #e5e5e5",
+                  background: "rgba(216,246,255,0.22)",
+                  backdropFilter: "blur(16px) saturate(1.18)",
+                  border: `1px solid ${hudEdgeStrong}`,
                   borderRadius: 6,
-                  color: "#171717",
+                  color: hudText,
                   fontSize: 12,
                   fontWeight: 700,
                   marginTop: 3,
@@ -262,9 +462,11 @@ const MapView = defineComponent({
             href: `https://www.openstreetmap.org/#map=${zoom}/${props.center.lat}/${props.center.lng}`,
             rel: "noreferrer",
             style: {
-              background: "rgba(255,255,255,0.9)",
+              background: hudPanelWash,
+              border: `1px solid ${hudEdge}`,
+              borderRadius: 5,
               bottom: 6,
-              color: "#404040",
+              color: hudTextMid,
               fontSize: 11,
               padding: "2px 5px",
               position: "absolute",
@@ -294,36 +496,15 @@ const AudioPlayer = defineComponent({
         description: z.string().optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Audio playlist player for music, generated audio, voice notes, podcasts, meeting recordings, and sound previews. Each track needs title and src; artist, coverUrl, and description are optional.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      {
-        style: {
-          background: "#fff",
-          border: "1px solid #d4d4d4",
-          borderRadius: 8,
-          overflow: "hidden",
-        },
-      },
-      props.title || props.description
-        ? React.createElement(
-            "div",
-            { style: { borderBottom: "1px solid #e5e5e5", padding: "12px 14px" } },
-            props.title
-              ? React.createElement("h3", { style: { color: "#171717", fontSize: 16, fontWeight: 700, margin: 0 } }, props.title)
-              : null,
-            props.description
-              ? React.createElement(
-                  "p",
-                  { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: props.title ? "4px 0 0" : 0 } },
-                  props.description,
-                )
-              : null,
-          )
-        : null,
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
       React.createElement(
         "div",
         { style: { display: "grid", gap: 12, padding: 14 } },
@@ -334,8 +515,8 @@ const AudioPlayer = defineComponent({
               key: `${track.title}:${index}`,
               style: {
                 alignItems: "center",
-                background: "#fafafa",
-                border: "1px solid #e5e5e5",
+                background: hudCellWash,
+                border: `1px solid ${hudEdge}`,
                 borderRadius: 8,
                 display: "grid",
                 gap: 12,
@@ -353,12 +534,12 @@ const AudioPlayer = defineComponent({
             React.createElement(
               "div",
               null,
-              React.createElement("div", { style: { color: "#171717", fontSize: 14, fontWeight: 700 } }, track.title),
+              React.createElement("div", { style: { color: hudText, fontSize: 14, fontWeight: 700 } }, track.title),
               track.artist
-                ? React.createElement("div", { style: { color: "#737373", fontSize: 12, marginTop: 2 } }, track.artist)
+                ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 2 } }, track.artist)
                 : null,
               track.description
-                ? React.createElement("p", { style: { color: "#525252", fontSize: 12, lineHeight: 1.5, margin: "6px 0" } }, track.description)
+                ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: "6px 0" } }, track.description)
                 : null,
               React.createElement("audio", {
                 controls: true,
@@ -390,20 +571,14 @@ const VideoPlayer = defineComponent({
         }),
       )
       .optional(),
+    ...glassProps,
   }),
   description:
     "Video player for demos, screen recordings, generated clips, design walkthroughs, tutorials, and incident evidence. Supports src, posterUrl, transcript, and chapter list.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      {
-        style: {
-          background: "#fff",
-          border: "1px solid #d4d4d4",
-          borderRadius: 8,
-          overflow: "hidden",
-        },
-      },
+      { style: panelStyleFor(props) },
       React.createElement("video", {
         controls: true,
         playsInline: true,
@@ -416,21 +591,21 @@ const VideoPlayer = defineComponent({
         "div",
         { style: { padding: 14 } },
         props.title
-          ? React.createElement("h3", { style: { color: "#171717", fontSize: 16, fontWeight: 700, margin: 0 } }, props.title)
+          ? React.createElement("h3", { style: { color: hudText, fontSize: 16, fontWeight: 760, margin: 0 } }, props.title)
           : null,
         props.description
-          ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: props.title ? "4px 0 0" : 0 } }, props.description)
+          ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: props.title ? "4px 0 0" : 0 } }, props.description)
           : null,
         props.chapters?.length
           ? React.createElement(
               "ol",
-              { style: { color: "#262626", display: "grid", gap: 8, margin: "12px 0 0", paddingLeft: 18 } },
+              { style: { color: hudTextMid, display: "grid", gap: 8, margin: "12px 0 0", paddingLeft: 18 } },
               props.chapters.map((chapter, index) =>
                 React.createElement(
                   "li",
                   { key: `${chapter.time}:${index}` },
                   React.createElement("strong", null, `${chapter.time} ${chapter.title}`),
-                  chapter.description ? React.createElement("div", { style: { color: "#737373", fontSize: 12 } }, chapter.description) : null,
+                  chapter.description ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12 } }, chapter.description) : null,
                 ),
               ),
             )
@@ -439,8 +614,8 @@ const VideoPlayer = defineComponent({
           ? React.createElement(
               "details",
               { style: { marginTop: 12 } },
-              React.createElement("summary", { style: { color: "#171717", cursor: "pointer", fontSize: 13, fontWeight: 700 } }, "Transcript"),
-              React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, props.transcript),
+              React.createElement("summary", { style: { color: hudText, cursor: "pointer", fontSize: 13, fontWeight: 700 } }, "Transcript"),
+              React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, props.transcript),
             )
           : null,
       ),
@@ -461,13 +636,14 @@ const MetricGrid = defineComponent({
         tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Responsive KPI and summary metric grid for dashboards, status reports, operational snapshots, progress summaries, and executive explanations.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -491,15 +667,16 @@ const MetricGrid = defineComponent({
                 borderRadius: 8,
                 minHeight: 104,
                 padding: 12,
+                ...accentedReadableGlassStyle(tone),
               },
             },
-            React.createElement("div", { style: { color: "#525252", fontSize: 12, fontWeight: 700, letterSpacing: "0.04em" } }, metric.label),
+            labelElement(metric.label, metric.tone ?? "neutral", "xs"),
             React.createElement("div", { style: { color: tone.text, fontSize: 24, fontWeight: 800, lineHeight: 1.15, marginTop: 6 } }, metric.value),
             metric.delta
-              ? React.createElement("div", { style: { color: tone.accent, fontSize: 12, fontWeight: 700, marginTop: 6 } }, metric.delta)
+              ? React.createElement("div", { style: { marginTop: 6 } }, labelElement(metric.delta, metric.tone ?? "neutral", "xs"))
               : null,
             metric.description
-              ? React.createElement("p", { style: { color: "#525252", fontSize: 12, lineHeight: 1.45, margin: "7px 0 0" } }, metric.description)
+              ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.45, margin: "7px 0 0" } }, metric.description)
               : null,
           );
         }),
@@ -521,13 +698,14 @@ const ActionPanel = defineComponent({
         due: z.string().optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Prioritized next-action panel for recommendations, handoffs, agent plans, approvals, follow-up work, and user-visible task lists.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -539,44 +717,28 @@ const ActionPanel = defineComponent({
             {
               key: `${action.label}:${index}`,
               style: {
-                background: "#fafafa",
-                border: "1px solid #e5e5e5",
-                borderLeft: `4px solid ${tone.accent}`,
+                background: tone.background,
+                border: `1px solid ${tone.border}`,
                 borderRadius: 8,
                 padding: 12,
+                ...accentedReadableGlassStyle(tone),
               },
             },
             React.createElement(
               "div",
               { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
-              React.createElement("strong", { style: { color: "#171717", fontSize: 14, lineHeight: 1.35 } }, action.label),
-              React.createElement(
-                "span",
-                {
-                  style: {
-                    background: tone.background,
-                    border: `1px solid ${tone.border}`,
-                    borderRadius: 999,
-                    color: tone.text,
-                    flexShrink: 0,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    padding: "2px 8px",
-                    textTransform: "uppercase",
-                  },
-                },
-                action.priority,
-              ),
+              React.createElement("strong", { style: { color: tone.text, fontSize: 14, lineHeight: 1.35 } }, action.label),
+              labelElement(action.priority, action.priority === "critical" ? "critical" : action.priority === "high" ? "warning" : "info", "xs", { flexShrink: 0 }),
             ),
             action.description
-              ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, action.description)
+              ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, action.description)
               : null,
             action.owner || action.due
               ? React.createElement(
                   "div",
-                  { style: { color: "#737373", display: "flex", flexWrap: "wrap", fontSize: 12, gap: 8, marginTop: 8 } },
-                  action.owner ? React.createElement("span", null, `Owner: ${action.owner}`) : null,
-                  action.due ? React.createElement("span", null, `Due: ${action.due}`) : null,
+                  { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 } },
+                  action.owner ? labelElement(`Owner: ${action.owner}`, "neutral", "xs") : null,
+                  action.due ? labelElement(`Due: ${action.due}`, "neutral", "xs") : null,
                 )
               : null,
           );
@@ -598,13 +760,14 @@ const TimelinePanel = defineComponent({
         status: z.enum(["done", "active", "planned", "blocked", "warning"]).default("planned"),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Chronological timeline for incidents, launches, project plans, research history, deployment progress, and multi-step explanations.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "ol",
@@ -622,28 +785,33 @@ const TimelinePanel = defineComponent({
                 minHeight: 54,
               },
             },
-            React.createElement("time", { style: { color: "#737373", fontSize: 12, fontWeight: 700, paddingTop: 2 } }, event.time),
+            React.createElement("time", { style: { color: hudTextSoft, fontSize: 12, fontWeight: 700, paddingTop: 2 } }, event.time),
             React.createElement(
               "span",
               { style: { alignItems: "center", display: "flex", flexDirection: "column" } },
               React.createElement("span", {
                 style: {
                   background: tone.accent,
-                  border: "2px solid #fff",
-                  borderRadius: 999,
-                  boxShadow: `0 0 0 2px ${tone.border}`,
+                  border: `1px solid ${hudEdgeStrong}`,
+                  borderRadius: 4,
+                  boxShadow: `0 0 0 2px ${tone.border}, 0 0 16px ${tone.border}`,
                   height: 10,
                   marginTop: 4,
                   width: 10,
                 },
               }),
-              index < props.events.length - 1 ? React.createElement("span", { style: { background: "#e5e5e5", flex: 1, marginTop: 4, width: 1 } }) : null,
+              index < props.events.length - 1 ? React.createElement("span", { style: { background: hudEdge, flex: 1, marginTop: 4, width: 1 } }) : null,
             ),
             React.createElement(
               "div",
               { style: { paddingBottom: 14 } },
-              React.createElement("strong", { style: { color: "#171717", display: "block", fontSize: 14 } }, event.title),
-              event.description ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: "4px 0 0" } }, event.description) : null,
+              React.createElement(
+                "div",
+                { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 } },
+                React.createElement("strong", { style: { color: tone.text, display: "block", fontSize: 14 } }, event.title),
+                labelElement(event.status, event.status === "done" ? "positive" : event.status === "blocked" ? "danger" : event.status === "warning" ? "warning" : "info", "xs"),
+              ),
+              event.description ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: "4px 0 0" } }, event.description) : null,
             ),
           );
         }),
@@ -666,13 +834,14 @@ const DecisionMatrix = defineComponent({
         cons: z.array(z.string()).default([]),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Comparison matrix for choices, recommendations, tradeoffs, vendor/tool selection, design alternatives, and agent decision support.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -697,26 +866,27 @@ const DecisionMatrix = defineComponent({
                 display: "grid",
                 gap: 8,
                 padding: 12,
+                ...readableGlassStyle,
               },
             },
             React.createElement(
               "div",
               { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between" } },
               React.createElement("strong", { style: { color: tone.text, fontSize: 15 } }, option.name),
-              option.score ? React.createElement("span", { style: { color: tone.accent, fontSize: 13, fontWeight: 800 } }, option.score) : null,
+              option.score ? labelElement(option.score, option.recommendation === "recommended" ? "positive" : option.recommendation === "avoid" ? "danger" : "info", "xs") : null,
             ),
-            option.summary ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.45, margin: 0 } }, option.summary) : null,
+            option.summary ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.45, margin: 0 } }, option.summary) : null,
             option.pros.length
               ? React.createElement(
                   "ul",
-                  { style: { color: "#262626", fontSize: 12, lineHeight: 1.45, margin: 0, paddingLeft: 18 } },
+                  { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.45, margin: 0, paddingLeft: 18 } },
                   option.pros.map((pro, proIndex) => React.createElement("li", { key: `${pro}:${proIndex}` }, pro)),
                 )
               : null,
             option.cons.length
               ? React.createElement(
                   "ul",
-                  { style: { color: "#737373", fontSize: 12, lineHeight: 1.45, margin: 0, paddingLeft: 18 } },
+                  { style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, margin: 0, paddingLeft: 18 } },
                   option.cons.map((con, conIndex) => React.createElement("li", { key: `${con}:${conIndex}` }, con)),
                 )
               : null,
@@ -740,13 +910,14 @@ const DataTable = defineComponent({
     ),
     rows: z.array(z.record(z.string(), z.unknown())),
     caption: z.string().optional(),
+    ...glassProps,
   }),
   description:
     "Responsive data table for operational rows, ticket lists, file inventories, research results, rankings, and structured evidence. Use when users need to scan or compare records.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -754,10 +925,10 @@ const DataTable = defineComponent({
         React.createElement(
           "table",
           { style: { borderCollapse: "collapse", minWidth: Math.max(520, props.columns.length * 140), width: "100%" } },
-          props.caption ? React.createElement("caption", { style: { color: "#525252", fontSize: 12, padding: 10, textAlign: "left" } }, props.caption) : null,
+          props.caption ? React.createElement("caption", { style: { color: hudTextMid, fontSize: 12, padding: 10, textAlign: "left" } }, props.caption) : null,
           React.createElement(
             "thead",
-            { style: { background: "#f5f5f5" } },
+            { style: { background: hudCellWash } },
             React.createElement(
               "tr",
               null,
@@ -767,8 +938,8 @@ const DataTable = defineComponent({
                   {
                     key: column.key,
                     style: {
-                      borderBottom: "1px solid #d4d4d4",
-                      color: "#404040",
+                      borderBottom: `1px solid ${hudEdge}`,
+                      color: hudTextMid,
                       fontSize: 12,
                       fontWeight: 800,
                       padding: "9px 10px",
@@ -776,7 +947,7 @@ const DataTable = defineComponent({
                       whiteSpace: "nowrap",
                     },
                   },
-                  column.label,
+                  labelElement(column.label, "neutral", "xs"),
                 ),
               ),
             ),
@@ -787,15 +958,15 @@ const DataTable = defineComponent({
             props.rows.map((row, rowIndex) =>
               React.createElement(
                 "tr",
-                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "#fff" : "#fafafa" } },
+                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "rgba(2,18,32,0.08)" : "rgba(76,203,255,0.045)" } },
                 props.columns.map((column) =>
                   React.createElement(
                     "td",
                     {
                       key: `${rowIndex}:${column.key}`,
                       style: {
-                        borderBottom: "1px solid #e5e5e5",
-                        color: "#262626",
+                        borderBottom: `1px solid ${hudEdge}`,
+                        color: hudText,
                         fontSize: 13,
                         lineHeight: 1.45,
                         maxWidth: 260,
@@ -835,13 +1006,14 @@ const TaskBoard = defineComponent({
         ),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Compact task board for agent plans, handoffs, triage, implementation status, QA queues, and multi-owner workflows.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -865,27 +1037,14 @@ const TaskBoard = defineComponent({
                 borderRadius: 8,
                 minHeight: 120,
                 padding: 10,
+                ...readableGlassStyle,
               },
             },
             React.createElement(
               "div",
               { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between", marginBottom: 10 } },
               React.createElement("h4", { style: { color: tone.text, fontSize: 13, fontWeight: 800, margin: 0 } }, column.title),
-              React.createElement(
-                "span",
-                {
-                  style: {
-                    background: "#fff",
-                    border: `1px solid ${tone.border}`,
-                    borderRadius: 999,
-                    color: tone.text,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    padding: "1px 7px",
-                  },
-                },
-                column.items.length,
-              ),
+              labelElement(String(column.items.length), column.tone ?? "neutral", "xs"),
             ),
             React.createElement(
               "div",
@@ -896,22 +1055,23 @@ const TaskBoard = defineComponent({
                   {
                     key: `${item.title}:${itemIndex}`,
                     style: {
-                      background: "rgba(255,255,255,0.88)",
-                      border: "1px solid rgba(212,212,212,0.9)",
+                      background: hudPanelWash,
+                      border: `1px solid ${hudEdge}`,
                       borderRadius: 7,
+                      boxShadow: `inset 1px 0 0 ${tone.border}, inset 0 1px 0 rgba(255,255,255,0.16)`,
                       padding: 9,
                     },
                   },
-                  React.createElement("strong", { style: { color: "#171717", display: "block", fontSize: 13, lineHeight: 1.35 } }, item.title),
+                  React.createElement("strong", { style: { color: hudText, display: "block", fontSize: 13, lineHeight: 1.35 } }, item.title),
                   item.description
-                    ? React.createElement("p", { style: { color: "#525252", fontSize: 12, lineHeight: 1.45, margin: "5px 0 0" } }, item.description)
+                    ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.45, margin: "5px 0 0" } }, item.description)
                     : null,
                   item.owner || item.status
                     ? React.createElement(
                         "div",
-                        { style: { color: "#737373", display: "flex", flexWrap: "wrap", fontSize: 11, gap: 6, marginTop: 7 } },
-                        item.owner ? React.createElement("span", null, item.owner) : null,
-                        item.status ? React.createElement("span", null, item.status) : null,
+                        { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 7 } },
+                        item.owner ? labelElement(item.owner, "neutral", "xs") : null,
+                        item.status ? labelElement(item.status, column.tone ?? "neutral", "xs") : null,
                       )
                     : null,
                 ),
@@ -947,13 +1107,14 @@ const CodeDiff = defineComponent({
         ),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Readable code/config/document diff viewer for review summaries, generated patches, config changes, migration previews, and agent handoffs.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -961,14 +1122,14 @@ const CodeDiff = defineComponent({
         props.files.map((file, index) =>
           React.createElement(
             "article",
-            { key: `${file.path}:${index}`, style: { border: "1px solid #d4d4d4", borderRadius: 8, overflow: "hidden" } },
+            { key: `${file.path}:${index}`, style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, overflow: "hidden" } },
             React.createElement(
               "div",
               {
                 style: {
                   alignItems: "center",
-                  background: "#f5f5f5",
-                  borderBottom: "1px solid #d4d4d4",
+                  background: hudCellWash,
+                  borderBottom: `1px solid ${hudEdge}`,
                   display: "flex",
                   flexWrap: "wrap",
                   gap: 8,
@@ -976,19 +1137,15 @@ const CodeDiff = defineComponent({
                   padding: "8px 10px",
                 },
               },
-              React.createElement("strong", { style: { color: "#171717", fontSize: 13, overflowWrap: "anywhere" } }, file.path),
-              React.createElement(
-                "span",
-                { style: { color: "#525252", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12 } },
-                `+${file.additions ?? 0} / -${file.deletions ?? 0}${file.language ? ` · ${file.language}` : ""}`,
-              ),
+              React.createElement("strong", { style: { color: hudText, fontSize: 13, overflowWrap: "anywhere" } }, file.path),
+              labelElement(`+${file.additions ?? 0} / -${file.deletions ?? 0}${file.language ? ` · ${file.language}` : ""}`, "neutral", "xs"),
             ),
             file.hunks.map((hunk, hunkIndex) =>
               React.createElement(
                 "div",
                 { key: `${file.path}:hunk:${hunkIndex}` },
                 hunk.title
-                  ? React.createElement("div", { style: { background: "#fafafa", color: "#525252", fontSize: 12, padding: "6px 10px" } }, hunk.title)
+                  ? React.createElement("div", { style: { background: hudPanelWash, color: hudTextMid, fontSize: 12, padding: "6px 10px" } }, hunk.title)
                   : null,
                 React.createElement(
                   "pre",
@@ -1050,13 +1207,14 @@ const KeyValuePanel = defineComponent({
         tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Dense key-value facts panel for metadata, environment info, customer details, config summaries, and short evidence lists.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "dl",
@@ -1069,20 +1227,20 @@ const KeyValuePanel = defineComponent({
               key: `${item.label}:${index}`,
               style: {
                 alignItems: "start",
-                borderTop: index === 0 ? "0" : "1px solid #e5e5e5",
+                borderTop: index === 0 ? "0" : `1px solid ${hudEdge}`,
                 display: "grid",
                 gap: 10,
                 gridTemplateColumns: "minmax(110px, 0.38fr) minmax(0, 1fr)",
                 padding: "10px 14px",
               },
             },
-            React.createElement("dt", { style: { color: "#737373", fontSize: 12, fontWeight: 800 } }, item.label),
+            React.createElement("dt", null, labelElement(item.label, item.tone ?? "neutral", "xs")),
             React.createElement(
               "dd",
-              { style: { color: "#171717", margin: 0, minWidth: 0 } },
+              { style: { color: hudText, margin: 0, minWidth: 0 } },
               React.createElement("div", { style: { color: tone.text, fontSize: 14, fontWeight: 800, overflowWrap: "anywhere" } }, item.value),
               item.description
-                ? React.createElement("p", { style: { color: "#525252", fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" } }, item.description)
+                ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.45, margin: "4px 0 0" } }, item.description)
                 : null,
             ),
           );
@@ -1104,13 +1262,14 @@ const AlertList = defineComponent({
         action: z.string().optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Alert and risk list for issues, warnings, blockers, incidents, validation errors, and positive confirmations.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -1124,23 +1283,19 @@ const AlertList = defineComponent({
               style: {
                 background: tone.background,
                 border: `1px solid ${tone.border}`,
-                borderLeft: `4px solid ${tone.accent}`,
                 borderRadius: 8,
                 padding: 12,
+                ...readableGlassStyle,
               },
             },
             React.createElement(
               "div",
               { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
               React.createElement("strong", { style: { color: tone.text, fontSize: 14, lineHeight: 1.35 } }, alert.title),
-              React.createElement(
-                "span",
-                { style: { color: tone.accent, flexShrink: 0, fontSize: 11, fontWeight: 900, textTransform: "uppercase" } },
-                alert.severity,
-              ),
+              labelElement(alert.severity, alert.severity, "xs", { flexShrink: 0 }),
             ),
             alert.description
-              ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, alert.description)
+              ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, alert.description)
               : null,
             alert.action
               ? React.createElement("div", { style: { color: tone.text, fontSize: 12, fontWeight: 800, marginTop: 8 } }, alert.action)
@@ -1163,13 +1318,14 @@ const ProgressStepper = defineComponent({
         description: z.string().optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Step-by-step progress tracker for workflows, onboarding, releases, investigations, approvals, and multi-stage agent runs.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "ol",
@@ -1194,7 +1350,7 @@ const ProgressStepper = defineComponent({
                   alignItems: "center",
                   background: tone.background,
                   border: `1px solid ${tone.border}`,
-                  borderRadius: 999,
+                  borderRadius: 6,
                   color: tone.text,
                   display: "inline-flex",
                   fontSize: 12,
@@ -1208,15 +1364,15 @@ const ProgressStepper = defineComponent({
             ),
             React.createElement(
               "div",
-              { style: { borderBottom: index === props.steps.length - 1 ? "0" : "1px solid #e5e5e5", paddingBottom: 10 } },
+              { style: { borderBottom: index === props.steps.length - 1 ? "0" : `1px solid ${hudEdge}`, paddingBottom: 10 } },
               React.createElement(
                 "div",
                 { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 } },
-                React.createElement("strong", { style: { color: "#171717", fontSize: 14 } }, step.label),
-                React.createElement("span", { style: { color: tone.accent, fontSize: 11, fontWeight: 900, textTransform: "uppercase" } }, step.status),
+                React.createElement("strong", { style: { color: tone.text, fontSize: 14 } }, step.label),
+                labelElement(step.status, step.status === "done" ? "positive" : step.status === "blocked" ? "danger" : step.status === "active" ? "info" : "neutral", "xs"),
               ),
               step.description
-                ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.45, margin: "4px 0 0" } }, step.description)
+                ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.45, margin: "4px 0 0" } }, step.description)
                 : null,
             ),
           );
@@ -1239,6 +1395,7 @@ const BarChart = defineComponent({
         tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Simple responsive horizontal bar chart for rankings, category comparison, volume, cost, risk, and operational counts.",
@@ -1246,7 +1403,7 @@ const BarChart = defineComponent({
     const maxValue = props.max ?? Math.max(1, ...props.data.map((item) => item.value));
     return React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -1260,17 +1417,18 @@ const BarChart = defineComponent({
             React.createElement(
               "div",
               { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between" } },
-              React.createElement("span", { style: { color: "#404040", fontSize: 12, fontWeight: 800 } }, item.label),
-              React.createElement("span", { style: { color: tone.text, fontSize: 12, fontWeight: 900 } }, `${item.value}${props.unit ?? ""}`),
+              labelElement(item.label, item.tone ?? "neutral", "xs"),
+              labelElement(`${item.value}${props.unit ?? ""}`, item.tone ?? "neutral", "xs"),
             ),
             React.createElement(
               "div",
-              { style: { background: "#f5f5f5", borderRadius: 999, height: 10, overflow: "hidden" } },
+              { style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 5, height: 11, overflow: "hidden" } },
               React.createElement("div", {
                 style: {
-                  background: tone.accent,
-                  borderRadius: 999,
+                  background: `linear-gradient(90deg, ${tone.accent}, rgba(76,203,255,0.32))`,
+                  borderRadius: 5,
                   height: "100%",
+                  opacity: 0.88,
                   width: `${percent}%`,
                 },
               }),
@@ -1294,6 +1452,7 @@ const LineChart = defineComponent({
         value: z.number(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Compact line chart for trends, time series, forecasts, health signals, backlog movement, and metric changes over time.",
@@ -1312,18 +1471,24 @@ const LineChart = defineComponent({
 
     return React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
         { style: { padding: 14 } },
         React.createElement(
           "svg",
-          { role: "img", viewBox: `0 0 ${width} ${height}`, style: { background: "#fafafa", borderRadius: 8, display: "block", width: "100%" } },
+          { role: "img", viewBox: `0 0 ${width} ${height}`, style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, display: "block", width: "100%" } },
+          React.createElement("defs", null,
+            React.createElement("linearGradient", { id: "lineGlassGradient", x1: "0", x2: "1", y1: "0", y2: "0" },
+              React.createElement("stop", { offset: "0%", stopColor: "rgba(76,203,255,0.76)" }),
+              React.createElement("stop", { offset: "100%", stopColor: "rgba(128,255,180,0.54)" }),
+            ),
+          ),
           React.createElement("polyline", {
             fill: "none",
             points: points.map((point) => `${point.x},${point.y}`).join(" "),
-            stroke: "#2563eb",
+            stroke: "url(#lineGlassGradient)",
             strokeLinecap: "round",
             strokeLinejoin: "round",
             strokeWidth: 4,
@@ -1332,9 +1497,11 @@ const LineChart = defineComponent({
             React.createElement("circle", {
               cx: point.x,
               cy: point.y,
-              fill: "#2563eb",
+              fill: "rgba(2,18,32,0.82)",
               key: `${point.label}:${index}`,
               r: 5,
+              stroke: "rgba(76,203,255,0.76)",
+              strokeWidth: 3,
             }),
           ),
         ),
@@ -1344,8 +1511,8 @@ const LineChart = defineComponent({
           points.map((point, index) =>
             React.createElement(
               "span",
-              { key: `${point.label}:legend:${index}`, style: { color: "#525252", fontSize: 12 } },
-              `${point.label}: ${point.value}${props.unit ?? ""}`,
+              { key: `${point.label}:legend:${index}` },
+              labelElement(`${point.label}: ${point.value}${props.unit ?? ""}`, "info", "xs"),
             ),
           ),
         ),
@@ -1368,29 +1535,30 @@ const ResourceList = defineComponent({
         status: z.enum(["ready", "draft", "blocked", "external"]).optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Resource and link list for files, URLs, documents, artifacts, references, generated outputs, and handoff materials.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
         { style: { display: "grid", gap: 10, padding: 14 } },
         props.resources.map((resource, index) => {
-          const tone = toneFor(resource.status === "blocked" ? "danger" : resource.status === "draft" ? "warning" : "info");
-          const title = React.createElement("strong", { style: { color: "#171717", fontSize: 14, overflowWrap: "anywhere" } }, resource.title);
+          const title = React.createElement("strong", { style: { color: hudText, fontSize: 14, overflowWrap: "anywhere" } }, resource.title);
           return React.createElement(
             "article",
             {
               key: `${resource.title}:${index}`,
               style: {
-                background: "#fafafa",
-                border: "1px solid #e5e5e5",
+                background: hudPanelWash,
+                border: `1px solid ${hudEdge}`,
                 borderRadius: 8,
                 padding: 12,
+                ...readableGlassStyle,
               },
             },
             React.createElement(
@@ -1399,12 +1567,12 @@ const ResourceList = defineComponent({
               resource.url
                 ? React.createElement("a", { href: resource.url, rel: "noreferrer", style: { textDecoration: "none" }, target: "_blank" }, title)
                 : title,
-              React.createElement("span", { style: { color: tone.accent, flexShrink: 0, fontSize: 11, fontWeight: 900, textTransform: "uppercase" } }, resource.status ?? resource.type ?? "resource"),
+              labelElement(resource.status ?? resource.type ?? "resource", resource.status === "blocked" ? "danger" : resource.status === "draft" ? "warning" : "info", "xs", { flexShrink: 0 }),
             ),
             resource.description
-              ? React.createElement("p", { style: { color: "#525252", fontSize: 13, lineHeight: 1.45, margin: "6px 0 0" } }, resource.description)
+              ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.45, margin: "6px 0 0" } }, resource.description)
               : null,
-            resource.url ? React.createElement("div", { style: { color: "#737373", fontSize: 12, marginTop: 7, overflowWrap: "anywhere" } }, resource.url) : null,
+            resource.url ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 7, overflowWrap: "anywhere" } }, resource.url) : null,
           );
         }),
       ),
@@ -1426,13 +1594,14 @@ const FormPanel = defineComponent({
         help: z.string().optional(),
       }),
     ),
+    ...glassProps,
   }),
   description:
     "Read-only form summary for intake, approval, required inputs, user confirmation, request review, and missing-field explanations.",
   component: ({ props }) =>
     React.createElement(
       "section",
-      { style: panelStyle },
+      { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -1444,8 +1613,8 @@ const FormPanel = defineComponent({
             {
               key: `${field.label}:${index}`,
               style: {
-                background: "#fafafa",
-                border: `1px solid ${field.status ? tone.border : "#e5e5e5"}`,
+                background: hudPanelWash,
+                border: `1px solid ${field.status ? tone.border : hudEdge}`,
                 borderRadius: 8,
                 display: "grid",
                 gap: 6,
@@ -1454,19 +1623,19 @@ const FormPanel = defineComponent({
             },
             React.createElement(
               "span",
-              { style: { alignItems: "center", color: "#404040", display: "flex", flexWrap: "wrap", fontSize: 12, fontWeight: 800, gap: 6 } },
-              field.label,
-              field.required ? React.createElement("span", { style: { color: "#dc2626" } }, "required") : null,
-              field.status ? React.createElement("span", { style: { color: tone.accent, textTransform: "uppercase" } }, field.status) : null,
+              { style: { alignItems: "center", color: hudTextMid, display: "flex", flexWrap: "wrap", fontSize: 12, fontWeight: 800, gap: 6 } },
+              labelElement(field.label, field.status === "valid" ? "positive" : field.status === "missing" ? "danger" : "neutral", "xs"),
+              field.required ? labelElement("required", "danger", "xs") : null,
+              field.status ? labelElement(field.status, field.status === "valid" ? "positive" : field.status === "missing" ? "danger" : "warning", "xs") : null,
             ),
             React.createElement(
               "div",
               {
                 style: {
-                  background: "#fff",
-                  border: "1px solid #e5e5e5",
+                  background: "rgba(2,18,32,0.20)",
+                  border: `1px solid ${hudEdge}`,
                   borderRadius: 6,
-                  color: field.value ? "#171717" : "#a3a3a3",
+                  color: field.value ? hudText : hudTextSoft,
                   fontSize: 14,
                   minHeight: field.type === "textarea" ? 72 : 36,
                   padding: "8px 9px",
@@ -1475,7 +1644,7 @@ const FormPanel = defineComponent({
               },
               field.value || "Not provided",
             ),
-            field.help ? React.createElement("span", { style: { color: "#737373", fontSize: 12 } }, field.help) : null,
+            field.help ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 12 } }, field.help) : null,
           );
         }),
       ),
@@ -1488,6 +1657,7 @@ const componentGroups: ComponentGroup[] = [
     name: "Agent Explanation",
     components: [
       "MetricGrid",
+      "Label",
       "KeyValuePanel",
       "AlertList",
       "ProgressStepper",
@@ -1539,27 +1709,56 @@ const componentGroups: ComponentGroup[] = [
   },
 ];
 
+const customComponents = [
+  Card,
+  CardHeader,
+  Label,
+  MetricGrid,
+  KeyValuePanel,
+  AlertList,
+  ProgressStepper,
+  BarChart,
+  LineChart,
+  ResourceList,
+  FormPanel,
+  ActionPanel,
+  TimelinePanel,
+  DecisionMatrix,
+  DataTable,
+  TaskBoard,
+  CodeDiff,
+  MapView,
+  AudioPlayer,
+  VideoPlayer,
+];
+const customComponentNames = new Set([
+  "Card",
+  "CardHeader",
+  "Label",
+  "MetricGrid",
+  "KeyValuePanel",
+  "AlertList",
+  "ProgressStepper",
+  "BarChart",
+  "LineChart",
+  "ResourceList",
+  "FormPanel",
+  "ActionPanel",
+  "TimelinePanel",
+  "DecisionMatrix",
+  "DataTable",
+  "TaskBoard",
+  "CodeDiff",
+  "MapView",
+  "AudioPlayer",
+  "VideoPlayer",
+]);
+const baseComponents = Object.entries(openuiLibrary.components)
+  .filter(([name]) => !customComponentNames.has(name))
+  .map(([, component]) => component);
+
 export const library = createLibrary({
-  components: [
-    ...Object.values(openuiLibrary.components),
-    MetricGrid,
-    KeyValuePanel,
-    AlertList,
-    ProgressStepper,
-    BarChart,
-    LineChart,
-    ResourceList,
-    FormPanel,
-    ActionPanel,
-    TimelinePanel,
-    DecisionMatrix,
-    DataTable,
-    TaskBoard,
-    CodeDiff,
-    MapView,
-    AudioPlayer,
-    VideoPlayer,
-  ],
+  components: [...baseComponents, ...customComponents],
   componentGroups,
   root: openuiLibrary.root,
 });
@@ -1569,6 +1768,8 @@ export const promptOptions: PromptOptions = {
   additionalRules: [
     ...(openuiPromptOptions.additionalRules ?? []),
     "For KPI summaries, status snapshots, and dashboards, prefer MetricGrid(title, description, metrics).",
+    "Use Label(text, tone, size, inkPreset, glassPreset, glassColor, glassOpacity) for status, priority, count, tag, and compact text badges instead of ad-hoc inline spans. Prefer inkPreset values: green, slate, white, blue, amber, red.",
+    'All custom Liquid Glass components accept glassPreset, glassColor, and glassOpacity. Prefer glassPreset first: "clear", "pane", "milky", "dense", "mint", "sky", "rose", or "amber". Use glassColor/glassOpacity only to override the preset; keep glassOpacity between 0 and 1.',
     "For metadata, facts, environment details, and compact evidence, prefer KeyValuePanel(title, description, items).",
     "For risks, blockers, warnings, validation findings, and incident signals, prefer AlertList(title, description, alerts).",
     "For staged progress, approvals, onboarding, investigations, and release steps, prefer ProgressStepper(title, description, steps).",

@@ -116,5 +116,9 @@ export const agentUsageGuide = {
     "For CLI calls, prefer --context-file for structured data and --prompt-file for long prompts.",
     "Do not claim external live data or MCP-backed tools were used unless the caller supplied that data.",
     "Keep prompts outcome-oriented: tell the broker what the user needs to understand or decide.",
+    'The shell theme color accepts themeColorPreset ("blue", "cyan", "violet", "mint", "rose", "amber", "white"). Default is blue.',
+    'Liquid Glass components accept glassPreset ("clear", "pane", "milky", "dense", "mint", "sky", "rose", "amber"), plus glassColor and glassOpacity overrides.',
+    'Label accepts inkPreset ("green", "slate", "white", "blue", "amber", "red"). Prefer green on milky labels for readability.',
+    'Window opening animation accepts windowAnimationPreset ("center", "left", "right", "top", "fade").',
   ],
 } as const;
