@@ -2,6 +2,44 @@ import React from "react";
 import { createLibrary, defineComponent, type ComponentGroup, type PromptOptions } from "@openuidev/react-lang";
 import { openuiLibrary, openuiPromptOptions } from "@openuidev/react-ui/genui-lib";
 import { z } from "zod/v4";
+import {
+  Bar as RcBar,
+  BarChart as RcBarChart,
+  CartesianGrid as RcCartesianGrid,
+  Cell as RcCell,
+  Line as RcLine,
+  LineChart as RcLineChart,
+  Pie as RcPie,
+  PieChart as RcPieChart,
+  ResponsiveContainer as RcResponsiveContainer,
+  Tooltip as RcTooltip,
+  XAxis as RcXAxis,
+  YAxis as RcYAxis,
+} from "recharts";
+
+const chartPalette = {
+  line: "rgba(142, 182, 92, 0.95)",
+  grid: "rgba(138, 166, 126, 0.18)",
+  axis: "rgba(204, 222, 184, 0.70)",
+  axisLabel: "rgba(224, 236, 206, 0.86)",
+  tooltipBg: "rgba(10, 22, 14, 0.94)",
+  tooltipBorder: "rgba(130, 180, 118, 0.34)",
+  bar: "rgba(126, 174, 86, 0.78)",
+  area: "rgba(126, 174, 86, 0.28)",
+};
+
+const donutColors = [
+  "rgba(126, 174, 86, 0.92)",
+  "rgba(176, 142, 72, 0.90)",
+  "rgba(82, 132, 92, 0.88)",
+  "rgba(72, 114, 138, 0.86)",
+  "rgba(148, 72, 82, 0.88)",
+  "rgba(134, 150, 116, 0.86)",
+  "rgba(204, 176, 88, 0.88)",
+  "rgba(92, 126, 72, 0.88)",
+];
+
+const chartAxisTickStyle = { fill: chartPalette.axisLabel, fontSize: 11 } as const;
 
 type MapMarker = {
   lat: number;
@@ -208,22 +246,23 @@ const markerColors: Record<NonNullable<MapMarker["color"]>, string> = {
   yellow: "rgba(190, 162, 72, 0.72)",
 };
 
-const hudText = "rgba(244, 252, 255, 0.94)";
-const hudTextMid = "rgba(216, 236, 245, 0.72)";
-const hudTextSoft = "rgba(186, 214, 226, 0.56)";
-const hudEdge = "rgba(128, 226, 255, 0.18)";
-const hudEdgeStrong = "rgba(128, 226, 255, 0.32)";
-const hudLine = "rgba(76, 203, 255, 0.42)";
+const hudText = "rgba(248, 253, 255, 0.98)";
+const hudTextMid = "rgba(228, 244, 251, 0.90)";
+const hudTextSoft = "rgba(206, 230, 240, 0.78)";
+const hudTextShadow = "0 1px 2px rgba(20, 28, 22, 0.46), 0 8px 24px rgba(20, 28, 22, 0.28)";
+const hudEdge = "rgba(130, 180, 118, 0.18)";
+const hudEdgeStrong = "rgba(168, 204, 146, 0.32)";
+const hudLine = "rgba(126, 174, 86, 0.42)";
 const hudPanelWash = "rgba(2, 18, 32, 0.18)";
-const hudCellWash = "rgba(76, 203, 255, 0.08)";
+const hudCellWash = "rgba(72, 138, 82, 0.08)";
 
 const toneStyles: Record<string, { accent: string; background: string; border: string; text: string }> = {
   critical: { accent: "rgba(255, 96, 126, 0.78)", background: "linear-gradient(90deg, rgba(255,96,126,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 96, 126, 0.32)", text: "rgba(255, 218, 226, 0.96)" },
   danger: { accent: "rgba(255, 96, 126, 0.74)", background: "linear-gradient(90deg, rgba(255,96,126,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 96, 126, 0.30)", text: "rgba(255, 218, 226, 0.96)" },
   warning: { accent: "rgba(255, 216, 112, 0.76)", background: "linear-gradient(90deg, rgba(255,216,112,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 216, 112, 0.30)", text: "rgba(255, 240, 196, 0.96)" },
-  positive: { accent: "rgba(128, 255, 180, 0.76)", background: "linear-gradient(90deg, rgba(128,255,180,0.11), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(128, 255, 180, 0.28)", text: "rgba(218, 255, 235, 0.96)" },
-  neutral: { accent: "rgba(180, 226, 242, 0.58)", background: "linear-gradient(90deg, rgba(128,226,255,0.075), rgba(2,18,32,0.16) 48%, rgba(255,255,255,0.018))", border: "rgba(128, 226, 255, 0.18)", text: hudText },
-  info: { accent: "rgba(76, 203, 255, 0.76)", background: "linear-gradient(90deg, rgba(76,203,255,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(76, 203, 255, 0.30)", text: "rgba(216, 246, 255, 0.96)" },
+  positive: { accent: "rgba(126, 174, 86, 0.78)", background: "linear-gradient(90deg, rgba(72,138,82,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(130, 180, 118, 0.28)", text: "rgba(226, 244, 210, 0.96)" },
+  neutral: { accent: "rgba(154, 170, 150, 0.58)", background: "linear-gradient(90deg, rgba(92,114,98,0.085), rgba(2,18,32,0.16) 48%, rgba(255,255,255,0.018))", border: "rgba(130, 150, 124, 0.18)", text: hudText },
+  info: { accent: "rgba(72, 114, 138, 0.76)", background: "linear-gradient(90deg, rgba(72,114,138,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(100, 136, 150, 0.28)", text: "rgba(216, 232, 226, 0.96)" },
 };
 
 function toneFor(value?: string) {
@@ -232,11 +271,11 @@ function toneFor(value?: string) {
 
 const panelBaseStyle: React.CSSProperties = {
   background:
-    "linear-gradient(145deg, var(--aether-card-tint), rgba(2,18,32,0.16) 58%, rgba(255,255,255,0.018)), linear-gradient(90deg, rgba(76,203,255,0.08), transparent 42%)",
+    "linear-gradient(145deg, var(--aether-card-tint), rgba(2,18,32,0.16) 58%, rgba(255,255,255,0.018)), linear-gradient(90deg, rgba(72,138,82,0.08), transparent 42%)",
   backdropFilter: "blur(var(--aether-card-blur)) saturate(var(--aether-card-saturate)) brightness(var(--aether-card-brightness))",
   border: `1px solid ${hudEdge}`,
   borderRadius: 10,
-  boxShadow: `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 24px rgba(76,203,255,0.06), 0 14px 36px rgba(0,12,24,0.20)`,
+  boxShadow: `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 20px rgba(72,138,82,0.05), 0 14px 36px rgba(0,12,24,0.20)`,
   color: hudText,
   overflow: "hidden",
   WebkitBackdropFilter: "blur(var(--aether-card-blur)) saturate(var(--aether-card-saturate)) brightness(var(--aether-card-brightness))",
@@ -252,7 +291,7 @@ function panelStyleFor(props?: GlassProps): React.CSSProperties {
 const readableGlassStyle: React.CSSProperties = {
   backdropFilter: "blur(var(--aether-readable-blur)) saturate(1.12) brightness(1.02)",
   boxShadow:
-    `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 18px rgba(76,203,255,0.05), 0 10px 24px rgba(0,12,24,0.14)`,
+    `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 16px rgba(72,138,82,0.045), 0 10px 24px rgba(0,12,24,0.14)`,
   WebkitBackdropFilter: "blur(var(--aether-readable-blur)) saturate(1.12) brightness(1.02)",
 };
 
@@ -271,11 +310,17 @@ function panelHeader(title?: string, description?: string): React.ReactNode {
   return React.createElement(
     "div",
     { style: { borderBottom: `1px solid ${hudEdge}`, padding: "12px 14px" } },
-    title ? React.createElement("h3", { style: { color: hudText, fontSize: 16, fontWeight: 760, letterSpacing: 0, margin: 0 } }, title) : null,
+    title
+      ? React.createElement(
+          "h3",
+          { style: { color: hudText, fontSize: 17, fontWeight: 760, letterSpacing: 0, margin: 0, textShadow: hudTextShadow } },
+          title,
+        )
+      : null,
     description
       ? React.createElement(
           "p",
-          { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: title ? "4px 0 0" : 0 } },
+          { style: { color: hudTextMid, fontSize: 14, lineHeight: 1.55, margin: title ? "4px 0 0" : 0, textShadow: hudTextShadow } },
           description,
         )
       : null,
@@ -287,11 +332,6 @@ function formatCellValue(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return JSON.stringify(value);
-}
-
-function clampPercent(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(100, value));
 }
 
 function lngToWorldX(lng: number, zoom: number): number {
@@ -1398,43 +1438,84 @@ const BarChart = defineComponent({
     ...glassProps,
   }),
   description:
-    "Simple responsive horizontal bar chart for rankings, category comparison, volume, cost, risk, and operational counts.",
+    "Simple responsive bar chart for rankings, category comparison, volume, cost, risk, and operational counts.",
   component: ({ props }) => {
-    const maxValue = props.max ?? Math.max(1, ...props.data.map((item) => item.value));
+    const unit = props.unit ?? "";
+    const toneColor: Record<string, string> = {
+      positive: "rgba(132, 244, 188, 0.92)",
+      info: "rgba(120, 220, 255, 0.92)",
+      warning: "rgba(255, 196, 132, 0.92)",
+      danger: "rgba(255, 132, 156, 0.92)",
+      neutral: "rgba(186, 220, 248, 0.78)",
+    };
+    const tooltipFormatter = (value: unknown) =>
+      `${typeof value === "number" ? value.toLocaleString() : String(value)}${unit}`;
     return React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
-        { style: { display: "grid", gap: 10, padding: 14 } },
-        props.data.map((item, index) => {
-          const tone = toneFor(item.tone);
-          const percent = clampPercent((item.value / maxValue) * 100);
-          return React.createElement(
-            "div",
-            { key: `${item.label}:${index}`, style: { display: "grid", gap: 5 } },
+        { style: { height: 220, padding: 14 } },
+        React.createElement(
+          RcResponsiveContainer,
+          {
+            width: "100%",
+            height: "100%",
+            children: React.createElement(
+            RcBarChart,
+            {
+              data: props.data,
+              margin: { top: 8, right: 16, left: 4, bottom: 0 },
+              barCategoryGap: "22%",
+            },
+            React.createElement(RcCartesianGrid, {
+              stroke: chartPalette.grid,
+              strokeDasharray: "2 4",
+              vertical: false,
+            }),
+            React.createElement(RcXAxis, {
+              dataKey: "label",
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              minTickGap: 12,
+            }),
+            React.createElement(RcYAxis, {
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              width: 44,
+              tickFormatter: (value: number) => `${value}${unit}`,
+              domain: props.max ? [0, props.max] : undefined,
+            }),
+            React.createElement(RcTooltip, {
+              contentStyle: {
+                background: chartPalette.tooltipBg,
+                border: `1px solid ${chartPalette.tooltipBorder}`,
+                borderRadius: 8,
+                color: "rgba(248, 253, 255, 0.98)",
+                fontSize: 12,
+              },
+              labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
+              cursor: { fill: "rgba(120, 220, 255, 0.08)" },
+              formatter: tooltipFormatter,
+            }),
             React.createElement(
-              "div",
-              { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between" } },
-              labelElement(item.label, item.tone ?? "neutral", "xs"),
-              labelElement(`${item.value}${props.unit ?? ""}`, item.tone ?? "neutral", "xs"),
+              RcBar,
+              { dataKey: "value", radius: [3, 3, 0, 0], isAnimationActive: false },
+              props.data.map((item, index) =>
+                React.createElement(RcCell, {
+                  key: `${item.label}:${index}`,
+                  fill: toneColor[item.tone ?? "neutral"] ?? toneColor.neutral,
+                }),
             ),
-            React.createElement(
-              "div",
-              { style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 5, height: 11, overflow: "hidden" } },
-              React.createElement("div", {
-                style: {
-                  background: `linear-gradient(90deg, ${tone.accent}, rgba(76,203,255,0.32))`,
-                  borderRadius: 5,
-                  height: "100%",
-                  opacity: 0.88,
-                  width: `${percent}%`,
-                },
-              }),
-            ),
-          );
-        }),
+          },
+        ),
+      ),
+        ),
       ),
     );
   },
@@ -1457,64 +1538,68 @@ const LineChart = defineComponent({
   description:
     "Compact line chart for trends, time series, forecasts, health signals, backlog movement, and metric changes over time.",
   component: ({ props }) => {
-    const width = 640;
-    const height = 220;
-    const values = props.data.map((point) => point.value);
-    const minValue = Math.min(...values, 0);
-    const maxValue = Math.max(...values, 1);
-    const span = Math.max(1, maxValue - minValue);
-    const points = props.data.map((point, index) => {
-      const x = props.data.length === 1 ? width / 2 : (index / (props.data.length - 1)) * width;
-      const y = height - ((point.value - minValue) / span) * height;
-      return { ...point, x, y };
-    });
-
+    const unit = props.unit ?? "";
+    const tooltipFormatter = (value: unknown) =>
+      `${typeof value === "number" ? value.toLocaleString() : String(value)}${unit}`;
     return React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
-        { style: { padding: 14 } },
+        { style: { height: 220, padding: 14 } },
         React.createElement(
-          "svg",
-          { role: "img", viewBox: `0 0 ${width} ${height}`, style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, display: "block", width: "100%" } },
-          React.createElement("defs", null,
-            React.createElement("linearGradient", { id: "lineGlassGradient", x1: "0", x2: "1", y1: "0", y2: "0" },
-              React.createElement("stop", { offset: "0%", stopColor: "rgba(76,203,255,0.76)" }),
-              React.createElement("stop", { offset: "100%", stopColor: "rgba(128,255,180,0.54)" }),
-            ),
-          ),
-          React.createElement("polyline", {
-            fill: "none",
-            points: points.map((point) => `${point.x},${point.y}`).join(" "),
-            stroke: "url(#lineGlassGradient)",
-            strokeLinecap: "round",
-            strokeLinejoin: "round",
-            strokeWidth: 4,
-          }),
-          points.map((point, index) =>
-            React.createElement("circle", {
-              cx: point.x,
-              cy: point.y,
-              fill: "rgba(2,18,32,0.82)",
-              key: `${point.label}:${index}`,
-              r: 5,
-              stroke: "rgba(76,203,255,0.76)",
-              strokeWidth: 3,
+          RcResponsiveContainer,
+          {
+            width: "100%",
+            height: "100%",
+            children: React.createElement(
+            RcLineChart,
+            { data: props.data, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
+            React.createElement(RcCartesianGrid, {
+              stroke: chartPalette.grid,
+              strokeDasharray: "2 4",
+              vertical: false,
             }),
-          ),
-        ),
-        React.createElement(
-          "div",
-          { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 } },
-          points.map((point, index) =>
-            React.createElement(
-              "span",
-              { key: `${point.label}:legend:${index}` },
-              labelElement(`${point.label}: ${point.value}${props.unit ?? ""}`, "info", "xs"),
+            React.createElement(RcXAxis, {
+              dataKey: "label",
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              minTickGap: 16,
+            }),
+            React.createElement(RcYAxis, {
+              stroke: chartPalette.axis,
+              tick: chartAxisTickStyle,
+              tickLine: false,
+              axisLine: { stroke: chartPalette.grid },
+              width: 44,
+              tickFormatter: (value: number) => `${value}${unit}`,
+            }),
+            React.createElement(RcTooltip, {
+              contentStyle: {
+                background: chartPalette.tooltipBg,
+                border: `1px solid ${chartPalette.tooltipBorder}`,
+                borderRadius: 8,
+                color: "rgba(248, 253, 255, 0.98)",
+                fontSize: 12,
+              },
+              labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
+              cursor: { stroke: chartPalette.grid, strokeDasharray: "2 4" },
+              formatter: tooltipFormatter,
+            }),
+            React.createElement(RcLine, {
+              type: "monotone",
+              dataKey: "value",
+              stroke: chartPalette.line,
+              strokeWidth: 1.5,
+              dot: { r: 2.5, stroke: chartPalette.line, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
+              activeDot: { r: 3.5, stroke: chartPalette.line, strokeWidth: 1.5, fill: chartPalette.line },
+              isAnimationActive: false,
+            }),
             ),
-          ),
+          },
         ),
       ),
     );
@@ -1752,29 +1837,40 @@ const Sparkline = defineComponent({
   description:
     "Inline mini line chart (no axes) for showing trend next to a number. Use inside Stat or alongside labels; for full charts use LineChart.",
   component: ({ props }) => {
-    const width = 160;
     const height = props.height ?? 40;
     const values = props.data.length > 0 ? props.data : [0];
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const span = Math.max(0.0001, max - min);
-    const points = values.map((value, index) => {
-      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / span) * height;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    });
-    const tone = toneFor(props.tone);
+    const series = values.map((value, index) => ({ index, value }));
+    const toneColor: Record<string, string> = {
+      positive: "rgba(132, 244, 188, 0.92)",
+      info: chartPalette.line,
+      warning: "rgba(255, 196, 132, 0.92)",
+      danger: "rgba(255, 132, 156, 0.92)",
+      neutral: "rgba(186, 220, 248, 0.78)",
+    };
+    const stroke = toneColor[props.tone ?? "info"] ?? toneColor.info;
     return React.createElement(
-      "svg",
-      { role: "img", viewBox: `0 0 ${width} ${height}`, style: { display: "block", height, width: "100%" } },
-      React.createElement("polyline", {
-        fill: "none",
-        points: points.join(" "),
-        stroke: tone.accent,
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        strokeWidth: 2.4,
-      }),
+      "div",
+      { style: { height, width: "100%" } },
+      React.createElement(
+        RcResponsiveContainer,
+        {
+          width: "100%",
+          height: "100%",
+          children: React.createElement(
+          RcLineChart,
+          { data: series, margin: { top: 2, right: 2, left: 2, bottom: 2 } },
+          React.createElement(RcLine, {
+            type: "monotone",
+            dataKey: "value",
+            stroke,
+            strokeWidth: 1.5,
+            dot: false,
+            activeDot: false,
+            isAnimationActive: false,
+          }),
+        ),
+      },
+      ),
     );
   },
 });
@@ -2965,16 +3061,17 @@ const DonutChart = defineComponent({
     "Donut/pie composition chart. Use for share/breakdown/composition data (capacity by team, test outcomes, traffic by source) where parts sum to a whole.",
   component: ({ props }) => {
     const total = props.segments.reduce((sum, s) => sum + s.value, 0) || 1;
-    let cumulative = 0;
-    const gradient = props.segments
-      .map((seg) => {
-        const tone = toneFor(seg.tone ?? "info");
-        const start = (cumulative / total) * 360;
-        cumulative += seg.value;
-        const end = (cumulative / total) * 360;
-        return `${tone.border} ${start}deg ${end}deg`;
-      })
-      .join(", ");
+    const colorFor = (segIndex: number, tone?: string): string => {
+      if (tone) {
+        const t = toneFor(tone);
+        return t.border;
+      }
+      return donutColors[segIndex % donutColors.length];
+    };
+    const data = props.segments.map((seg, i) => ({
+      ...seg,
+      fill: colorFor(i, seg.tone),
+    }));
     return React.createElement(
       "section",
       { style: panelStyleFor(props) },
@@ -2984,33 +3081,63 @@ const DonutChart = defineComponent({
         { style: { alignItems: "center", display: "grid", gap: 16, gridTemplateColumns: "180px 1fr", padding: 14 } },
         React.createElement(
           "div",
-          {
-            style: {
-              alignItems: "center",
-              background: `conic-gradient(${gradient})`,
-              borderRadius: 999,
-              display: "flex",
-              height: 180,
-              justifyContent: "center",
-              position: "relative",
-              width: 180,
+          { style: { height: 180, position: "relative", width: 180 } },
+          React.createElement(
+            RcResponsiveContainer,
+            {
+              width: "100%",
+              height: "100%",
+              children: React.createElement(
+              RcPieChart,
+              null,
+              React.createElement(RcTooltip, {
+                contentStyle: {
+                  background: chartPalette.tooltipBg,
+                  border: `1px solid ${chartPalette.tooltipBorder}`,
+                  borderRadius: 8,
+                  color: "rgba(248, 253, 255, 0.98)",
+                  fontSize: 12,
+                },
+                formatter: (value: unknown, _name: unknown, entry: unknown) => {
+                  const e = entry as { payload?: { label?: string; value?: number } };
+                  const v = typeof value === "number" ? value : Number(value);
+                  const pct = ((v / total) * 100).toFixed(1);
+                  return [`${v.toLocaleString()} (${pct}%)`, e.payload?.label ?? ""];
+                },
+              }),
+              React.createElement(
+                RcPie,
+                {
+                  data,
+                  dataKey: "value",
+                  nameKey: "label",
+                  innerRadius: 50,
+                  outerRadius: 78,
+                  paddingAngle: 1,
+                  stroke: "rgba(8, 24, 38, 0.5)",
+                  strokeWidth: 1,
+                  isAnimationActive: false,
+                },
+                data.map((seg, i) =>
+                  React.createElement(RcCell, { key: i, fill: seg.fill }),
+              ),
             },
-          },
+          ),
+            ),
+          ),
           React.createElement(
             "div",
             {
               style: {
                 alignItems: "center",
-                background: hudPanelWash,
-                border: `1px solid ${hudEdge}`,
-                borderRadius: 999,
                 color: hudText,
                 display: "flex",
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: 700,
-                height: 110,
+                inset: 0,
                 justifyContent: "center",
-                width: 110,
+                pointerEvents: "none",
+                position: "absolute",
               },
             },
             formatCellValue(props.total ?? total),
@@ -3019,13 +3146,12 @@ const DonutChart = defineComponent({
         React.createElement(
           "ul",
           { style: { display: "grid", gap: 4, listStyle: "none", margin: 0, padding: 0 } },
-          props.segments.map((seg, i) => {
-            const tone = toneFor(seg.tone ?? "info");
+          data.map((seg, i) => {
             const pct = ((seg.value / total) * 100).toFixed(1);
             return React.createElement(
               "li",
               { key: i, style: { alignItems: "center", color: hudText, display: "flex", fontSize: 13, gap: 8 } },
-              React.createElement("span", { style: { background: tone.border, borderRadius: 3, height: 10, width: 10 } }),
+              React.createElement("span", { style: { background: seg.fill, borderRadius: 3, height: 10, width: 10 } }),
               React.createElement("span", { style: { flex: 1 } }, seg.label),
               React.createElement("span", { style: { color: hudTextMid } }, `${seg.value} (${pct}%)`),
             );
