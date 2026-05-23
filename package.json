@@ -2,6 +2,7 @@
   "name": "genui-agent-workbench",
   "version": "0.1.0",
   "private": true,
+  "main": "dist-electron/electron/main.js",
   "engines": {
     "node": ">=24 <25"
   },
@@ -10,7 +11,8 @@
     "build": "next build",
     "electron:build": "tsc -p tsconfig.electron.json",
     "electron:dev": "npm run electron:build && electron_config_cache=${electron_config_cache:-/private/tmp/electron-cache} electron dist-electron/electron/main.js",
-    "electron:pack": "npm run build && npm run electron:build && electron-builder --mac",
+    "electron:dmg": "npm run build && npm run electron:build && electron_config_cache=${electron_config_cache:-/private/tmp/electron-cache} ELECTRON_CACHE=${ELECTRON_CACHE:-/private/tmp/electron-cache} ELECTRON_BUILDER_CACHE=${ELECTRON_BUILDER_CACHE:-/private/tmp/electron-builder-cache} electron-builder --mac dmg --publish never",
+    "electron:pack": "npm run electron:dmg",
     "genui": "tsx scripts/genui-cli.ts",
     "start": "next start",
     "test": "vitest run",
@@ -28,7 +30,25 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": "dir"
+      "target": [
+        "dmg"
+      ]
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "backgroundColor": "#101820",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   },
   "dependencies": {

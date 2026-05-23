@@ -37,6 +37,7 @@ type DesignSettings = {
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
   windowAnimationPreset: WindowAnimationPreset;
+  opaque: boolean;
 };
 type SettingsResponse = {
   settings: {
@@ -49,6 +50,7 @@ const DESIGN_DEFAULTS: DesignSettings = {
   labelInkPreset: "green",
   themeColorPreset: "mint",
   windowAnimationPreset: "center",
+  opaque: false,
 };
 
 const glassPresetOptions: Array<{ value: GlassPreset; label: string }> = [
@@ -150,16 +152,17 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
   const close = () => window.close();
 
   return (
-    <LiquidGlassSurface themeColor={design.themeColorPreset}>
+    <LiquidGlassSurface opaque={design.opaque} themeColor={design.themeColorPreset}>
       <div className="lg-content lg-content-scrollable lg-scroll mx-auto w-full max-w-3xl">
         <section className="lg-glass-card-wrap">
           <div className="lg-card-content flex flex-col gap-5 p-6" data-variant="sunk">
             <header className="flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-4">
+              <div className="lg-drag flex items-start justify-between gap-4">
                 <div className="flex min-w-0 flex-col gap-2">
                   <span className="lg-label">GenUI Popup Broker</span>
                   <h1 className="lg-title truncate">Artifact Workbench</h1>
                 </div>
+                <div className="lg-window-drag-grip" aria-hidden="true" />
                 <div className="flex shrink-0 items-start gap-3">
                   <div className="rounded-[18px] border border-white/45 bg-white/20 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
                     <div className="lg-display">{count}</div>
@@ -241,6 +244,19 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
                       />
                     </label>
                   </div>
+                  <label className="lg-row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="lg-label">Default opacity</span>
+                      <span className="lg-meta-faint">Open new popups in opaque mode by default</span>
+                    </span>
+                    <button
+                      aria-pressed={design.opaque}
+                      className="lg-switch"
+                      data-on={design.opaque}
+                      onClick={() => saveDesign({ opaque: !design.opaque })}
+                      type="button"
+                    />
+                  </label>
                 </div>
                 {error && (
                   <span className="lg-meta-faint" style={{ color: "var(--danger)" }}>

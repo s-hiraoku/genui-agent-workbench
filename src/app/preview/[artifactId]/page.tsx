@@ -12,12 +12,13 @@ type PreviewPageProps = {
     animation?: string;
     themeColor?: string;
     theme?: string;
+    opaque?: string;
   }>;
 };
 
 export default async function PreviewPage({ params, searchParams }: PreviewPageProps) {
   const { artifactId } = await params;
-  const { popupId, controlUrl, size, agent, animation, themeColor } = await searchParams;
+  const { popupId, controlUrl, size, agent, animation, themeColor, opaque } = await searchParams;
   const artifact = await loadArtifact(artifactId);
 
   if (!artifact) {
@@ -35,6 +36,7 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
       popupId={popupId}
       size={size}
       themeColor={themeColor}
+      initialOpaque={opaque === "1" || opaque === "true"}
     />
   );
 }

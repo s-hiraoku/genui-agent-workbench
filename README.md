@@ -191,6 +191,18 @@ npm run build
 npm run electron:build
 ```
 
+## Mac DMG
+
+Build an unsigned local macOS `.dmg`:
+
+```bash
+npm run electron:dmg
+```
+
+The artifact is written under `dist/`. This first distribution target is intended
+for local testing and direct sharing. Public distribution should add Developer ID
+signing and notarization before publishing.
+
 ## Repository Notes
 
 - Do not commit `.env`, `.env.local`, `.genui/`, build output, or secrets.

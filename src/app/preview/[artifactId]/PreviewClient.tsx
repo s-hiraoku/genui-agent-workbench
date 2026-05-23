@@ -20,6 +20,7 @@ type PreviewClientProps = {
   controlUrl?: string;
   size?: string;
   themeColor?: string;
+  initialOpaque?: boolean;
 };
 
 export function PreviewClient({
@@ -29,8 +30,9 @@ export function PreviewClient({
   popupId,
   controlUrl,
   themeColor,
+  initialOpaque = false,
 }: PreviewClientProps) {
-  const [opaque, setOpaque] = useState(false);
+  const [opaque, setOpaque] = useState(initialOpaque);
 
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
@@ -62,6 +64,7 @@ export function PreviewClient({
       <div className="lg-content h-full">
         <header className="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
           <h1 className="lg-title min-w-0 truncate">{artifactTitle}</h1>
+          <div className="lg-window-drag-grip" aria-hidden="true" />
           <div className="flex shrink-0 items-center gap-2">
             <label className="lg-opacity-toggle">
               <input

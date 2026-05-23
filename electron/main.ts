@@ -181,10 +181,30 @@ async function startNextService(): Promise<void> {
   const preferredPort = settings.nextPort ?? Number(process.env.GENUI_NEXT_PORT ?? 3000);
   const port = await findOpenPort(preferredPort);
   nextUrl = `http://127.0.0.1:${port}`;
-  nextProcess = spawn("npm", ["run", "dev", "--", "--port", String(port), "--hostname", "127.0.0.1"], {
-    cwd: process.cwd(),
-    env: process.env,
-  });
+  const env = {
+    ...process.env,
+    GENUI_DATA_DIR: process.env.GENUI_DATA_DIR ?? path.join(app.getPath("userData"), "genui-data"),
+    HOSTNAME: "127.0.0.1",
+    PORT: String(port),
+  };
+
+  if (app.isPackaged) {
+    const standaloneDir = path.join(app.getAppPath(), ".next", "standalone");
+    const serverPath = path.join(standaloneDir, "server.js");
+    nextProcess = spawn(process.execPath, [serverPath], {
+      cwd: standaloneDir,
+      env: {
+        ...env,
+        ELECTRON_RUN_AS_NODE: "1",
+        NODE_ENV: "production",
+      },
+    });
+  } else {
+    nextProcess = spawn("npm", ["run", "dev", "--", "--port", String(port), "--hostname", "127.0.0.1"], {
+      cwd: process.cwd(),
+      env,
+    });
+  }
 
   nextProcess.stdout.on("data", (chunk) => console.log(`[next] ${chunk}`.trimEnd()));
   nextProcess.stderr.on("data", (chunk) => console.error(`[next] ${chunk}`.trimEnd()));
@@ -458,6 +478,7 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     `&size=${preset}` +
     `&animation=${settings.design.windowAnimationPreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
+    `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&agent=${encodeURIComponent(input.agentId ?? "agent")}`;
 
   // The page renders the Aether-style glass material itself. The
@@ -473,6 +494,7 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     y: pos.y,
     show: false,
     frame: false,
+    movable: true,
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
@@ -575,6 +597,7 @@ function openSettingsWindow(): void {
     maximizable: false,
     show: true,
     frame: false,
+    movable: true,
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
@@ -597,6 +620,7 @@ function openSettingsWindow(): void {
     `&theme=${theme}` +
     `&animation=${settings.design.windowAnimationPreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
+    `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&chrome=hud`;
   void settingsWindow.loadURL(settingsUrl);
 }
@@ -612,7 +636,7 @@ async function restartService(): Promise<void> {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     const theme = resolveTheme(settings.theme);
     settingsWindow.loadURL(
-      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&themeColor=${settings.design.themeColorPreset}&chrome=hud`,
+      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&themeColor=${settings.design.themeColorPreset}&opaque=${settings.design.opaque ? "1" : "0"}&chrome=hud`,
     );
   }
 }
@@ -638,6 +662,7 @@ function buildTray(): void {
 }
 
 async function boot(): Promise<void> {
+  process.env.GENUI_DATA_DIR = process.env.GENUI_DATA_DIR ?? path.join(app.getPath("userData"), "genui-data");
   settings = await readSettings();
   nativeTheme.themeSource = settings.theme === "auto" ? "system" : settings.theme;
   try {

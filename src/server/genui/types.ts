@@ -21,6 +21,7 @@ export type GenUIDesignSettings = {
   labelInkPreset: GenUILabelInkPreset;
   themeColorPreset: GenUIThemeColorPreset;
   windowAnimationPreset: GenUIWindowAnimationPreset;
+  opaque: boolean;
 };
 
 export type GenUISizePreset =

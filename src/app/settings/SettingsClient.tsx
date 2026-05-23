@@ -33,6 +33,7 @@ type DesignSettings = {
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
   windowAnimationPreset: WindowAnimationPreset;
+  opaque: boolean;
 };
 type SettingsState = BrokerSettings & {
   design: DesignSettings;
@@ -47,6 +48,7 @@ const DESIGN_DEFAULTS: DesignSettings = {
   labelInkPreset: "green",
   themeColorPreset: "mint",
   windowAnimationPreset: "center",
+  opaque: false,
 };
 
 const DEFAULTS: SettingsState = {
@@ -102,7 +104,7 @@ const windowAnimationOptions: Array<{ value: WindowAnimationPreset; label: strin
 export function SettingsClient({ animation, controlUrl, themeColor }: { animation?: string; controlUrl: string; themeColor?: string }) {
   const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
   const [error, setError] = useState<string | null>(null);
-  const [opaque, setOpaque] = useState(false);
+  const opaque = settings.design.opaque;
 
   useEffect(() => {
     if (!controlUrl) return;
@@ -191,11 +193,12 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
                 <span className="lg-label">Broker</span>
                 <h1 className="lg-title truncate">Settings</h1>
               </div>
+              <div className="lg-window-drag-grip" aria-hidden="true" />
               <div className="flex shrink-0 items-center gap-2">
                 <label className="lg-opacity-toggle">
                   <input
                     checked={opaque}
-                    onChange={(event) => setOpaque(event.currentTarget.checked)}
+                    onChange={(event) => save({ design: { opaque: event.currentTarget.checked } })}
                     type="checkbox"
                   />
                   <span>Opaque</span>
@@ -278,6 +281,16 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
                     </div>
                   </div>
                 </div>
+
+                <Field label="Default opacity" hint="Open new popups in opaque mode by default">
+                  <button
+                    aria-pressed={settings.design.opaque}
+                    className="lg-switch"
+                    data-on={settings.design.opaque}
+                    onClick={() => save({ design: { opaque: !settings.design.opaque } })}
+                    type="button"
+                  />
+                </Field>
 
                 <Field label="Launch at login" hint="Start broker silently">
                   <button

@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: BrokerSettings = {
     labelInkPreset: "green",
     themeColorPreset: "mint",
     windowAnimationPreset: "center",
+    opaque: false,
   },
 };
 
@@ -95,7 +96,8 @@ function sanitizeDesign(value: unknown): GenUIDesignSettings {
   const windowAnimationPreset = WINDOW_ANIMATION_PRESETS.has(input.windowAnimationPreset as GenUIWindowAnimationPreset)
     ? (input.windowAnimationPreset as GenUIWindowAnimationPreset)
     : DEFAULT_SETTINGS.design.windowAnimationPreset;
-  return { glassPreset, labelInkPreset, themeColorPreset, windowAnimationPreset };
+  const opaque = typeof input.opaque === "boolean" ? input.opaque : DEFAULT_SETTINGS.design.opaque;
+  return { glassPreset, labelInkPreset, themeColorPreset, windowAnimationPreset, opaque };
 }
 
 export function sanitizeSettings(input: Partial<BrokerSettings>): BrokerSettings {

@@ -24,7 +24,7 @@ Status: in progress.
 
 ## Phase 3: Packaging
 
-- Harden production Next service startup inside packaged Electron.
+- Build a local unsigned macOS `.dmg`.
 - Add macOS signing and notarization.
 - Add optional login-item auto-start.
 - Add installer and first-run onboarding.
