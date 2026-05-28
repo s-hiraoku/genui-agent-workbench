@@ -4,6 +4,7 @@ import net from "node:net";
 import path from "node:path";
 import { URL } from "node:url";
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, shell, Tray } from "electron";
+import { deleteArtifact, listArtifacts, pruneArtifacts } from "../src/server/genui/artifacts";
 import { OpenUILangValidationError, renderGenUI } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
@@ -22,6 +23,7 @@ type PopupRuntime = PopupRecord & {
 };
 
 const popupRegistry = new Map<string, PopupRuntime>();
+const MAX_REQUEST_BYTES = 1024 * 1024;
 
 // Route external links (target="_blank", window.open) from popup/settings
 // windows to the OS default browser, instead of spawning new floating
@@ -56,7 +58,22 @@ let nextProcess: ChildProcessWithoutNullStreams | null = null;
 let nextUrl = process.env.GENUI_NEXT_URL ?? "";
 let controlServer: http.Server | null = null;
 let controlUrl = "";
+let controlToken = process.env.GENUI_BROKER_TOKEN ?? "";
 let settings: BrokerSettings;
+let isQuitting = false;
+let isRestartingService = false;
+let nextServiceStatus: "starting" | "ready" | "stopped" | "failed" = "stopped";
+let nextRestartCount = 0;
+
+class ControlHttpError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ControlHttpError";
+  }
+}
 
 type SizePreset =
   | "compact"
@@ -174,26 +191,71 @@ async function waitForHttp(url: string, timeoutMs = 30_000): Promise<void> {
 
 async function startNextService(): Promise<void> {
   if (nextUrl) {
+    nextServiceStatus = "starting";
     await waitForHttp(nextUrl);
+    nextServiceStatus = "ready";
     return;
   }
 
+  nextServiceStatus = "starting";
   const preferredPort = settings.nextPort ?? Number(process.env.GENUI_NEXT_PORT ?? 3000);
   const port = await findOpenPort(preferredPort);
   nextUrl = `http://127.0.0.1:${port}`;
-  nextProcess = spawn("npm", ["run", "dev", "--", "--port", String(port), "--hostname", "127.0.0.1"], {
-    cwd: process.cwd(),
-    env: process.env,
-  });
+  const env = {
+    ...process.env,
+    GENUI_DATA_DIR: process.env.GENUI_DATA_DIR ?? path.join(app.getPath("userData"), "genui-data"),
+    HOSTNAME: "127.0.0.1",
+    PORT: String(port),
+  };
+
+  if (app.isPackaged) {
+    const standaloneDir = path.join(app.getAppPath(), ".next", "standalone");
+    const serverPath = path.join(standaloneDir, "server.js");
+    nextProcess = spawn(process.execPath, [serverPath], {
+      cwd: standaloneDir,
+      env: {
+        ...env,
+        ELECTRON_RUN_AS_NODE: "1",
+        NODE_ENV: "production",
+      },
+    });
+  } else {
+    nextProcess = spawn("npm", ["run", "dev", "--", "--port", String(port), "--hostname", "127.0.0.1"], {
+      cwd: process.cwd(),
+      env,
+    });
+  }
 
   nextProcess.stdout.on("data", (chunk) => console.log(`[next] ${chunk}`.trimEnd()));
   nextProcess.stderr.on("data", (chunk) => console.error(`[next] ${chunk}`.trimEnd()));
   nextProcess.on("exit", (code) => {
     console.log(`[next] exited with code ${code}`);
     nextProcess = null;
+    if (!isQuitting && !isRestartingService) {
+      nextServiceStatus = "failed";
+      nextUrl = "";
+      scheduleNextRestart();
+    }
   });
 
   await waitForHttp(nextUrl);
+  nextServiceStatus = "ready";
+  if (controlUrl) {
+    await persistBrokerState();
+  }
+}
+
+function scheduleNextRestart(): void {
+  nextRestartCount += 1;
+  const delayMs = Math.min(30_000, 1_000 * nextRestartCount);
+  setTimeout(() => {
+    if (isQuitting || nextProcess || nextUrl) return;
+    startNextService().catch((error) => {
+      nextServiceStatus = "failed";
+      console.error("[genui] failed to restart Next service:", error);
+      scheduleNextRestart();
+    });
+  }, delayMs);
 }
 
 async function startControlApi(): Promise<void> {
@@ -202,6 +264,11 @@ async function startControlApi(): Promise<void> {
 
   controlServer = http.createServer((req, res) => {
     handleControlRequest(req, res).catch((error) => {
+      setCorsHeaders(req, res);
+      if (error instanceof ControlHttpError) {
+        sendJson(res, error.statusCode, { error: error.message });
+        return;
+      }
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Unknown error" });
     });
   });
@@ -211,31 +278,54 @@ async function startControlApi(): Promise<void> {
   });
 
   controlUrl = `http://127.0.0.1:${port}`;
+  await persistBrokerState();
+}
+
+async function persistBrokerState(): Promise<void> {
   await writeBrokerState({
     controlUrl,
     nextUrl,
     pid: process.pid,
     brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
     appVersion: BROKER_APP_VERSION,
+    controlToken,
     updatedAt: new Date().toISOString(),
   });
 }
 
 async function readRequestJson(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.byteLength;
+    if (totalBytes > MAX_REQUEST_BYTES) {
+      throw new ControlHttpError(413, `Request body exceeds ${MAX_REQUEST_BYTES} bytes`);
+    }
+    chunks.push(buffer);
   }
 
   if (chunks.length === 0) {
     return {};
   }
 
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new ControlHttpError(400, "Request body must be a JSON object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (error) {
+    if (error instanceof ControlHttpError) throw error;
+    throw new ControlHttpError(400, "Request body must be valid JSON");
+  }
 }
 
 async function handleControlRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
+  if (!isAllowedOrigin(req.headers.origin)) {
+    throw new ControlHttpError(403, "Origin is not allowed");
+  }
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -246,6 +336,8 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   const url = new URL(req.url ?? "/", controlUrl || "http://127.0.0.1");
   const popupMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)$/);
   const popupCloseMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/close$/);
+  const popupCompleteMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/complete$/);
+  const artifactMatch = url.pathname.match(/^\/v1\/artifacts\/([^/]+)$/);
 
   if (req.method === "GET" && url.pathname === "/v1/status") {
     sendJson(res, 200, {
@@ -254,6 +346,8 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
       appVersion: BROKER_APP_VERSION,
       controlUrl,
       nextUrl,
+      nextServiceStatus,
+      nextRestartCount,
       pid: process.pid,
       popupCount: popupRegistry.size,
     });
@@ -292,11 +386,13 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   if (req.method === "GET" && url.pathname === "/v1/settings") {
+    requireControlToken(req);
     sendJson(res, 200, { settings, themeResolved: resolveTheme(settings.theme) });
     return;
   }
 
   if (req.method === "POST" && url.pathname === "/v1/settings") {
+    requireControlToken(req);
     const body = await readRequestJson(req);
     const patch = body as Partial<BrokerSettings>;
     const next = sanitizeSettings({
@@ -313,6 +409,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   if (req.method === "POST" && url.pathname === "/v1/popups") {
+    requireControlToken(req);
     try {
       const body = await readRequestJson(req);
       const opened = await openPopup(body as RenderGenUIInput);
@@ -328,6 +425,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   if (req.method === "GET" && popupMatch) {
+    requireControlToken(req);
     const popup = popupRegistry.get(popupMatch[1]);
     if (!popup) {
       sendJson(res, 404, { error: "Popup not found" });
@@ -339,6 +437,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   if (req.method === "POST" && popupCloseMatch) {
+    requireControlToken(req);
     const popup = closePopup(popupCloseMatch[1], "closed");
     if (!popup) {
       sendJson(res, 404, { error: "Popup not found" });
@@ -346,6 +445,43 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     }
 
     sendJson(res, 200, serializePopup(popup));
+    return;
+  }
+
+  if (req.method === "POST" && popupCompleteMatch) {
+    requireControlToken(req);
+    const body = await readRequestJson(req);
+    const popup = completePopup(popupCompleteMatch[1], body);
+    if (!popup) {
+      sendJson(res, 404, { error: "Popup not found" });
+      return;
+    }
+
+    sendJson(res, 200, serializePopup(popup));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/v1/artifacts") {
+    requireControlToken(req);
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    sendJson(res, 200, {
+      artifacts: await listArtifacts(Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 20),
+    });
+    return;
+  }
+
+  if (req.method === "DELETE" && artifactMatch) {
+    requireControlToken(req);
+    const deleted = await deleteArtifact(artifactMatch[1]);
+    sendJson(res, deleted ? 200 : 404, deleted ? { deleted: true } : { error: "Artifact not found" });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/v1/artifacts/prune") {
+    requireControlToken(req);
+    const body = await readRequestJson(req);
+    const maxArtifacts = typeof body.maxArtifacts === "number" ? body.maxArtifacts : Number(body.maxArtifacts);
+    sendJson(res, 200, await pruneArtifacts(maxArtifacts));
     return;
   }
 
@@ -455,9 +591,11 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     `&controlUrl=${encodeURIComponent(controlUrl)}` +
     `&theme=${theme}` +
     `&chrome=hud` +
+    `&token=${encodeURIComponent(controlToken)}` +
     `&size=${preset}` +
     `&animation=${settings.design.windowAnimationPreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
+    `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&agent=${encodeURIComponent(input.agentId ?? "agent")}`;
 
   // The page renders the Aether-style glass material itself. The
@@ -473,6 +611,7 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     y: pos.y,
     show: false,
     frame: false,
+    movable: true,
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
@@ -505,15 +644,31 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
   popupRegistry.set(popupId, popup);
 
   window.on("closed", () => {
-    popup.status = "closed";
+    if (popup.status === "opening" || popup.status === "open") {
+      popup.status = "closed";
+    }
     popup.closedAt = popup.closedAt ?? new Date().toISOString();
     popup.window = undefined;
   });
 
-  window.show();
-  await window.loadURL(previewUrl);
-  window.focus();
-  popup.status = "open";
+  try {
+    window.show();
+    await window.loadURL(previewUrl);
+    window.focus();
+    popup.status = "open";
+  } catch (error) {
+    popup.status = "failed";
+    popup.error = error instanceof Error ? error.message : String(error);
+    popup.closedAt = new Date().toISOString();
+    popup.completion = {
+      outcome: "failed",
+      payload: { error: popup.error },
+      completedAt: popup.closedAt,
+    };
+    if (!window.isDestroyed()) {
+      window.destroy();
+    }
+  }
 
   return serializePopup(popup);
 }
@@ -535,25 +690,82 @@ function closePopup(popupId: string, status: PopupStatus): PopupRuntime | undefi
   return popup;
 }
 
+function completePopup(popupId: string, body: Record<string, unknown>): PopupRuntime | undefined {
+  const outcome = body.outcome === "cancelled" ? "cancelled" : body.outcome === "failed" ? "failed" : "completed";
+  const payload =
+    body.payload && typeof body.payload === "object" && !Array.isArray(body.payload)
+      ? (body.payload as Record<string, unknown>)
+      : undefined;
+  const popup = popupRegistry.get(popupId);
+  if (!popup) {
+    return undefined;
+  }
+
+  const completedAt = new Date().toISOString();
+  popup.status = outcome;
+  popup.closedAt = popup.closedAt ?? completedAt;
+  popup.completion = { outcome, payload, completedAt };
+
+  if (popup.window && !popup.window.isDestroyed()) {
+    popup.window.close();
+  }
+
+  popup.window = undefined;
+  return popup;
+}
+
 function serializePopup(popup: PopupRuntime): PopupOpenResponse {
   return {
     popupId: popup.popupId,
     artifactId: popup.artifactId,
     previewUrl: popup.previewUrl,
     status: popup.status,
+    closedAt: popup.closedAt,
+    error: popup.error,
+    completion: popup.completion,
     generationMode: popup.generationMode,
     brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
   };
 }
 
-function setCorsHeaders(res: ServerResponse): void {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "content-type");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (origin === nextUrl || origin === controlUrl) return true;
+  try {
+    const incoming = new URL(origin);
+    const allowed = [nextUrl, controlUrl].filter(Boolean).map((value) => new URL(value));
+    return allowed.some(
+      (target) =>
+        incoming.protocol === target.protocol &&
+        incoming.port === target.port &&
+        ["127.0.0.1", "localhost", "::1"].includes(incoming.hostname) &&
+        ["127.0.0.1", "localhost", "::1"].includes(target.hostname),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function requireControlToken(req: IncomingMessage): void {
+  if (!controlToken) return;
+  const header = req.headers["x-genui-token"];
+  const received = Array.isArray(header) ? header[0] : header;
+  if (received !== controlToken) {
+    throw new ControlHttpError(401, "Invalid or missing GenUI control token");
+  }
+}
+
+function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin) && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Headers", "content-type,x-genui-token");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
-  setCorsHeaders(res);
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
 }
@@ -575,6 +787,7 @@ function openSettingsWindow(): void {
     maximizable: false,
     show: true,
     frame: false,
+    movable: true,
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
@@ -594,25 +807,32 @@ function openSettingsWindow(): void {
   const settingsUrl =
     `${nextUrl}/settings` +
     `?controlUrl=${encodeURIComponent(controlUrl)}` +
+    `&token=${encodeURIComponent(controlToken)}` +
     `&theme=${theme}` +
     `&animation=${settings.design.windowAnimationPreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
+    `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&chrome=hud`;
   void settingsWindow.loadURL(settingsUrl);
 }
 
 async function restartService(): Promise<void> {
   if (nextProcess) {
+    isRestartingService = true;
     nextProcess.kill();
     nextProcess = null;
   }
 
   nextUrl = "";
-  await startNextService();
+  try {
+    await startNextService();
+  } finally {
+    isRestartingService = false;
+  }
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     const theme = resolveTheme(settings.theme);
     settingsWindow.loadURL(
-      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&themeColor=${settings.design.themeColorPreset}&chrome=hud`,
+      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&token=${encodeURIComponent(controlToken)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&themeColor=${settings.design.themeColorPreset}&opaque=${settings.design.opaque ? "1" : "0"}&chrome=hud`,
     );
   }
 }
@@ -638,6 +858,8 @@ function buildTray(): void {
 }
 
 async function boot(): Promise<void> {
+  process.env.GENUI_DATA_DIR = process.env.GENUI_DATA_DIR ?? path.join(app.getPath("userData"), "genui-data");
+  controlToken = controlToken || crypto.randomUUID();
   settings = await readSettings();
   nativeTheme.themeSource = settings.theme === "auto" ? "system" : settings.theme;
   try {
@@ -665,6 +887,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  isQuitting = true;
   for (const popup of popupRegistry.values()) {
     if (popup.window && !popup.window.isDestroyed()) {
       popup.window.destroy();

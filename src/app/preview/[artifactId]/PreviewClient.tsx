@@ -4,9 +4,9 @@ import "@openuidev/react-ui/components.css";
 import "@openuidev/react-ui/styles/index.css";
 import "leaflet/dist/leaflet.css";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Renderer } from "@openuidev/react-lang";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { library } from "@/library";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
 
@@ -18,8 +18,10 @@ type PreviewClientProps = {
   animation?: string;
   popupId?: string;
   controlUrl?: string;
+  controlToken?: string;
   size?: string;
   themeColor?: string;
+  initialOpaque?: boolean;
 };
 
 export function PreviewClient({
@@ -28,16 +30,19 @@ export function PreviewClient({
   animation,
   popupId,
   controlUrl,
+  controlToken,
   themeColor,
+  initialOpaque = false,
 }: PreviewClientProps) {
-  const [opaque, setOpaque] = useState(false);
+  const [opaque, setOpaque] = useState(initialOpaque);
+  const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
 
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
       try {
         const res = await fetch(
           `${controlUrl}/v1/popups/${popupId}/close`,
-          { method: "POST" },
+          { method: "POST", headers: authHeaders },
         );
         if (res.ok) return;
         // Non-2xx (e.g. broker restarted, popup id stale) — fall through
@@ -47,7 +52,23 @@ export function PreviewClient({
       }
     }
     window.close();
-  }, [popupId, controlUrl]);
+  }, [authHeaders, popupId, controlUrl]);
+
+  const completePopup = useCallback(async () => {
+    if (popupId && controlUrl) {
+      try {
+        const res = await fetch(`${controlUrl}/v1/popups/${popupId}/complete`, {
+          method: "POST",
+          headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
+          body: JSON.stringify({ outcome: "completed" }),
+        });
+        if (res.ok) return;
+      } catch {
+        /* network error - fall through */
+      }
+    }
+    window.close();
+  }, [authHeaders, popupId, controlUrl]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -62,7 +83,17 @@ export function PreviewClient({
       <div className="lg-content h-full">
         <header className="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
           <h1 className="lg-title min-w-0 truncate">{artifactTitle}</h1>
+          <div className="lg-window-drag-grip" aria-hidden="true" />
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              className="lg-icon-button"
+              onClick={completePopup}
+              type="button"
+              aria-label="Complete"
+              title="Complete popup"
+            >
+              <Check size={16} strokeWidth={1.5} />
+            </button>
             <label className="lg-opacity-toggle">
               <input
                 checked={opaque}

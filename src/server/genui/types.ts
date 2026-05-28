@@ -21,6 +21,7 @@ export type GenUIDesignSettings = {
   labelInkPreset: GenUILabelInkPreset;
   themeColorPreset: GenUIThemeColorPreset;
   windowAnimationPreset: GenUIWindowAnimationPreset;
+  opaque: boolean;
 };
 
 export type GenUISizePreset =
@@ -62,7 +63,13 @@ export type RenderGenUIResult = {
   previewPath: string;
 };
 
-export type PopupStatus = "opening" | "open" | "closed" | "failed";
+export type PopupStatus = "opening" | "open" | "completed" | "cancelled" | "closed" | "failed";
+
+export type PopupCompletion = {
+  outcome: "completed" | "cancelled" | "failed";
+  payload?: Record<string, unknown>;
+  completedAt: string;
+};
 
 export type PopupRecord = {
   popupId: string;
@@ -73,6 +80,8 @@ export type PopupRecord = {
   previewUrl: string;
   createdAt: string;
   closedAt?: string;
+  error?: string;
+  completion?: PopupCompletion;
   generationMode: GenUIGenerationMode;
 };
 
@@ -81,6 +90,9 @@ export type PopupOpenResponse = {
   artifactId: string;
   previewUrl: string;
   status: PopupStatus;
+  closedAt?: string;
+  error?: string;
+  completion?: PopupCompletion;
   generationMode: GenUIGenerationMode;
   brokerProtocolVersion: string;
 };

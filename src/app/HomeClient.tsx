@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronRight, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronRight, Trash2, X } from "lucide-react";
 import { LiquidGlassSurface } from "./_ui/LiquidGlassSurface";
 import { NativeSelect } from "./_ui/NativeSelect";
 
@@ -14,6 +14,7 @@ type Artifact = {
 type HomeClientProps = {
   artifacts: Artifact[];
   controlUrl: string;
+  controlToken: string;
 };
 
 type GlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
@@ -37,6 +38,7 @@ type DesignSettings = {
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
   windowAnimationPreset: WindowAnimationPreset;
+  opaque: boolean;
 };
 type SettingsResponse = {
   settings: {
@@ -49,6 +51,7 @@ const DESIGN_DEFAULTS: DesignSettings = {
   labelInkPreset: "green",
   themeColorPreset: "mint",
   windowAnimationPreset: "center",
+  opaque: false,
 };
 
 const glassPresetOptions: Array<{ value: GlassPreset; label: string }> = [
@@ -102,15 +105,17 @@ const artifactDateFormatter = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
 });
 
-export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
-  const count = artifacts.length;
+export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientProps) {
+  const [visibleArtifacts, setVisibleArtifacts] = useState(artifacts);
+  const count = visibleArtifacts.length;
   const [design, setDesign] = useState<DesignSettings>(DESIGN_DEFAULTS);
   const [error, setError] = useState<string | null>(null);
+  const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
 
   useEffect(() => {
     if (!controlUrl) return;
     let cancelled = false;
-    fetch(`${controlUrl}/v1/settings`)
+    fetch(`${controlUrl}/v1/settings`, { headers: authHeaders })
       .then((r) => r.json() as Promise<SettingsResponse>)
       .then((data) => {
         if (cancelled) return;
@@ -123,7 +128,7 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
     return () => {
       cancelled = true;
     };
-  }, [controlUrl]);
+  }, [authHeaders, controlUrl]);
 
   const saveDesign = async (patch: Partial<DesignSettings>) => {
     const next = { ...design, ...patch };
@@ -134,7 +139,7 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
     try {
       const res = await fetch(`${controlUrl}/v1/settings`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
         body: JSON.stringify({ design: next }),
       });
       if (!res.ok) {
@@ -147,19 +152,38 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
       setError(e instanceof Error ? e.message : "Failed to save design settings");
     }
   };
+  const deleteArtifact = async (artifactId: string) => {
+    const previous = visibleArtifacts;
+    setVisibleArtifacts((items) => items.filter((item) => item.artifactId !== artifactId));
+    setError(null);
+    if (!controlUrl) return;
+    try {
+      const res = await fetch(`${controlUrl}/v1/artifacts/${artifactId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+      if (!res.ok) {
+        throw new Error(`Delete failed: ${res.status} ${res.statusText}`);
+      }
+    } catch (e: unknown) {
+      setVisibleArtifacts(previous);
+      setError(e instanceof Error ? e.message : "Failed to delete artifact");
+    }
+  };
   const close = () => window.close();
 
   return (
-    <LiquidGlassSurface themeColor={design.themeColorPreset}>
+    <LiquidGlassSurface opaque={design.opaque} themeColor={design.themeColorPreset}>
       <div className="lg-content lg-content-scrollable lg-scroll mx-auto w-full max-w-3xl">
         <section className="lg-glass-card-wrap">
           <div className="lg-card-content flex flex-col gap-5 p-6" data-variant="sunk">
             <header className="flex flex-col gap-4">
-              <div className="flex items-start justify-between gap-4">
+              <div className="lg-drag flex items-start justify-between gap-4">
                 <div className="flex min-w-0 flex-col gap-2">
                   <span className="lg-label">GenUI Popup Broker</span>
                   <h1 className="lg-title truncate">Artifact Workbench</h1>
                 </div>
+                <div className="lg-window-drag-grip" aria-hidden="true" />
                 <div className="flex shrink-0 items-start gap-3">
                   <div className="rounded-[18px] border border-white/45 bg-white/20 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl">
                     <div className="lg-display">{count}</div>
@@ -241,6 +265,19 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
                       />
                     </label>
                   </div>
+                  <label className="lg-row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="lg-label">Default opacity</span>
+                      <span className="lg-meta-faint">Open new popups in opaque mode by default</span>
+                    </span>
+                    <button
+                      aria-pressed={design.opaque}
+                      className="lg-switch"
+                      data-on={design.opaque}
+                      onClick={() => saveDesign({ opaque: !design.opaque })}
+                      type="button"
+                    />
+                  </label>
                 </div>
                 {error && (
                   <span className="lg-meta-faint" style={{ color: "var(--danger)" }}>
@@ -249,31 +286,42 @@ export function HomeClient({ artifacts, controlUrl }: HomeClientProps) {
                 )}
               </div>
 
-              {artifacts.length === 0 ? (
+              {visibleArtifacts.length === 0 ? (
                 <div className="lg-row justify-center">
                   <span className="lg-meta">No artifacts yet.</span>
                 </div>
               ) : (
-                artifacts.slice(0, 6).map((artifact) => (
-                  <a
+                visibleArtifacts.slice(0, 6).map((artifact) => (
+                  <div
                     key={artifact.artifactId}
                     className="lg-row"
-                    href={`/preview/${artifact.artifactId}`}
                   >
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <span className="truncate text-[15px] font-medium text-[color:var(--ink)]">
-                        {artifact.title}
-                      </span>
-                      <span className="lg-meta-faint" data-mono>
-                        {artifactDateFormatter.format(new Date(artifact.createdAt))}
-                      </span>
-                    </div>
-                    <ChevronRight
-                      size={18}
-                      strokeWidth={1.5}
-                      className="shrink-0 text-[color:var(--ink-mid)]"
-                    />
-                  </a>
+                    <a className="flex min-w-0 flex-1 items-center justify-between gap-3" href={`/preview/${artifact.artifactId}`}>
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <span className="truncate text-[15px] font-medium text-[color:var(--ink)]">
+                          {artifact.title}
+                        </span>
+                        <span className="lg-meta-faint" data-mono>
+                          {artifactDateFormatter.format(new Date(artifact.createdAt))}
+                        </span>
+                      </div>
+                      <ChevronRight
+                        size={18}
+                        strokeWidth={1.5}
+                        className="shrink-0 text-[color:var(--ink-mid)]"
+                      />
+                    </a>
+                    <button
+                      aria-label={`Delete ${artifact.title}`}
+                      className="lg-icon-button"
+                      disabled={!controlUrl}
+                      onClick={() => deleteArtifact(artifact.artifactId)}
+                      title="Delete artifact"
+                      type="button"
+                    >
+                      <Trash2 size={15} strokeWidth={1.5} />
+                    </button>
+                  </div>
                 ))
               )}
             </section>

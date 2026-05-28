@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
@@ -33,6 +33,7 @@ type DesignSettings = {
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
   windowAnimationPreset: WindowAnimationPreset;
+  opaque: boolean;
 };
 type SettingsState = BrokerSettings & {
   design: DesignSettings;
@@ -47,6 +48,7 @@ const DESIGN_DEFAULTS: DesignSettings = {
   labelInkPreset: "green",
   themeColorPreset: "mint",
   windowAnimationPreset: "center",
+  opaque: false,
 };
 
 const DEFAULTS: SettingsState = {
@@ -99,15 +101,26 @@ const windowAnimationOptions: Array<{ value: WindowAnimationPreset; label: strin
   { value: "fade", label: "Fade" },
 ];
 
-export function SettingsClient({ animation, controlUrl, themeColor }: { animation?: string; controlUrl: string; themeColor?: string }) {
+export function SettingsClient({
+  animation,
+  controlToken,
+  controlUrl,
+  themeColor,
+}: {
+  animation?: string;
+  controlToken: string;
+  controlUrl: string;
+  themeColor?: string;
+}) {
   const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
   const [error, setError] = useState<string | null>(null);
-  const [opaque, setOpaque] = useState(false);
+  const opaque = settings.design.opaque;
+  const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
 
   useEffect(() => {
     if (!controlUrl) return;
     let cancelled = false;
-    fetch(`${controlUrl}/v1/settings`)
+    fetch(`${controlUrl}/v1/settings`, { headers: authHeaders })
       .then((r) => r.json() as Promise<ApiResponse>)
       .then((data) => {
         if (cancelled) return;
@@ -126,7 +139,7 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
     return () => {
       cancelled = true;
     };
-  }, [controlUrl]);
+  }, [authHeaders, controlUrl]);
 
   const save = async (patch: Partial<BrokerSettings> & { design?: Partial<DesignSettings> }) => {
     const previous = settings;
@@ -139,7 +152,7 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
     try {
       const res = await fetch(`${controlUrl}/v1/settings`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
         body: JSON.stringify(patch),
       });
       if (!res.ok) {
@@ -191,11 +204,12 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
                 <span className="lg-label">Broker</span>
                 <h1 className="lg-title truncate">Settings</h1>
               </div>
+              <div className="lg-window-drag-grip" aria-hidden="true" />
               <div className="flex shrink-0 items-center gap-2">
                 <label className="lg-opacity-toggle">
                   <input
                     checked={opaque}
-                    onChange={(event) => setOpaque(event.currentTarget.checked)}
+                    onChange={(event) => save({ design: { opaque: event.currentTarget.checked } })}
                     type="checkbox"
                   />
                   <span>Opaque</span>
@@ -278,6 +292,16 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
                     </div>
                   </div>
                 </div>
+
+                <Field label="Default opacity" hint="Open new popups in opaque mode by default">
+                  <button
+                    aria-pressed={settings.design.opaque}
+                    className="lg-switch"
+                    data-on={settings.design.opaque}
+                    onClick={() => save({ design: { opaque: !settings.design.opaque } })}
+                    type="button"
+                  />
+                </Field>
 
                 <Field label="Launch at login" hint="Start broker silently">
                   <button

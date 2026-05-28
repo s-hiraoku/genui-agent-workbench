@@ -7,6 +7,7 @@ export default async function Home() {
   return (
     <HomeClient
       controlUrl={brokerState?.controlUrl ?? ""}
+      controlToken={brokerState?.controlToken ?? ""}
       artifacts={artifacts.map((a) => ({
         artifactId: a.artifactId,
         title: a.title,

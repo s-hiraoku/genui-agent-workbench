@@ -13,6 +13,10 @@ import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import { library, promptOptions } from "../src/library";
 
 type CliOptions = Record<string, string | boolean>;
+type BrokerConnection = {
+  controlUrl: string;
+  controlToken?: string;
+};
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv: string[]): { command: string; options: CliOptions } {
@@ -46,11 +50,30 @@ async function resolveControlUrl(options: CliOptions): Promise<string> {
   return state?.controlUrl ?? "http://127.0.0.1:48231";
 }
 
-async function requestJson(url: string, init?: RequestInit): Promise<Record<string, unknown>> {
+async function resolveBrokerConnection(options: CliOptions): Promise<BrokerConnection> {
+  const state = await readBrokerState();
+  return {
+    controlUrl: await resolveControlUrl(options),
+    controlToken:
+      (typeof options["service-token"] === "string" ? options["service-token"] : undefined) ??
+      process.env.GENUI_BROKER_TOKEN ??
+      state?.controlToken,
+  };
+}
+
+async function requestJson(
+  url: string,
+  init?: RequestInit,
+  controlToken?: string,
+): Promise<Record<string, unknown>> {
   let response: Response;
+  const headers = new Headers(init?.headers);
+  if (controlToken) {
+    headers.set("x-genui-token", controlToken);
+  }
 
   try {
-    response = await fetch(url, init);
+    response = await fetch(url, { ...init, headers });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(`GenUI broker is not reachable. Detail: ${detail}`);
@@ -108,9 +131,21 @@ async function resolveContext(options: CliOptions): Promise<Record<string, unkno
   return parts.length === 0 ? undefined : Object.assign({}, ...parts);
 }
 
-async function brokerStatus(controlUrl: string): Promise<Record<string, unknown> | null> {
+async function resolvePayload(options: CliOptions): Promise<Record<string, unknown> | undefined> {
+  if (typeof options["payload-file"] === "string") {
+    return parseJsonObject("--payload-file", await readTextFile(options["payload-file"]));
+  }
+
+  if (typeof options["payload-json"] === "string") {
+    return parseJsonObject("--payload-json", options["payload-json"]);
+  }
+
+  return undefined;
+}
+
+async function brokerStatus(connection: BrokerConnection): Promise<Record<string, unknown> | null> {
   try {
-    return await requestJson(`${controlUrl}/v1/status`);
+    return await requestJson(`${connection.controlUrl}/v1/status`, undefined, connection.controlToken);
   } catch {
     return null;
   }
@@ -144,12 +179,12 @@ function startBrokerProcess(): Promise<void> {
   });
 }
 
-async function ensureBroker(options: CliOptions): Promise<string> {
-  let controlUrl = await resolveControlUrl(options);
-  let status = await brokerStatus(controlUrl);
+async function ensureBroker(options: CliOptions): Promise<BrokerConnection> {
+  let connection = await resolveBrokerConnection(options);
+  let status = await brokerStatus(connection);
   if (status) {
     assertCompatibleBroker(status);
-    return controlUrl;
+    return connection;
   }
 
   if (options["no-start"] === true) {
@@ -166,11 +201,11 @@ async function ensureBroker(options: CliOptions): Promise<string> {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     await sleep(750);
-    controlUrl = await resolveControlUrl(options);
-    status = await brokerStatus(controlUrl);
+    connection = await resolveBrokerConnection(options);
+    status = await brokerStatus(connection);
     if (status) {
       assertCompatibleBroker(status);
-      return controlUrl;
+      return connection;
     }
   }
 
@@ -185,12 +220,12 @@ async function popup(options: CliOptions): Promise<unknown> {
     throw new Error("--openui-lang, --openui-lang-file, or --stdin-openui is required");
   }
 
-  const controlUrl = await ensureBroker(options);
+  const connection = await ensureBroker(options);
   const context = await resolveContext(options);
   const sizeOption = typeof options.size === "string" ? options.size : undefined;
   const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
   const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
-  const result = await requestJson(`${controlUrl}/v1/popups`, {
+  const result = await requestJson(`${connection.controlUrl}/v1/popups`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -203,10 +238,10 @@ async function popup(options: CliOptions): Promise<unknown> {
       width: Number.isFinite(widthOption) ? widthOption : undefined,
       height: Number.isFinite(heightOption) ? heightOption : undefined,
     }),
-  });
+  }, connection.controlToken);
 
   if (options.wait === true) {
-    return waitForPopup(controlUrl, result, options);
+    return waitForPopup(connection, result, options);
   }
 
   return result;
@@ -217,22 +252,49 @@ async function close(options: CliOptions): Promise<unknown> {
     throw new Error("--popup-id is required");
   }
 
-  const controlUrl = await resolveControlUrl(options);
-  const status = await brokerStatus(controlUrl);
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
   if (!status) throw new Error("GenUI broker is not reachable.");
   assertCompatibleBroker(status);
-  return requestJson(`${controlUrl}/v1/popups/${options["popup-id"]}/close`, { method: "POST" });
+  return requestJson(`${connection.controlUrl}/v1/popups/${options["popup-id"]}/close`, { method: "POST" }, connection.controlToken);
+}
+
+async function complete(options: CliOptions): Promise<unknown> {
+  if (typeof options["popup-id"] !== "string" || options["popup-id"].trim().length === 0) {
+    throw new Error("--popup-id is required");
+  }
+
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
+  if (!status) throw new Error("GenUI broker is not reachable.");
+  assertCompatibleBroker(status);
+
+  const outcome =
+    options.outcome === "cancelled" || options.outcome === "failed" || options.outcome === "completed"
+      ? options.outcome
+      : "completed";
+  const payload = await resolvePayload(options);
+
+  return requestJson(
+    `${connection.controlUrl}/v1/popups/${options["popup-id"]}/complete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ outcome, payload }),
+    },
+    connection.controlToken,
+  );
 }
 
 async function status(options: CliOptions): Promise<unknown> {
-  const controlUrl = await resolveControlUrl(options);
-  const result = await brokerStatus(controlUrl);
+  const connection = await resolveBrokerConnection(options);
+  const result = await brokerStatus(connection);
   if (!result) throw new Error("GenUI broker status is unavailable.");
   return result;
 }
 
 async function waitForPopup(
-  controlUrl: string,
+  connection: BrokerConnection,
   opened: Record<string, unknown>,
   options: CliOptions,
 ): Promise<Record<string, unknown>> {
@@ -242,10 +304,15 @@ async function waitForPopup(
   const timeoutMs =
     typeof options["wait-timeout-ms"] === "string" ? Number(options["wait-timeout-ms"]) : 0;
   const deadline = timeoutMs > 0 ? Date.now() + timeoutMs : Number.POSITIVE_INFINITY;
+  const terminalStates = new Set(["completed", "cancelled", "closed", "failed"]);
 
   while (Date.now() < deadline) {
-    const current = await requestJson(`${controlUrl}/v1/popups/${popupId}`);
-    if (current.status === "closed" || current.status === "failed") {
+    const current = await requestJson(
+      `${connection.controlUrl}/v1/popups/${popupId}`,
+      undefined,
+      connection.controlToken,
+    );
+    if (typeof current.status === "string" && terminalStates.has(current.status)) {
       return current;
     }
     await sleep(750);
@@ -312,6 +379,7 @@ Workflow:
 3. Open the popup with \`npm run genui -- popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
 4. Validate before opening with \`npm run genui -- validate --openui-lang-file <file>\`.
 5. Use \`npm run genui -- examples\` and \`npm run genui -- components\` for examples and the concise component catalog.
+6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result.
 
 Do not send natural-language prompts to GenUI. The CLI/broker is an OpenUI Lang popup runtime, not a UI-planning LLM.
 Never include secrets in OpenUI Lang or context.`;
@@ -329,24 +397,29 @@ Usage:
   npm run genui -- validate --openui-lang-file ui.openui
   npm run genui -- popup --openui-lang-file ui.openui --agent-id codex --title "Build Review"
   npm run genui -- popup --openui-lang-file ui.openui --wait
+  npm run genui -- complete --popup-id "<popupId>" --outcome completed
   npm run genui -- close --popup-id "<popupId>"
   npm run genui -- status
 
 Options:
   --service-url <url>       Override broker control URL
+  --service-token <token>   Override broker control token
   --openui-lang <code>      Inline OpenUI Lang
   --openui-lang-file <path> Read OpenUI Lang from a UTF-8 text file
   --stdin-openui            Read OpenUI Lang from stdin
   --context-json <json>     Attach structured context as a JSON object
   --context-file <path>     Attach structured context from a JSON file
+  --payload-json <json>     Complete popup with structured payload JSON
+  --payload-file <path>     Complete popup with payload from a JSON file
   --title <title>           Popup window title
   --locale <locale>         auto | ja | en
   --size <preset>           compact | card | panel | default | wide | tall | stage | cinema | fullscreen
   --width <px>              Override window width (>= 240)
   --height <px>             Override window height (>= 200)
   --no-start                Do not auto-start the broker for popup
-  --wait                    Wait until the popup is closed or failed
+  --wait                    Wait until the popup is completed, cancelled, closed, or failed
   --wait-timeout-ms <ms>    Timeout for --wait. Omit for no timeout
+  --outcome <outcome>       completed | cancelled | failed
   --name <example>          Select an example for the examples command
   --json                    Return selected example as JSON
 `);
@@ -371,6 +444,11 @@ async function main(): Promise<void> {
 
   if (command === "close") {
     console.log(JSON.stringify(await close(options), null, 2));
+    return;
+  }
+
+  if (command === "complete") {
+    console.log(JSON.stringify(await complete(options), null, 2));
     return;
   }
 
