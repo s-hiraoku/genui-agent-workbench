@@ -4,6 +4,8 @@ import { saveArtifact } from "./artifacts";
 import type { GenUIArtifact, GenUILocale, RenderGenUIInput, RenderGenUIResult } from "./types";
 
 const openuiParser = createParser(library.toJSONSchema(), library.root);
+const MAX_OPENUI_LANG_BYTES = 512 * 1024;
+const MAX_CONTEXT_JSON_BYTES = 512 * 1024;
 
 export class OpenUILangValidationError extends Error {
   constructor(message: string) {
@@ -21,6 +23,14 @@ function normalizeInput(input: RenderGenUIInput): RenderGenUIInput & { openuiLan
 
   if (!openuiLang) {
     throw new Error("openuiLang is required");
+  }
+
+  if (Buffer.byteLength(openuiLang, "utf8") > MAX_OPENUI_LANG_BYTES) {
+    throw new Error(`openuiLang exceeds ${MAX_OPENUI_LANG_BYTES} bytes`);
+  }
+
+  if (input.context && Buffer.byteLength(JSON.stringify(input.context), "utf8") > MAX_CONTEXT_JSON_BYTES) {
+    throw new Error(`context exceeds ${MAX_CONTEXT_JSON_BYTES} bytes`);
   }
 
   return {

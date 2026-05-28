@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
-import { loadArtifact } from "../src/server/genui/artifacts";
+import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
@@ -53,6 +53,30 @@ describe("renderGenUI", () => {
     const saved = await loadArtifact(result.artifact.artifactId);
     expect(saved?.openuiLang).toBe(sampleOpenUILang);
     expect(saved?.context).toMatchObject({ source: "unit-test" });
+  });
+
+  it("deletes artifacts by id", async () => {
+    const result = await renderGenUI({
+      openuiLang: sampleOpenUILang,
+      agentId: "test-agent",
+      title: "Disposable Popup",
+    });
+
+    await expect(deleteArtifact(result.artifact.artifactId)).resolves.toBe(true);
+    await expect(loadArtifact(result.artifact.artifactId)).resolves.toBeNull();
+  });
+
+  it("prunes older artifacts beyond a retention limit", async () => {
+    for (let index = 0; index < 3; index += 1) {
+      await renderGenUI({
+        openuiLang: sampleOpenUILang,
+        agentId: "test-agent",
+        title: `Popup ${index}`,
+      });
+    }
+
+    await expect(pruneArtifacts(2)).resolves.toEqual({ deleted: 1, kept: 2 });
+    await expect(listArtifacts(10)).resolves.toHaveLength(2);
   });
 
   it("rejects empty OpenUI Lang", async () => {
@@ -140,6 +164,7 @@ describe("broker state", () => {
       pid: 1234,
       brokerProtocolVersion: "test",
       appVersion: "0.0.0",
+      controlToken: "token-123",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
 
@@ -147,6 +172,7 @@ describe("broker state", () => {
       controlUrl: "http://127.0.0.1:48231",
       nextUrl: "http://127.0.0.1:3000",
       pid: 1234,
+      controlToken: "token-123",
     });
   });
 });

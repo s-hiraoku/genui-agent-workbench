@@ -2,7 +2,7 @@
 
 ## Phase 1: CLI-First Popup Runtime
 
-Status: in progress.
+Status: complete for local development.
 
 - Electron tray app starts the local preview/dashboard service.
 - Local control API opens and closes popup windows.
@@ -14,17 +14,19 @@ Status: in progress.
 - Core explanation components exist: `MetricGrid`, `ActionPanel`, `TimelinePanel`, `DecisionMatrix`, `MapView`, `AudioPlayer`, `VideoPlayer`.
 - Preview renderer has defensive layout rules for agent-authored UI.
 - Lint/test/build/electron-build pass.
+- Local control API uses a per-run token for private and mutating endpoints.
+- Popup wait mode can return explicit completion, cancellation, close, or failure.
+- Dashboard can delete artifacts, and the API can prune artifact history.
 
 ## Phase 2: Agent Workflow Polish
 
-- Add popup completion semantics separate from window close.
-- Add optional `wait` mode for agents that need user completion.
-- Add dashboard controls for replaying, closing, and inspecting artifacts.
+- Add richer dashboard controls for replaying, closing, and inspecting artifacts.
 - Add richer OpenUI Lang examples for coding, research, support, and data agents.
 
 ## Phase 3: Packaging
 
-- Build a local unsigned macOS `.dmg`.
+- Build a local unsigned macOS `.zip` package.
+- Keep `.dmg` as an optional host-dependent packaging target.
 - Add macOS signing and notarization.
 - Add optional login-item auto-start.
 - Add installer and first-run onboarding.

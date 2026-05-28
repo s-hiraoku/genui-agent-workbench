@@ -8,6 +8,7 @@ export type BrokerState = {
   pid: number;
   brokerProtocolVersion: string;
   appVersion: string;
+  controlToken?: string;
   updatedAt: string;
 };
 

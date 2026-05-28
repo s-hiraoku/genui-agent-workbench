@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
@@ -101,15 +101,26 @@ const windowAnimationOptions: Array<{ value: WindowAnimationPreset; label: strin
   { value: "fade", label: "Fade" },
 ];
 
-export function SettingsClient({ animation, controlUrl, themeColor }: { animation?: string; controlUrl: string; themeColor?: string }) {
+export function SettingsClient({
+  animation,
+  controlToken,
+  controlUrl,
+  themeColor,
+}: {
+  animation?: string;
+  controlToken: string;
+  controlUrl: string;
+  themeColor?: string;
+}) {
   const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
   const [error, setError] = useState<string | null>(null);
   const opaque = settings.design.opaque;
+  const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
 
   useEffect(() => {
     if (!controlUrl) return;
     let cancelled = false;
-    fetch(`${controlUrl}/v1/settings`)
+    fetch(`${controlUrl}/v1/settings`, { headers: authHeaders })
       .then((r) => r.json() as Promise<ApiResponse>)
       .then((data) => {
         if (cancelled) return;
@@ -128,7 +139,7 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
     return () => {
       cancelled = true;
     };
-  }, [controlUrl]);
+  }, [authHeaders, controlUrl]);
 
   const save = async (patch: Partial<BrokerSettings> & { design?: Partial<DesignSettings> }) => {
     const previous = settings;
@@ -141,7 +152,7 @@ export function SettingsClient({ animation, controlUrl, themeColor }: { animatio
     try {
       const res = await fetch(`${controlUrl}/v1/settings`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
         body: JSON.stringify(patch),
       });
       if (!res.ok) {

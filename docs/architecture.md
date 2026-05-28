@@ -44,12 +44,19 @@ OpenUI Renderer + custom component library
 - `POST /v1/popups`: validate OpenUI Lang, create an artifact, and open a popup.
 - `GET /v1/popups/:popupId`: inspect popup state.
 - `POST /v1/popups/:popupId/close`: close a popup.
+- `POST /v1/popups/:popupId/complete`: complete, cancel, or fail a popup with optional structured payload.
+- `GET /v1/artifacts`: list stored artifacts.
+- `DELETE /v1/artifacts/:artifactId`: delete an artifact.
+- `POST /v1/artifacts/prune`: keep the newest N artifacts and delete older entries.
 
-The control API is local-only on `127.0.0.1`. The current URL is written to `.genui/broker.json`.
+The control API is local-only on `127.0.0.1`. The current URL and per-run
+control token are written to `.genui/broker.json`. Private and mutating
+endpoints require `x-genui-token`; the CLI and broker-owned UI pass it
+automatically. CORS is limited to the active local Next.js and control origins.
 
 ## Artifact Model
 
-Artifacts are JSON files in `.genui/artifacts`. They contain caller-provided OpenUI Lang, caller metadata, optional context, generation mode, locale, and timestamps. Closed popups do not delete artifacts.
+Artifacts are JSON files in `.genui/artifacts`. They contain caller-provided OpenUI Lang, caller metadata, optional context, generation mode, locale, and timestamps. Closed popups do not delete artifacts automatically, but the dashboard and control API can delete or prune old artifacts.
 
 `generationMode` is currently always `provided`, meaning the calling agent supplied the OpenUI Lang.
 

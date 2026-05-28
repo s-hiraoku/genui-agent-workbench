@@ -86,9 +86,15 @@ Close and inspect:
 
 ```bash
 npm run genui -- close --popup-id "<popupId>"
+npm run genui -- complete --popup-id "<popupId>" --outcome completed
 npm run genui -- status
 npm run genui -- guide
 ```
+
+Popup chrome includes a completion control. When an agent opens a popup with
+`--wait`, the command now returns when the popup is completed, cancelled,
+closed, or failed. Completion responses include a `completion` object when the
+popup reported an explicit outcome.
 
 `popup` returns JSON:
 
@@ -161,8 +167,15 @@ Available presets:
 - `POST /v1/popups`
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
+- `POST /v1/popups/:popupId/complete`
+- `GET /v1/artifacts`
+- `DELETE /v1/artifacts/:artifactId`
+- `POST /v1/artifacts/prune`
 
-The API is local-only on `127.0.0.1`. The CLI is the supported agent-facing interface.
+The API is local-only on `127.0.0.1`. State-changing and private endpoints
+require the per-run `x-genui-token` written to `.genui/broker.json`; the CLI
+and Electron-hosted pages attach it automatically. The CLI is the supported
+agent-facing interface.
 
 ## Architecture
 
@@ -191,17 +204,30 @@ npm run build
 npm run electron:build
 ```
 
-## Mac DMG
+## Mac Package
 
-Build an unsigned local macOS `.dmg`:
+Build an unsigned local macOS `.zip` package:
+
+```bash
+npm run electron:pack
+```
+
+The artifact is written under `dist/`. This is the default local sharing target
+because it does not depend on macOS disk image tooling.
+
+Build an unsigned local macOS `.dmg` when the host supports `hdiutil`:
 
 ```bash
 npm run electron:dmg
 ```
 
-The artifact is written under `dist/`. This first distribution target is intended
-for local testing and direct sharing. Public distribution should add Developer ID
-signing and notarization before publishing.
+Public distribution should add Developer ID signing and notarization before publishing.
+
+## Download Site
+
+The static GitHub Pages site lives in `site/`. It explains the download,
+first launch, and CLI popup flow for end users. See `docs/pages-site.md` for
+publishing steps and release asset requirements.
 
 ## Repository Notes
 

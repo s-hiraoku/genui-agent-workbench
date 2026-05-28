@@ -7,6 +7,7 @@ type PreviewPageProps = {
   searchParams: Promise<{
     popupId?: string;
     controlUrl?: string;
+    token?: string;
     size?: string;
     agent?: string;
     animation?: string;
@@ -18,7 +19,7 @@ type PreviewPageProps = {
 
 export default async function PreviewPage({ params, searchParams }: PreviewPageProps) {
   const { artifactId } = await params;
-  const { popupId, controlUrl, size, agent, animation, themeColor, opaque } = await searchParams;
+  const { popupId, controlUrl, token, size, agent, animation, themeColor, opaque } = await searchParams;
   const artifact = await loadArtifact(artifactId);
 
   if (!artifact) {
@@ -32,6 +33,7 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
       agentLabel={agent ?? artifact.agentId}
       animation={animation}
       controlUrl={controlUrl}
+      controlToken={token}
       openuiLang={artifact.openuiLang}
       popupId={popupId}
       size={size}
