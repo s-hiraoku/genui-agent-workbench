@@ -42,7 +42,7 @@ function setDownloadLinks() {
   if (cloneCommand) {
     cloneCommand.textContent = `git clone ${repoUrl}.git
 cd ${repository.repo}
-npm ci`;
+npm install`;
   }
   note.textContent = `最新 Release から ${RELEASE_ASSET} をダウンロードします。`;
 }

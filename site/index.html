@@ -3,43 +3,65 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GenUI Popup Broker - ダウンロードと使い方</title>
+    <title>GenUI Popup Broker — ダウンロードと使い方</title>
     <meta
       name="description"
       content="GenUI Popup Broker を macOS にダウンロードして、AI agent から OpenUI Lang popup を表示するまでの手順。"
     >
     <meta name="github-repository" content="s-hiraoku/genui-agent-workbench">
+    <meta name="theme-color" content="#0b0f14">
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    >
     <link rel="stylesheet" href="./styles.css">
     <script type="module" src="./site.js"></script>
   </head>
   <body>
+    <div class="grain" aria-hidden="true"></div>
+
     <header class="site-header">
       <nav class="nav" aria-label="Primary">
         <a class="brand" href="#top" aria-label="GenUI Popup Broker home">
           <span class="brand-mark" aria-hidden="true"></span>
-          <span>GenUI Popup Broker</span>
+          <span class="brand-name">GenUI<span class="brand-dim"> Popup Broker</span></span>
         </a>
         <ul>
-          <li><a href="#install">インストール</a></li>
-          <li><a href="#first-popup">初回 popup</a></li>
+          <li><a href="#concept">仕組み</a></li>
+          <li><a href="#install">セットアップ</a></li>
+          <li><a href="#first-popup">最初の popup</a></li>
+          <li><a href="#components">コンポーネント</a></li>
           <li><a href="#troubleshooting">困ったとき</a></li>
         </ul>
+        <a class="nav-cta" id="release-link" href="#download-unavailable">Release ↗</a>
       </nav>
     </header>
 
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-glow" aria-hidden="true"></div>
         <div class="hero-copy">
-          <p class="eyebrow">Agent UI for local work</p>
-          <h1 id="hero-title">AI agent が作った UI を、ローカル popup としてすぐ表示する。</h1>
+          <p class="eyebrow"><span class="dot" aria-hidden="true"></span>GenUI Popup Broker</p>
+          <h1 id="hero-title">
+            AI agent のための、<br>
+            <em>常駐型ローカル UI</em><br>
+            ブローカー。
+          </h1>
           <p class="lead">
-            GenUI Popup Broker は macOS に常駐するローカルアプリです。
-            agent は OpenUI Lang を CLI で渡すだけで、確認・判断・進捗共有用の popup を開けます。
+            agent が自分でウィンドウを持たなくても、リッチな一時 UI を表示できます。
+            agent が OpenUI Lang を生成し、CLI が常駐する Electron ブローカーに送信。
+            ブローカーが検証・保存し、popup として描画します。
+            チャットアプリでも、ブローカー側 LLM でもありません ── UI の設計は呼び出し側の agent が担います。
           </p>
           <div class="actions">
-            <a class="button primary" id="download-link" href="#download-unavailable">macOS arm64 をダウンロード</a>
-            <a class="button secondary" id="release-link" href="#download-unavailable">Release を開く</a>
+            <a class="button primary" id="download-link" href="#download-unavailable">
+              <span class="button-icon" aria-hidden="true">↓</span>
+              macOS arm64 をダウンロード
+            </a>
+            <a class="button ghost" href="#concept">仕組みを見る</a>
           </div>
           <p class="download-note" id="download-note">
             GitHub Pages 上で開くと、このボタンは最新 Release の zip に自動でつながります。
@@ -47,6 +69,10 @@
         </div>
 
         <aside class="status-panel" aria-labelledby="status-title">
+          <div class="panel-bar" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <small>requirements</small>
+          </div>
           <h2 id="status-title">必要なもの</h2>
           <dl>
             <div>
@@ -65,15 +91,45 @@
         </aside>
       </section>
 
+      <section class="section" id="concept" aria-labelledby="concept-title">
+        <div class="section-heading">
+          <p class="eyebrow">How it works</p>
+          <h2 id="concept-title">agent → OpenUI Lang → popup</h2>
+          <p>
+            GenUI は agent の<strong>視覚的な出力面</strong>です。
+            自然言語プロンプトをブローカーに渡したり、ブローカー側で LLM を呼んだりはしません。
+            次の一方向フローで動きます。
+          </p>
+        </div>
+        <ol class="steps">
+          <li>
+            <h3>仕様を読む</h3>
+            <p>agent が <code>genui prompt-spec</code> で OpenUI Lang のオーサリングガイドを取得します。</p>
+          </li>
+          <li>
+            <h3>UI を生成</h3>
+            <p>agent が表示したい UI を決め、OpenUI Lang を生成します。</p>
+          </li>
+          <li>
+            <h3>CLI で送信</h3>
+            <p><code>genui popup</code> が常駐ブローカーに接続。未起動なら自動で立ち上げます。</p>
+          </li>
+          <li>
+            <h3>検証して描画</h3>
+            <p>ブローカーが検証し、<code>.genui/artifacts</code> に保存して popup を開きます。</p>
+          </li>
+        </ol>
+      </section>
+
       <section class="section" id="install" aria-labelledby="install-title">
         <div class="section-heading">
-          <p class="eyebrow">Step 1</p>
+          <p class="eyebrow"><span class="step-tag">Step 1</span></p>
           <h2 id="install-title">ダウンロードして起動する</h2>
         </div>
         <ol class="steps">
           <li>
             <h3>zip をダウンロード</h3>
-            <p>このページ上部のダウンロードボタンから <code>genui-popup-broker-macos-arm64.zip</code> を取得します。</p>
+            <p>上部のダウンロードボタンから <code>genui-popup-broker-macos-arm64.zip</code> を取得します。これは <code>npm run electron:pack</code> で作られる未署名ローカルパッケージです。</p>
           </li>
           <li>
             <h3>アプリを配置</h3>
@@ -84,38 +140,38 @@
             <p>Finder でアプリを右クリックして <strong>開く</strong> を選びます。未署名ビルドなので、通常のダブルクリックでは Gatekeeper が止める場合があります。</p>
           </li>
           <li>
-            <h3>常駐確認</h3>
-            <p>起動後、メニューバーに GenUI Popup Broker が常駐します。設定画面が開ければ準備完了です。</p>
+            <h3>常駐を確認</h3>
+            <p>起動後、トレイに GenUI Popup Broker が常駐します。トレイのメニューから設定ウィンドウが開けば準備完了です。</p>
           </li>
         </ol>
       </section>
 
       <section class="section split" id="first-popup" aria-labelledby="first-popup-title">
         <div class="section-heading">
-          <p class="eyebrow">Step 2</p>
-          <h2 id="first-popup-title">CLI を準備して初回 popup を出す</h2>
+          <p class="eyebrow"><span class="step-tag">Step 2</span></p>
+          <h2 id="first-popup-title">CLI を準備して最初の popup を出す</h2>
           <p>
-            ダウンロードしたアプリは popup を開く resident broker です。
+            ダウンロードしたアプリは popup を開く常駐ブローカーです。
             agent から呼ぶ CLI はこのリポジトリに含まれるので、開発用 shell で以下を実行します。
           </p>
         </div>
         <div class="code-stack">
           <figure>
-            <figcaption>CLI 用リポジトリを取得</figcaption>
+            <figcaption><span class="num">01</span> リポジトリを取得してセットアップ</figcaption>
             <pre tabindex="0"><code id="clone-command">git clone https://github.com/s-hiraoku/genui-agent-workbench.git
 cd genui-agent-workbench
-npm ci</code></pre>
+npm install</code></pre>
           </figure>
           <figure>
-            <figcaption>サンプル UI を作成</figcaption>
+            <figcaption><span class="num">02</span> サンプル UI を OpenUI Lang として書き出す</figcaption>
             <pre tabindex="0"><code>npm run --silent genui -- examples --name build-review &gt; ui.openui</code></pre>
           </figure>
           <figure>
-            <figcaption>OpenUI Lang を検証</figcaption>
+            <figcaption><span class="num">03</span> OpenUI Lang を検証</figcaption>
             <pre tabindex="0"><code>npm run genui -- validate --openui-lang-file ui.openui</code></pre>
           </figure>
           <figure>
-            <figcaption>popup を開く</figcaption>
+            <figcaption><span class="num">04</span> popup を開く</figcaption>
             <pre tabindex="0"><code>npm run genui -- popup \
   --agent-id codex \
   --title "Build Review" \
@@ -123,35 +179,104 @@ npm ci</code></pre>
   --openui-lang-file ui.openui</code></pre>
           </figure>
           <figure>
-            <figcaption>ユーザー完了を待つ</figcaption>
+            <figcaption><span class="num">05</span> ユーザーの完了を待つ（任意）</figcaption>
             <pre tabindex="0"><code>npm run genui -- popup \
   --agent-id codex \
   --title "Decision Review" \
   --openui-lang-file ui.openui \
   --wait</code></pre>
           </figure>
+          <figure>
+            <figcaption><span class="num">→</span> popup は JSON を返す</figcaption>
+            <pre tabindex="0"><code>{
+  "popupId": "pop_...",
+  "artifactId": "art_...",
+  "previewUrl": "http://127.0.0.1:3000/preview/art_...",
+  "status": "open",
+  "generationMode": "provided",
+  "brokerProtocolVersion": "0.2.0"
+}</code></pre>
+          </figure>
         </div>
       </section>
 
-      <section class="section" aria-labelledby="workflow-title">
+      <section class="section" id="lang" aria-labelledby="lang-title">
         <div class="section-heading">
-          <p class="eyebrow">Agent workflow</p>
-          <h2 id="workflow-title">agent に渡す最小手順</h2>
+          <p class="eyebrow">OpenUI Lang</p>
+          <h2 id="lang-title">UI は宣言的に組み立てる</h2>
+          <p>
+            OpenUI Lang は、用意されたコンポーネントを変数として束ね、<code>root</code> から構成する宣言的な記法です。
+            agent はこれを生成するだけで、スタイリングはこのリポジトリ側が所有します。
+          </p>
+        </div>
+        <figure>
+          <figcaption><span class="num">openui</span> ビルドレビュー用の最小例</figcaption>
+          <pre tabindex="0"><code>root = Card([header, metrics, actions])
+header = CardHeader("Build Review", "Current agent run")
+metrics = MetricGrid("Summary", "Key checks", [m1, m2])
+m1 = { label: "Tests", value: "68 passed", tone: "positive" }
+m2 = { label: "Lint", value: "passed", tone: "positive" }
+actions = ActionPanel("Next Actions", "Recommended handoff", [a1])
+a1 = { label: "Open popup", priority: "medium", owner: "agent" }</code></pre>
+        </figure>
+      </section>
+
+      <section class="section" id="components" aria-labelledby="components-title">
+        <div class="section-heading">
+          <p class="eyebrow">Component library</p>
+          <h2 id="components-title">組み込みの GenUI コンポーネント</h2>
+          <p>
+            コンポーネントライブラリが設計の境界です。agent は一覧のコンポーネントを組み合わせられます。
+            完全なシグネチャと例は <code>npm run genui -- prompt-spec</code> で取得します。
+          </p>
         </div>
         <div class="cards">
           <article>
-            <h3>1. 仕様を読む</h3>
-            <pre tabindex="0"><code>npm run genui -- prompt-spec
+            <span class="card-index" aria-hidden="true">◆</span>
+            <h3>サマリーと判断</h3>
+            <p><code>MetricGrid</code> / <code>Stat</code> / <code>DecisionMatrix</code> / <code>CompareTable</code> / <code>ConfirmDialog</code> で要点と意思決定を提示します。</p>
+          </article>
+          <article>
+            <span class="card-index" aria-hidden="true">◆</span>
+            <h3>進捗とデータ</h3>
+            <p><code>ProgressStepper</code> / <code>TimelinePanel</code> / <code>TaskBoard</code> / <code>DataTable</code> / <code>CodeDiff</code> で状態と変更を可視化します。</p>
+          </article>
+          <article>
+            <span class="card-index" aria-hidden="true">◆</span>
+            <h3>可視化と地理</h3>
+            <p><code>BarChart</code> / <code>LineChart</code> / <code>DonutChart</code> / <code>MapView</code> / <code>GeoHeatmap</code> などのチャート・地図系。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split" id="agent" aria-labelledby="agent-title">
+        <div class="section-heading">
+          <p class="eyebrow">For agents</p>
+          <h2 id="agent-title">agent に渡す最小手順</h2>
+          <p>
+            agent には CLI が自己説明します。まず使い方を取得し、生成 → 検証 → 表示の順に進めます。
+          </p>
+        </div>
+        <div class="code-stack">
+          <figure>
+            <figcaption><span class="num">01</span> CLI に使い方を尋ねる</figcaption>
+            <pre tabindex="0"><code>npm run genui -- agent-instructions
+npm run genui -- prompt-spec
 npm run genui -- components</code></pre>
-          </article>
-          <article>
-            <h3>2. OpenUI Lang を生成</h3>
-            <p>自然言語プロンプトを broker に渡さず、agent が OpenUI Lang を生成します。</p>
-          </article>
-          <article>
-            <h3>3. validate して popup</h3>
-            <p>開く前に必ず <code>validate</code> を通し、失敗したら OpenUI Lang を修正します。</p>
-          </article>
+          </figure>
+          <figure>
+            <figcaption><span class="num">02</span> stdin からも渡せる</figcaption>
+            <pre tabindex="0"><code>cat ui.openui | npm run genui -- popup \
+  --agent-id codex \
+  --title "Build Review" \
+  --stdin-openui</code></pre>
+          </figure>
+          <figure>
+            <figcaption><span class="num">03</span> 完了・状態を扱う</figcaption>
+            <pre tabindex="0"><code>npm run genui -- complete --popup-id "&lt;popupId&gt;" --outcome completed
+npm run genui -- close --popup-id "&lt;popupId&gt;"
+npm run genui -- status</code></pre>
+          </figure>
         </div>
       </section>
 
@@ -160,32 +285,40 @@ npm run genui -- components</code></pre>
           <p class="eyebrow">Troubleshooting</p>
           <h2 id="troubleshooting-title">詰まりやすいところ</h2>
         </div>
-        <details name="faq" open>
-          <summary>macOS が「開発元を確認できない」と表示する</summary>
-          <p>未署名 zip のためです。Finder でアプリを右クリックして <strong>開く</strong> を選ぶか、システム設定の「プライバシーとセキュリティ」から許可します。</p>
-        </details>
-        <details name="faq">
-          <summary>CLI が broker に接続できない</summary>
-          <p>まずアプリを起動してください。その後、<code>npm run genui -- status</code> で resident broker の状態を確認します。</p>
-        </details>
-        <details name="faq">
-          <summary><code>npm run genui</code> が見つからない</summary>
-          <p>CLI はアプリ zip ではなく、この GitHub リポジトリ側にあります。<code>git clone</code> して <code>npm ci</code> を実行したディレクトリでコマンドを実行してください。</p>
-        </details>
-        <details name="faq">
-          <summary>popup が表示されない</summary>
-          <p><code>npm run genui -- validate --openui-lang-file ui.openui</code> を実行し、OpenUI Lang の validation error を先に解消します。</p>
-        </details>
-        <details name="faq">
-          <summary>公開配布に使えるか</summary>
-          <p>社内・個人配布なら zip で運用できます。外部向けには Developer ID 署名、notarization、アプリアイコン設定を追加してください。</p>
-        </details>
+        <div class="faq">
+          <details name="faq" open>
+            <summary>macOS が「開発元を確認できない」と表示する</summary>
+            <p>未署名 zip のためです。Finder でアプリを右クリックして <strong>開く</strong> を選ぶか、システム設定の「プライバシーとセキュリティ」から許可します。</p>
+          </details>
+          <details name="faq">
+            <summary>CLI がブローカーに接続できない</summary>
+            <p>まずアプリを起動してください。<code>genui popup</code> は未起動時に自動でブローカーを立ち上げますが、状態は <code>npm run genui -- status</code> で確認できます。API は <code>127.0.0.1</code> のローカル限定で、トークンは <code>.genui/broker.json</code> に書き出され CLI が自動付与します。</p>
+          </details>
+          <details name="faq">
+            <summary><code>npm run genui</code> が見つからない</summary>
+            <p>CLI はアプリ zip ではなく、この GitHub リポジトリ側にあります。<code>git clone</code> して <code>npm install</code> を実行したディレクトリでコマンドを実行してください。</p>
+          </details>
+          <details name="faq">
+            <summary>自然言語の指示を popup にできる？</summary>
+            <p>いいえ。ブローカーは自然言語プロンプトを解釈せず、LLM も呼びません。UI の設計は呼び出し側の agent が行い、生成した OpenUI Lang を CLI で渡します。</p>
+          </details>
+          <details name="faq">
+            <summary>popup が表示されない</summary>
+            <p><code>npm run genui -- validate --openui-lang-file ui.openui</code> を実行し、OpenUI Lang の検証エラーを先に解消します。検証を通った OpenUI Lang だけがアーティファクトとして保存・描画されます。</p>
+          </details>
+          <details name="faq">
+            <summary>公開配布に使えるか</summary>
+            <p>社内・個人配布なら zip で運用できます。外部向けには Developer ID 署名と notarization を追加してください。</p>
+          </details>
+        </div>
       </section>
     </main>
 
     <footer class="footer">
-      <p>OpenUI Lang runtime for local AI agent popups.</p>
-      <a id="source-link" href="#download-unavailable">GitHub repository</a>
+      <div class="footer-inner">
+        <p class="footer-tag">A resident GenUI Popup Broker for AI agents — OpenUI Lang in, local popup out.</p>
+        <a class="footer-link" id="source-link" href="#download-unavailable">GitHub repository ↗</a>
+      </div>
     </footer>
   </body>
 </html>
