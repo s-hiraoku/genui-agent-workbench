@@ -6,7 +6,7 @@
     <title>GenUI Popup Broker — ダウンロードと使い方</title>
     <meta
       name="description"
-      content="GenUI Popup Broker を macOS にダウンロードして、AI agent から OpenUI Lang popup を表示するまでの手順。"
+      content="GenUI Popup Broker を macOS にダウンロードして、AI が作った画面を手元の popup として表示するまでの手順。"
     >
     <meta name="github-repository" content="s-hiraoku/genui-agent-workbench">
     <meta name="theme-color" content="#0b0f14">
@@ -32,7 +32,7 @@
         <ul>
           <li><a href="#concept">仕組み</a></li>
           <li><a href="#install">セットアップ</a></li>
-          <li><a href="#first-popup">最初の popup</a></li>
+          <li><a href="#first-popup">最初の画面</a></li>
           <li><a href="#components">コンポーネント</a></li>
           <li><a href="#troubleshooting">困ったとき</a></li>
         </ul>
@@ -46,15 +46,16 @@
         <div class="hero-copy">
           <p class="eyebrow"><span class="dot" aria-hidden="true"></span>GenUI Popup Broker</p>
           <h1 id="hero-title">
-            AI agent のための、<br>
-            <em>常駐型ローカル UI</em><br>
-            ブローカー。
+            AI が作った画面を、<br>
+            <em>あなたの Mac で</em><br>
+            すぐ表示する。
           </h1>
           <p class="lead">
-            agent が自分でウィンドウを持たなくても、リッチな一時 UI を表示できます。
-            agent が OpenUI Lang を生成し、CLI が常駐する Electron ブローカーに送信。
-            ブローカーが検証・保存し、popup として描画します。
-            チャットアプリでも、ブローカー側 LLM でもありません ── UI の設計は呼び出し側の agent が担います。
+            AI（agent）は自分でウィンドウを開けません。GenUI は AI の代わりに、
+            あなたの Mac で小さな画面（popup）を表示する常駐アプリです。
+            AI が「こんな画面を出して」という指示書を作り、それをこのアプリに渡すと、
+            チェック・確認・進捗共有などの画面が手元にポンと開きます。
+            アプリ自身が文章を考えたり AI を呼んだりはしません ── 画面の中身を決めるのは AI 側です。
           </p>
           <div class="actions">
             <a class="button primary" id="download-link" href="#download-unavailable">
@@ -94,29 +95,30 @@
       <section class="section" id="concept" aria-labelledby="concept-title">
         <div class="section-heading">
           <p class="eyebrow">How it works</p>
-          <h2 id="concept-title">agent → OpenUI Lang → popup</h2>
+          <h2 id="concept-title">AI が「画面の指示書」を作り、アプリが表示する</h2>
           <p>
-            GenUI は agent の<strong>視覚的な出力面</strong>です。
-            自然言語プロンプトをブローカーに渡したり、ブローカー側で LLM を呼んだりはしません。
-            次の一方向フローで動きます。
+            GenUI は AI が<strong>結果を「見せる」ための画面</strong>です。
+            チャットアプリではなく、アプリ側で AI を動かすこともありません。
+            AI が作った指示書（<code>OpenUI Lang</code> という書式）を表示するだけ。
+            流れはとてもシンプルです。
           </p>
         </div>
         <ol class="steps">
           <li>
-            <h3>仕様を読む</h3>
-            <p>agent が <code>genui prompt-spec</code> で OpenUI Lang のオーサリングガイドを取得します。</p>
+            <h3>書き方を調べる</h3>
+            <p>AI が <code>genui prompt-spec</code> で「画面の指示書」の書き方ガイドを取得します。</p>
           </li>
           <li>
-            <h3>UI を生成</h3>
-            <p>agent が表示したい UI を決め、OpenUI Lang を生成します。</p>
+            <h3>指示書を作る</h3>
+            <p>AI が出したい画面を決め、その指示書（OpenUI Lang）を書き出します。</p>
           </li>
           <li>
-            <h3>CLI で送信</h3>
-            <p><code>genui popup</code> が常駐ブローカーに接続。未起動なら自動で立ち上げます。</p>
+            <h3>アプリに渡す</h3>
+            <p><code>genui popup</code> で指示書をアプリに送ります。アプリが起動していなければ自動で立ち上がります。</p>
           </li>
           <li>
-            <h3>検証して描画</h3>
-            <p>ブローカーが検証し、<code>.genui/artifacts</code> に保存して popup を開きます。</p>
+            <h3>画面が開く</h3>
+            <p>アプリが内容をチェックして保存し、手元に popup（小さな画面）を開きます。</p>
           </li>
         </ol>
       </section>
@@ -141,7 +143,7 @@
           </li>
           <li>
             <h3>常駐を確認</h3>
-            <p>起動後、トレイに GenUI Popup Broker が常駐します。トレイのメニューから設定ウィンドウが開けば準備完了です。</p>
+            <p>起動すると、メニューバー右上のトレイに GenUI のアイコンが現れ、ずっと待機します。トレイのメニューから設定ウィンドウが開けば準備完了です。</p>
           </li>
         </ol>
       </section>
@@ -149,10 +151,11 @@
       <section class="section split" id="first-popup" aria-labelledby="first-popup-title">
         <div class="section-heading">
           <p class="eyebrow"><span class="step-tag">Step 2</span></p>
-          <h2 id="first-popup-title">CLI を準備して最初の popup を出す</h2>
+          <h2 id="first-popup-title">CLI を準備して最初の画面を出す</h2>
           <p>
-            ダウンロードしたアプリは popup を開く常駐ブローカーです。
-            agent から呼ぶ CLI はこのリポジトリに含まれるので、開発用 shell で以下を実行します。
+            ダウンロードしたアプリは、画面（popup）を表示する待機役です。
+            AI からアプリを呼び出すためのコマンド（CLI）はこのリポジトリに入っているので、
+            ターミナルで以下を実行します。
           </p>
         </div>
         <div class="code-stack">
@@ -203,14 +206,15 @@ npm install</code></pre>
       <section class="section" id="lang" aria-labelledby="lang-title">
         <div class="section-heading">
           <p class="eyebrow">OpenUI Lang</p>
-          <h2 id="lang-title">UI は宣言的に組み立てる</h2>
+          <h2 id="lang-title">画面の指示書はこう書く</h2>
           <p>
-            OpenUI Lang は、用意されたコンポーネントを変数として束ね、<code>root</code> から構成する宣言的な記法です。
-            agent はこれを生成するだけで、スタイリングはこのリポジトリ側が所有します。
+            「画面の指示書」＝ OpenUI Lang は、用意された部品（コンポーネント）を名前で組み合わせ、
+            <code>root</code> から全体を組み立てる書式です。AI はこれを書くだけ。
+            見た目のデザインはこのアプリ側が受け持ちます。
           </p>
         </div>
         <figure>
-          <figcaption><span class="num">openui</span> ビルドレビュー用の最小例</figcaption>
+          <figcaption><span class="num">openui</span> ビルドレビュー画面の最小例</figcaption>
           <pre tabindex="0"><code>root = Card([header, metrics, actions])
 header = CardHeader("Build Review", "Current agent run")
 metrics = MetricGrid("Summary", "Key checks", [m1, m2])
@@ -224,10 +228,11 @@ a1 = { label: "Open popup", priority: "medium", owner: "agent" }</code></pre>
       <section class="section" id="components" aria-labelledby="components-title">
         <div class="section-heading">
           <p class="eyebrow">Component library</p>
-          <h2 id="components-title">組み込みの GenUI コンポーネント</h2>
+          <h2 id="components-title">使える画面パーツ（コンポーネント）</h2>
           <p>
-            コンポーネントライブラリが設計の境界です。agent は一覧のコンポーネントを組み合わせられます。
-            完全なシグネチャと例は <code>npm run genui -- prompt-spec</code> で取得します。
+            画面は、あらかじめ用意された部品（コンポーネント）を組み合わせて作ります。
+            AI が使えるのはこの一覧の部品だけ。すべての部品と書き方の例は
+            <code>npm run genui -- prompt-spec</code> で確認できます。
           </p>
         </div>
         <div class="cards">
@@ -252,9 +257,10 @@ a1 = { label: "Open popup", priority: "medium", owner: "agent" }</code></pre>
       <section class="section split" id="agent" aria-labelledby="agent-title">
         <div class="section-heading">
           <p class="eyebrow">For agents</p>
-          <h2 id="agent-title">agent に渡す最小手順</h2>
+          <h2 id="agent-title">AI に渡す最小手順</h2>
           <p>
-            agent には CLI が自己説明します。まず使い方を取得し、生成 → 検証 → 表示の順に進めます。
+            コマンド（CLI）は AI に向けて自分の使い方を説明します。まず使い方を取得し、
+            「指示書を作る → 内容をチェック → 画面を表示」の順に進めます。
           </p>
         </div>
         <div class="code-stack">
@@ -291,16 +297,16 @@ npm run genui -- status</code></pre>
             <p>未署名 zip のためです。Finder でアプリを右クリックして <strong>開く</strong> を選ぶか、システム設定の「プライバシーとセキュリティ」から許可します。</p>
           </details>
           <details name="faq">
-            <summary>CLI がブローカーに接続できない</summary>
-            <p>まずアプリを起動してください。<code>genui popup</code> は未起動時に自動でブローカーを立ち上げますが、状態は <code>npm run genui -- status</code> で確認できます。API は <code>127.0.0.1</code> のローカル限定で、トークンは <code>.genui/broker.json</code> に書き出され CLI が自動付与します。</p>
+            <summary>コマンドがアプリに接続できない</summary>
+            <p>まずアプリを起動してください。<code>genui popup</code> は未起動時に自動でアプリを立ち上げますが、状態は <code>npm run genui -- status</code> で確認できます。通信は <code>127.0.0.1</code>（あなたの Mac の中だけ）に限定され、外部には公開されません。</p>
           </details>
           <details name="faq">
             <summary><code>npm run genui</code> が見つからない</summary>
             <p>CLI はアプリ zip ではなく、この GitHub リポジトリ側にあります。<code>git clone</code> して <code>npm install</code> を実行したディレクトリでコマンドを実行してください。</p>
           </details>
           <details name="faq">
-            <summary>自然言語の指示を popup にできる？</summary>
-            <p>いいえ。ブローカーは自然言語プロンプトを解釈せず、LLM も呼びません。UI の設計は呼び出し側の agent が行い、生成した OpenUI Lang を CLI で渡します。</p>
+            <summary>「こういう画面を出して」と文章で頼める？</summary>
+            <p>いいえ。アプリ自身は文章を読み取ったり AI を呼んだりしません。どんな画面にするかは AI 側が決め、その指示書（OpenUI Lang）をコマンドでアプリに渡します。</p>
           </details>
           <details name="faq">
             <summary>popup が表示されない</summary>
@@ -316,7 +322,7 @@ npm run genui -- status</code></pre>
 
     <footer class="footer">
       <div class="footer-inner">
-        <p class="footer-tag">A resident GenUI Popup Broker for AI agents — OpenUI Lang in, local popup out.</p>
+        <p class="footer-tag">AI が作った画面を、あなたの Mac で表示する常駐アプリ。</p>
         <a class="footer-link" id="source-link" href="#download-unavailable">GitHub repository ↗</a>
       </div>
     </footer>
