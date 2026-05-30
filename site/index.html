@@ -139,7 +139,7 @@
           </li>
           <li>
             <h3>初回起動</h3>
-            <p>Finder でアプリを右クリックして <strong>開く</strong> を選びます。未署名ビルドなので、通常のダブルクリックでは Gatekeeper が止める場合があります。</p>
+            <p>Finder でアプリを右クリックして <strong>開く</strong> を選びます。未署名ビルドなので、ダブルクリックでは macOS のセキュリティ警告で止まります。macOS 15 以降ではシステム設定から許可が必要です ── 詳しい手順は<a href="#troubleshooting">困ったとき</a>を参照してください。</p>
           </li>
           <li>
             <h3>常駐を確認</h3>
@@ -293,8 +293,27 @@ npm run genui -- status</code></pre>
         </div>
         <div class="faq">
           <details name="faq" open>
-            <summary>macOS が「開発元を確認できない」と表示する</summary>
-            <p>未署名 zip のためです。Finder でアプリを右クリックして <strong>開く</strong> を選ぶか、システム設定の「プライバシーとセキュリティ」から許可します。</p>
+            <summary>「マルウェアが含まれていないことを検証できませんでした」と出て起動できない</summary>
+            <p>
+              これは macOS のセキュリティ機能（Gatekeeper）による警告で、<strong>マルウェアだから出ているわけではありません</strong>。
+              このアプリは Apple Developer ID での署名・公証（notarization）をしていない、個人・ローカル配布向けの未署名ビルドのため必ず表示されます。
+              お使いの macOS のバージョンに合わせて、次のいずれかで開けます。
+            </p>
+            <p class="faq-step"><strong>方法 1 ── 右クリックで開く（macOS 14 以前）</strong></p>
+            <ol class="faq-list">
+              <li>Finder で <code>/Applications</code> の <strong>GenUI Popup Broker.app</strong> を右クリック（Control+クリック）します。</li>
+              <li>メニューから <strong>「開く」</strong> を選びます。</li>
+              <li>同じ警告が出ますが、今度は <strong>「開く」</strong> ボタンが押せるので押します。</li>
+            </ol>
+            <p class="faq-step"><strong>方法 2 ── システム設定から許可（macOS 15 Sequoia 以降）</strong></p>
+            <ol class="faq-list">
+              <li>一度アプリをダブルクリックして警告を出し、いったん閉じます。</li>
+              <li><strong>システム設定 → プライバシーとセキュリティ</strong> を開きます。</li>
+              <li>下にスクロールすると「"GenUI Popup Broker.app" はブロックされました」と表示され、横に <strong>「このまま開く」</strong> ボタンがあります。クリックして Touch ID かパスワードで認証します。</li>
+            </ol>
+            <p class="faq-step"><strong>方法 3 ── ターミナルで検疫フラグを外す（確実）</strong></p>
+            <p>ダウンロード時に付く検疫属性を外すと、通常どおり開けるようになります。</p>
+            <pre tabindex="0"><code>xattr -dr com.apple.quarantine "/Applications/GenUI Popup Broker.app"</code></pre>
           </details>
           <details name="faq">
             <summary>コマンドがアプリに接続できない</summary>

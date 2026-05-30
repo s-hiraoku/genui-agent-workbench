@@ -657,6 +657,34 @@ details p {
   font-size: 15px;
 }
 
+/* multi-block FAQ answers (steps, lists, code) */
+details > :is(p, ol, pre) + :is(p, ol, pre) {
+  margin-top: -8px;
+}
+.faq-step {
+  padding-bottom: 6px !important;
+  color: var(--ink);
+  font-size: 14.5px;
+}
+.faq-step strong {
+  color: var(--citron);
+}
+.faq-list {
+  margin: 0;
+  padding: 0 22px 18px 78px;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+.faq-list li {
+  margin-bottom: 6px;
+}
+.faq-list li::marker {
+  color: var(--ink-dim);
+}
+details > pre {
+  margin: 0 22px 20px 60px;
+}
+
 /* -------------------------------------------------------------- footer */
 .footer {
   border-top: 1px solid var(--line-soft);
