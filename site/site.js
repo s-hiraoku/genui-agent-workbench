@@ -40,8 +40,9 @@ function setDownloadLinks() {
   releaseLink.href = latestReleaseUrl;
   sourceLink.href = repoUrl;
   if (cloneCommand) {
-    cloneCommand.textContent = `git clone ${repoUrl}.git
-cd ${repository.repo}
+    cloneCommand.textContent = `mkdir -p ~/Developer/tools
+git clone ${repoUrl}.git ~/Developer/tools/${repository.repo}
+cd ~/Developer/tools/${repository.repo}
 npm install`;
   }
   note.textContent = `最新 Release から ${RELEASE_ASSET} をダウンロードします。`;

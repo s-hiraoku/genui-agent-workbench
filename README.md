@@ -225,9 +225,9 @@ Public distribution should add Developer ID signing and notarization before publ
 
 ## Download Site
 
-The static GitHub Pages site lives in `site/`. It explains the download,
-first launch, and CLI popup flow for end users. See `docs/pages-site.md` for
-publishing steps and release asset requirements.
+The static GitHub Pages site lives in `site/`. It explains the app download,
+first launch, and current developer-preview CLI popup flow. See
+`docs/pages-site.md` for publishing steps and release asset requirements.
 
 ## Repository Notes
 
