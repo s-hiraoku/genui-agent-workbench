@@ -44,7 +44,7 @@ async function readBrokerStateFile(statePath: string): Promise<(BrokerState & { 
       stateMtimeMs: stat.mtimeMs,
     };
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT" || error instanceof SyntaxError) {
       return null;
     }
 

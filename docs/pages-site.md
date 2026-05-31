@@ -33,9 +33,9 @@ as `v0.1.0`.
 
 ## User Flow Covered By The Site
 
-The published site is written for the current developer-preview packaging,
-where the app is downloadable but the agent-facing CLI still lives in this
-repository. The intended user flow is:
+The published site is written for the current developer-preview release zip,
+where the app and the agent-facing CLI are bundled together. The intended user
+flow is:
 
 1. Download `genui-popup-broker-macos-arm64.zip`.
 2. Move `GenUI Popup Broker.app` to `/Applications`.

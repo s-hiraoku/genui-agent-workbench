@@ -217,4 +217,33 @@ describe("broker state", () => {
       await fs.rm(path.dirname(stateFile), { force: true, recursive: true });
     }
   });
+
+  it("skips malformed broker state files", async () => {
+    const stateFile = path.join(genuiTestRoot, randomUUID(), "broker.json");
+    await fs.mkdir(path.dirname(stateFile), { recursive: true });
+    await fs.writeFile(stateFile, "{not-json", "utf8");
+
+    const previousDataDir = process.env.GENUI_DATA_DIR;
+    try {
+      process.env.GENUI_DATA_DIR = path.join(genuiTestRoot, randomUUID());
+      await writeBrokerState({
+        controlUrl: "http://127.0.0.1:48233",
+        nextUrl: "http://127.0.0.1:3002",
+        pid: 9012,
+        brokerProtocolVersion: "test",
+        appVersion: "0.0.0",
+        controlToken: "token-789",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+      process.env.GENUI_BROKER_STATE_FILE = stateFile;
+      await expect(readBrokerState()).resolves.toMatchObject({
+        controlUrl: "http://127.0.0.1:48233",
+        controlToken: "token-789",
+      });
+    } finally {
+      process.env.GENUI_DATA_DIR = previousDataDir;
+      delete process.env.GENUI_BROKER_STATE_FILE;
+      await fs.rm(path.dirname(stateFile), { force: true, recursive: true });
+    }
+  });
 });
