@@ -5,10 +5,12 @@ import path from "node:path";
 import { URL } from "node:url";
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, shell, Tray } from "electron";
 import { deleteArtifact, listArtifacts, pruneArtifacts } from "../src/server/genui/artifacts";
-import { OpenUILangValidationError, renderGenUI } from "../src/server/genui/render";
+import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
+import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli-guidance";
 import { componentCatalog } from "../src/server/genui/component-catalog";
+import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
 import { BROKER_APP_VERSION, BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import {
   type BrokerSettings,
@@ -362,6 +364,47 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/v1/prompt-spec") {
+    sendText(res, 200, buildPromptSpec());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/v1/agent-instructions") {
+    sendText(res, 200, buildAgentInstructions());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/v1/examples") {
+    const name = url.searchParams.get("name");
+    if (name) {
+      const example = getGenUIExample(name);
+      if (!example) {
+        sendJson(res, 404, {
+          error: `Unknown example "${name}".`,
+          available: genUIExamples.map((item) => item.name),
+        });
+        return;
+      }
+      if (url.searchParams.get("json") === "1") {
+        sendJson(res, 200, example);
+      } else {
+        sendText(res, 200, example.openuiLang);
+      }
+      return;
+    }
+
+    sendJson(res, 200, {
+      examples: genUIExamples.map(({ name: exampleName, title, description, size }) => ({
+        name: exampleName,
+        title,
+        description,
+        size,
+        command: `genui examples --name ${exampleName} > ${exampleName}.openui`,
+      })),
+    });
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/v1/guide") {
     sendJson(res, 200, agentUsageGuide);
     return;
@@ -417,6 +460,23 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     } catch (error) {
       if (error instanceof OpenUILangValidationError) {
         sendJson(res, 400, { error: error.message });
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/v1/validate") {
+    requireControlToken(req);
+    const body = await readRequestJson(req);
+    const openuiLang = typeof body.openuiLang === "string" ? body.openuiLang : "";
+    try {
+      validateOpenUILang(openuiLang);
+      sendJson(res, 200, { valid: true });
+    } catch (error) {
+      if (error instanceof OpenUILangValidationError) {
+        sendJson(res, 200, { valid: false, error: error.message });
         return;
       }
       throw error;
@@ -768,6 +828,11 @@ function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
+}
+
+function sendText(res: ServerResponse, status: number, body: string): void {
+  res.writeHead(status, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end(body);
 }
 
 function openSettingsWindow(): void {

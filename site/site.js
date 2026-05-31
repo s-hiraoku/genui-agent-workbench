@@ -40,10 +40,9 @@ function setDownloadLinks() {
   releaseLink.href = latestReleaseUrl;
   sourceLink.href = repoUrl;
   if (cloneCommand) {
-    cloneCommand.textContent = `mkdir -p ~/Developer/tools
-git clone ${repoUrl}.git ~/Developer/tools/${repository.repo}
-cd ~/Developer/tools/${repository.repo}
-npm install`;
+    cloneCommand.textContent = `mkdir -p ~/.local/bin
+cp ./genui ~/.local/bin/genui
+chmod +x ~/.local/bin/genui`;
   }
   note.textContent = `最新 Release から ${RELEASE_ASSET} をダウンロードします。`;
 }

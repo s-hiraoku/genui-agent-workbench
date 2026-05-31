@@ -25,8 +25,9 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The `Build Release Asset` workflow builds the macOS arm64 zip, renames the
-generated artifact to the stable asset name, and uploads it to the release.
+The `Build Release Asset` workflow builds the macOS arm64 zip, packages
+`GenUI Popup Broker.app`, the standalone `genui` CLI, and `INSTALL.txt` under
+the stable asset name, then uploads it to the release.
 For a manual run, use the workflow dispatch input `tag_name` with a value such
 as `v0.1.0`.
 
@@ -39,16 +40,14 @@ repository. The intended user flow is:
 1. Download `genui-popup-broker-macos-arm64.zip`.
 2. Move `GenUI Popup Broker.app` to `/Applications`.
 3. Launch the unsigned app through Finder's right-click `Open` path.
-4. Clone this repository once into a shared tools directory for the agent-facing CLI.
-5. Run `npm ci`.
-6. Validate an example OpenUI Lang file.
-7. Open the first popup with `npm run genui -- popup`.
+4. Copy the bundled `genui` command to `~/.local/bin/genui`.
+5. Validate an example OpenUI Lang file.
+6. Open the first popup with `genui popup`.
 
-The app zip provides the resident broker. The CLI currently lives in this
-repository and is invoked with `npm run genui`; users should not clone the
-repository into every project that wants to show GenUI popups. A future
-distribution should replace this section with a global `genui` command or an
-app-bundled CLI.
+The release zip provides both the resident broker and the CLI. The CLI runs
+through the Electron runtime inside the installed app, and can fall back to
+Node.js from `PATH` when the app has not been moved yet. End users do not need
+to clone this repository or run `npm install` to try a popup.
 
 ## Local Preview
 

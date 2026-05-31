@@ -82,7 +82,7 @@
             </div>
             <div>
               <dt>CLI</dt>
-              <dd>Developer preview: Node.js 24 + Git</dd>
+              <dd>zip 同梱の <code>genui</code></dd>
             </div>
             <div>
               <dt>配布 asset</dt>
@@ -131,7 +131,7 @@
         <ol class="steps">
           <li>
             <h3>zip をダウンロード</h3>
-            <p>上部のダウンロードボタンから <code>genui-popup-broker-macos-arm64.zip</code> を取得します。これは <code>npm run electron:pack</code> で作られる未署名ローカルパッケージです。</p>
+            <p>上部のダウンロードボタンから <code>genui-popup-broker-macos-arm64.zip</code> を取得します。zip には <code>GenUI Popup Broker.app</code> とコマンドライン用の <code>genui</code> が入っています。</p>
           </li>
           <li>
             <h3>アプリを配置</h3>
@@ -151,32 +151,32 @@
       <section class="section split" id="first-popup" aria-labelledby="first-popup-title">
         <div class="section-heading">
           <p class="eyebrow"><span class="step-tag">Step 2</span></p>
-          <h2 id="first-popup-title">CLI を準備して最初の画面を出す</h2>
+          <h2 id="first-popup-title">CLI を置いて最初の画面を出す</h2>
           <p>
             ダウンロードしたアプリは、画面（popup）を表示する待機役です。
-            AI からアプリを呼び出すためのコマンド（CLI）は、現時点ではこのリポジトリに入っています。
-            各プロジェクトに clone するのではなく、共通のツール置き場に一度だけ取得して使います。
+            AI からアプリを呼び出すためのコマンド（CLI）も zip に入っているので、
+            展開したフォルダで以下を実行します。Node.js が入っていない Mac でも、
+            CLI はインストール済みアプリ内の実行環境を使えます。
           </p>
         </div>
         <div class="code-stack">
           <figure>
-            <figcaption><span class="num">01</span> CLI 用 checkout を一度だけセットアップ</figcaption>
-            <pre tabindex="0"><code id="clone-command">mkdir -p ~/Developer/tools
-git clone https://github.com/s-hiraoku/genui-agent-workbench.git ~/Developer/tools/genui-agent-workbench
-cd ~/Developer/tools/genui-agent-workbench
-npm install</code></pre>
+            <figcaption><span class="num">01</span> CLI を PATH に置く</figcaption>
+            <pre tabindex="0"><code id="clone-command">mkdir -p ~/.local/bin
+cp ./genui ~/.local/bin/genui
+chmod +x ~/.local/bin/genui</code></pre>
           </figure>
           <figure>
             <figcaption><span class="num">02</span> サンプル UI を OpenUI Lang として書き出す</figcaption>
-            <pre tabindex="0"><code>npm run --silent genui -- examples --name build-review &gt; ui.openui</code></pre>
+            <pre tabindex="0"><code>genui examples --name build-review &gt; ui.openui</code></pre>
           </figure>
           <figure>
             <figcaption><span class="num">03</span> OpenUI Lang を検証</figcaption>
-            <pre tabindex="0"><code>npm run genui -- validate --openui-lang-file ui.openui</code></pre>
+            <pre tabindex="0"><code>genui validate --openui-lang-file ui.openui</code></pre>
           </figure>
           <figure>
             <figcaption><span class="num">04</span> popup を開く</figcaption>
-            <pre tabindex="0"><code>npm run genui -- popup \
+            <pre tabindex="0"><code>genui popup \
   --agent-id codex \
   --title "Build Review" \
   --size panel \
@@ -184,7 +184,7 @@ npm install</code></pre>
           </figure>
           <figure>
             <figcaption><span class="num">05</span> ユーザーの完了を待つ（任意）</figcaption>
-            <pre tabindex="0"><code>npm run genui -- popup \
+            <pre tabindex="0"><code>genui popup \
   --agent-id codex \
   --title "Decision Review" \
   --openui-lang-file ui.openui \
@@ -198,7 +198,7 @@ npm install</code></pre>
   "previewUrl": "http://127.0.0.1:3000/preview/art_...",
   "status": "open",
   "generationMode": "provided",
-  "brokerProtocolVersion": "0.2.0"
+  "brokerProtocolVersion": "0.3.0"
 }</code></pre>
           </figure>
         </div>
@@ -233,7 +233,7 @@ a1 = { label: "Open popup", priority: "medium", owner: "agent" }</code></pre>
           <p>
             画面は、あらかじめ用意された部品（コンポーネント）を組み合わせて作ります。
             AI が使えるのはこの一覧の部品だけ。すべての部品と書き方の例は
-            <code>npm run genui -- prompt-spec</code> で確認できます。
+            <code>genui prompt-spec</code> で確認できます。
           </p>
         </div>
         <div class="cards">
@@ -268,22 +268,22 @@ a1 = { label: "Open popup", priority: "medium", owner: "agent" }</code></pre>
         <div class="code-stack">
           <figure>
             <figcaption><span class="num">01</span> CLI に使い方を尋ねる</figcaption>
-            <pre tabindex="0"><code>npm run genui -- agent-instructions
-npm run genui -- prompt-spec
-npm run genui -- components</code></pre>
+            <pre tabindex="0"><code>genui agent-instructions
+genui prompt-spec
+genui components</code></pre>
           </figure>
           <figure>
             <figcaption><span class="num">02</span> stdin からも渡せる</figcaption>
-            <pre tabindex="0"><code>cat ui.openui | npm run genui -- popup \
+            <pre tabindex="0"><code>cat ui.openui | genui popup \
   --agent-id codex \
   --title "Build Review" \
   --stdin-openui</code></pre>
           </figure>
           <figure>
             <figcaption><span class="num">03</span> 完了・状態を扱う</figcaption>
-            <pre tabindex="0"><code>npm run genui -- complete --popup-id "&lt;popupId&gt;" --outcome completed
-npm run genui -- close --popup-id "&lt;popupId&gt;"
-npm run genui -- status</code></pre>
+            <pre tabindex="0"><code>genui complete --popup-id "&lt;popupId&gt;" --outcome completed
+genui close --popup-id "&lt;popupId&gt;"
+genui status</code></pre>
           </figure>
         </div>
       </section>
@@ -319,11 +319,11 @@ npm run genui -- status</code></pre>
           </details>
           <details name="faq">
             <summary>コマンドがアプリに接続できない</summary>
-            <p>まずアプリを起動してください。CLI は未起動時に broker の起動を試しますが、状態は共通 checkout で <code>npm run genui -- status</code> を実行して確認できます。通信は <code>127.0.0.1</code>（あなたの Mac の中だけ）に限定され、外部には公開されません。</p>
+            <p>まずアプリを起動してください。<code>genui popup</code> は未起動時に自動でアプリを立ち上げますが、状態は <code>genui status</code> で確認できます。通信は <code>127.0.0.1</code>（あなたの Mac の中だけ）に限定され、外部には公開されません。</p>
           </details>
           <details name="faq">
-            <summary><code>npm run genui</code> が見つからない</summary>
-            <p>CLI はまだアプリ zip には同梱されていません。この GitHub リポジトリを共通のツール置き場に clone し、<code>npm install</code> を実行したディレクトリで <code>npm run genui -- ...</code> を実行してください。各プロジェクトへリポジトリを複製する必要はありません。</p>
+            <summary><code>genui</code> が見つからない</summary>
+            <p>zip に同梱されている <code>genui</code> を <code>~/.local/bin</code> など PATH の通った場所にコピーしてください。PATH が未設定なら、ターミナルの設定ファイルで <code>export PATH="$HOME/.local/bin:$PATH"</code> を追加します。</p>
           </details>
           <details name="faq">
             <summary>「こういう画面を出して」と文章で頼める？</summary>
@@ -331,7 +331,7 @@ npm run genui -- status</code></pre>
           </details>
           <details name="faq">
             <summary>popup が表示されない</summary>
-            <p><code>npm run genui -- validate --openui-lang-file ui.openui</code> を実行し、OpenUI Lang の検証エラーを先に解消します。検証を通った OpenUI Lang だけがアーティファクトとして保存・描画されます。</p>
+            <p><code>genui validate --openui-lang-file ui.openui</code> を実行し、OpenUI Lang の検証エラーを先に解消します。検証を通った OpenUI Lang だけがアーティファクトとして保存・描画されます。</p>
           </details>
           <details name="faq">
             <summary>公開配布に使えるか</summary>

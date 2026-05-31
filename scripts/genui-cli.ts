@@ -10,7 +10,7 @@ import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
 import { OpenUILangValidationError, validateOpenUILang } from "../src/server/genui/render";
 import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
-import { library, promptOptions } from "../src/library";
+import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli-guidance";
 
 type CliOptions = Record<string, string | boolean>;
 type BrokerConnection = {
@@ -353,53 +353,26 @@ function examples(options: CliOptions): unknown {
       title,
       description,
       size,
-      command: `npm run --silent genui -- examples --name ${name} > ${name}.openui`,
+      command: `genui examples --name ${name} > ${name}.openui`,
     })),
   };
-}
-
-function promptSpec(): string {
-  return [
-    "You are generating OpenUI Lang for GenUI Popup Broker.",
-    "Return only OpenUI Lang code. Do not return Markdown prose.",
-    "The broker will validate the output and render it in an Electron popup.",
-    "",
-    library.prompt(promptOptions),
-  ].join("\n");
-}
-
-function agentInstructions(): string {
-  return `You have access to the GenUI CLI.
-
-Use GenUI when a visual popup helps the user inspect status, risks, decisions, task boards, tables, diffs, maps, media, diagnostics, or approvals.
-
-Workflow:
-1. Run \`npm run genui -- prompt-spec\` and use that output as your OpenUI Lang authoring guide.
-2. Generate OpenUI Lang yourself using only the listed components.
-3. Open the popup with \`npm run genui -- popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
-4. Validate before opening with \`npm run genui -- validate --openui-lang-file <file>\`.
-5. Use \`npm run genui -- examples\` and \`npm run genui -- components\` for examples and the concise component catalog.
-6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result.
-
-Do not send natural-language prompts to GenUI. The CLI/broker is an OpenUI Lang popup runtime, not a UI-planning LLM.
-Never include secrets in OpenUI Lang or context.`;
 }
 
 function printHelp(): void {
   console.log(`GenUI Popup Broker CLI
 
 Usage:
-  npm run genui -- agent-instructions
-  npm run genui -- prompt-spec
-  npm run genui -- components
-  npm run genui -- examples
-  npm run --silent genui -- examples --name build-review > ui.openui
-  npm run genui -- validate --openui-lang-file ui.openui
-  npm run genui -- popup --openui-lang-file ui.openui --agent-id codex --title "Build Review"
-  npm run genui -- popup --openui-lang-file ui.openui --wait
-  npm run genui -- complete --popup-id "<popupId>" --outcome completed
-  npm run genui -- close --popup-id "<popupId>"
-  npm run genui -- status
+  genui agent-instructions
+  genui prompt-spec
+  genui components
+  genui examples
+  genui examples --name build-review > ui.openui
+  genui validate --openui-lang-file ui.openui
+  genui popup --openui-lang-file ui.openui --agent-id codex --title "Build Review"
+  genui popup --openui-lang-file ui.openui --wait
+  genui complete --popup-id "<popupId>" --outcome completed
+  genui close --popup-id "<popupId>"
+  genui status
 
 Options:
   --service-url <url>       Override broker control URL
@@ -478,12 +451,12 @@ async function main(): Promise<void> {
   }
 
   if (command === "prompt-spec") {
-    console.log(promptSpec());
+    console.log(buildPromptSpec());
     return;
   }
 
   if (command === "agent-instructions") {
-    console.log(agentInstructions());
+    console.log(buildAgentInstructions());
     return;
   }
 
