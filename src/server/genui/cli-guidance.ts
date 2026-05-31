@@ -20,8 +20,8 @@ Use GenUI when a visual popup helps the user inspect status, risks, decisions, t
 Workflow:
 1. Run \`${cliCommand} prompt-spec\` and use that output as your OpenUI Lang authoring guide.
 2. Generate OpenUI Lang yourself using only the listed components.
-3. Open the popup with \`${cliCommand} popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
-4. Validate before opening with \`${cliCommand} validate --openui-lang-file <file>\`.
+3. Validate before opening with \`${cliCommand} validate --openui-lang-file <file>\`.
+4. Open the popup with \`${cliCommand} popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
 5. Use \`${cliCommand} examples\` and \`${cliCommand} components\` for examples and the concise component catalog.
 6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result.
 

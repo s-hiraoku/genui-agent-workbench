@@ -124,9 +124,11 @@ describe("agent interface scaffold", () => {
   });
 
   it("builds broker-served CLI guidance for standalone commands", () => {
+    const instructions = buildAgentInstructions();
     expect(buildPromptSpec()).toContain("MetricGrid");
-    expect(buildAgentInstructions()).toContain("genui prompt-spec");
-    expect(buildAgentInstructions()).toContain("genui popup");
+    expect(instructions).toContain("genui prompt-spec");
+    expect(instructions).toContain("genui popup");
+    expect(instructions.indexOf("genui validate")).toBeLessThan(instructions.indexOf("genui popup"));
   });
 
   it("exposes a component catalog without duplicate names", () => {

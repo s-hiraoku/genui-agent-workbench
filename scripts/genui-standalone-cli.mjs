@@ -8,6 +8,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 const EXPECTED_PROTOCOL_VERSION = "0.3.0";
 const DEFAULT_CONTROL_URL = "http://127.0.0.1:48231";
 const DEFAULT_APP_NAME = "GenUI Popup Broker";
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 function parseArgs(argv) {
   const [command = "help", ...rest] = argv;
@@ -35,6 +36,15 @@ function unique(values) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function shouldSkipBrokerStateError(error) {
+  return error?.code === "ENOENT" || error instanceof SyntaxError;
+}
+
+function requestTimeoutMs() {
+  const configured = Number(process.env.GENUI_CLI_REQUEST_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_REQUEST_TIMEOUT_MS;
+}
+
 function brokerStatePaths() {
   const home = os.homedir();
   return unique([
@@ -55,7 +65,7 @@ async function readBrokerStates() {
       const state = JSON.parse(await fs.readFile(statePath, "utf8"));
       return state?.controlUrl ? [{ ...state, statePath, stateMtimeMs: Number.MAX_SAFE_INTEGER }] : [];
     } catch (error) {
-      if (error?.code !== "ENOENT") {
+      if (!shouldSkipBrokerStateError(error)) {
         throw error;
       }
     }
@@ -70,7 +80,7 @@ async function readBrokerStates() {
         states.push({ ...state, statePath, stateMtimeMs: stat.mtimeMs });
       }
     } catch (error) {
-      if (error?.code !== "ENOENT") {
+      if (!shouldSkipBrokerStateError(error)) {
         throw error;
       }
     }
@@ -109,12 +119,19 @@ async function requestRaw(url, init = {}, controlToken) {
     headers.set("x-genui-token", controlToken);
   }
 
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), requestTimeoutMs());
   let response;
   try {
-    response = await fetch(url, { ...init, headers });
+    response = await fetch(url, { ...init, headers, signal: controller.signal });
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`GenUI broker request timed out after ${requestTimeoutMs()}ms.`);
+    }
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(`GenUI broker is not reachable. Detail: ${detail}`);
+  } finally {
+    globalThis.clearTimeout(timeout);
   }
 
   const text = await response.text();
@@ -463,6 +480,8 @@ Environment:
   GENUI_BROKER_APP_PATH     Path to GenUI Popup Broker.app for auto-start
   GENUI_BROKER_STATE_FILE   Path to broker.json
   GENUI_DATA_DIR            Directory containing broker.json
+  GENUI_CLI_REQUEST_TIMEOUT_MS
+                            Broker HTTP request timeout. Default: 30000
 `);
 }
 
@@ -529,6 +548,9 @@ async function main() {
   }
 
   printHelp();
+  if (command !== "help") {
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {
