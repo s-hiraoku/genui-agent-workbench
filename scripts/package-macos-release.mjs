@@ -61,7 +61,7 @@ async function main() {
       "#!/bin/sh",
       "set -eu",
       "",
-      'SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"',
+      'SCRIPT_DIR="$(CDPATH= cd "$(dirname "$0")" && pwd)"',
       'APP_PATH=""',
       'APP_BIN=""',
       'if [ -n "${GENUI_BROKER_APP_PATH:-}" ] && [ -d "${GENUI_BROKER_APP_PATH:-}" ]; then',
