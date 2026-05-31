@@ -56,6 +56,7 @@ export const agentUsageGuide = {
     "AnimationCard",
     "AudioPlayer",
     "VideoPlayer",
+    "VideoPlaylist",
     "MessageThread",
     "TranscriptView",
     "PersonCard",

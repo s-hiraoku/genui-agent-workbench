@@ -132,7 +132,7 @@ The component library is the design boundary. Agents can compose listed componen
 - Progress: `ProgressStepper`, `TimelinePanel`, `TaskBoard`, `WizardForm`
 - Data: `DataTable`, `DataPreview`, `TreeView`
 - Code and changes: `CodeDiff`, `CodeBlock`
-- Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`
+- Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`, `VideoPlaylist`
 - Geography: `MapView`, `MapWithList`, `GeoHeatmap`, `WeatherCard`
 - Conversation and people: `MessageThread`, `TranscriptView`, `PersonCard`, `EventList`
 - Charts: `BarChart`, `LineChart`, `ComboChart`, `DonutChart`, `Sparkline`

@@ -7,7 +7,7 @@ import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
-import { library, promptOptions } from "../src/library";
+import { library, promptOptions, resolveVideoEmbedSource } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 import { sanitizeSettings } from "../src/server/genui/settings";
 
@@ -97,6 +97,23 @@ describe("renderGenUI", () => {
     expect(() => validateOpenUILang(sampleOpenUILang)).not.toThrow();
   });
 
+  it("validates interactive media OpenUI Lang", () => {
+    const mediaOpenUILang = [
+      "root = Card([videos, audio, gallery])",
+      'videos = VideoPlaylist("おすすめ動画", "クリックで候補を切り替え", [v1, v2], true)',
+      'v1 = { title: "Main", src: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", channel: "YouTube", reason: "best match" }',
+      'v2 = { title: "Next", src: "https://youtu.be/aqz-KE-bpKQ?t=42", channel: "YouTube", reason: "next candidate" }',
+      'audio = AudioPlayer("音声候補", "選択式キュー", [track1, track2])',
+      'track1 = { title: "Track 1", src: "https://example.com/a.mp3", artist: "demo" }',
+      'track2 = { title: "Track 2", src: "https://example.com/b.mp3", artist: "demo" }',
+      'gallery = ImageGallery("画像候補", "選択式プレビュー", [img1, img2], 2)',
+      'img1 = { src: "https://example.com/a.png", caption: "A" }',
+      'img2 = { src: "https://example.com/b.png", caption: "B" }',
+    ].join("\n");
+
+    expect(() => validateOpenUILang(mediaOpenUILang)).not.toThrow();
+  });
+
   it("keeps all shipped examples parser-valid", () => {
     expect(genUIExamples.length).toBeGreaterThan(0);
     for (const example of genUIExamples) {
@@ -119,12 +136,30 @@ describe("agent interface scaffold", () => {
     expect(promptSpec).toContain("MetricGrid");
     expect(promptSpec).toContain("ActionPanel");
     expect(promptSpec).toContain("MapView");
+    expect(promptSpec).toContain("VideoPlaylist");
   });
 
   it("exposes a component catalog without duplicate names", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
-    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable"]));
+    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable", "VideoPlaylist"]));
+  });
+
+  it("normalizes YouTube watch and short URLs for inline embeds", () => {
+    expect(resolveVideoEmbedSource("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toEqual({
+      kind: "iframe",
+      provider: "YouTube",
+      src: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0",
+    });
+    expect(resolveVideoEmbedSource("https://youtu.be/aqz-KE-bpKQ?t=1m2s", { autoplay: true })).toEqual({
+      kind: "iframe",
+      provider: "YouTube",
+      src: "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0&autoplay=1&mute=1&start=62",
+    });
+    expect(resolveVideoEmbedSource("https://example.com/demo.mp4")).toEqual({
+      kind: "native",
+      src: "https://example.com/demo.mp4",
+    });
   });
 });
 
@@ -134,6 +169,7 @@ describe("settings", () => {
       design: {
         glassPreset: "milky",
         labelInkPreset: "green",
+        opaque: true,
         themeColorPreset: "mint",
         windowAnimationPreset: "center",
       },
@@ -147,6 +183,7 @@ describe("settings", () => {
       design: {
         glassPreset: "milky",
         labelInkPreset: "green",
+        opaque: true,
         themeColorPreset: "azure",
         windowAnimationPreset: "center",
       },

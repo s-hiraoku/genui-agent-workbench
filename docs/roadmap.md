@@ -11,7 +11,7 @@ Status: complete for local development.
 - Artifacts are saved under `.genui/artifacts`.
 - Broker validates OpenUI Lang before saving artifacts.
 - Agent-facing component catalog is exposed.
-- Core explanation components exist: `MetricGrid`, `ActionPanel`, `TimelinePanel`, `DecisionMatrix`, `MapView`, `AudioPlayer`, `VideoPlayer`.
+- Core explanation components exist: `MetricGrid`, `ActionPanel`, `TimelinePanel`, `DecisionMatrix`, `MapView`, `AudioPlayer`, `VideoPlayer`, `VideoPlaylist`.
 - Preview renderer has defensive layout rules for agent-authored UI.
 - Lint/test/build/electron-build pass.
 - Local control API uses a per-run token for private and mutating endpoints.
