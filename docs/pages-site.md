@@ -30,20 +30,25 @@ generated artifact to the stable asset name, and uploads it to the release.
 For a manual run, use the workflow dispatch input `tag_name` with a value such
 as `v0.1.0`.
 
-## End-User Flow Covered By The Site
+## User Flow Covered By The Site
 
-The published site is written for a user who needs to:
+The published site is written for the current developer-preview packaging,
+where the app is downloadable but the agent-facing CLI still lives in this
+repository. The intended user flow is:
 
 1. Download `genui-popup-broker-macos-arm64.zip`.
 2. Move `GenUI Popup Broker.app` to `/Applications`.
 3. Launch the unsigned app through Finder's right-click `Open` path.
-4. Clone this repository for the agent-facing CLI.
+4. Clone this repository once into a shared tools directory for the agent-facing CLI.
 5. Run `npm ci`.
 6. Validate an example OpenUI Lang file.
 7. Open the first popup with `npm run genui -- popup`.
 
 The app zip provides the resident broker. The CLI currently lives in this
-repository and is invoked with `npm run genui`.
+repository and is invoked with `npm run genui`; users should not clone the
+repository into every project that wants to show GenUI popups. A future
+distribution should replace this section with a global `genui` command or an
+app-bundled CLI.
 
 ## Local Preview
 

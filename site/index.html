@@ -82,7 +82,7 @@
             </div>
             <div>
               <dt>CLI</dt>
-              <dd>Node.js 24 + Git</dd>
+              <dd>Developer preview: Node.js 24 + Git</dd>
             </div>
             <div>
               <dt>配布 asset</dt>
@@ -106,7 +106,7 @@
         <ol class="steps">
           <li>
             <h3>書き方を調べる</h3>
-            <p>AI が <code>genui prompt-spec</code> で「画面の指示書」の書き方ガイドを取得します。</p>
+            <p>AI が CLI から <code>prompt-spec</code> を呼び、「画面の指示書」の書き方ガイドを取得します。</p>
           </li>
           <li>
             <h3>指示書を作る</h3>
@@ -114,7 +114,7 @@
           </li>
           <li>
             <h3>アプリに渡す</h3>
-            <p><code>genui popup</code> で指示書をアプリに送ります。アプリが起動していなければ自動で立ち上がります。</p>
+            <p>CLI の <code>popup</code> コマンドで指示書をアプリに送ります。アプリが起動していなければ broker の起動を試します。</p>
           </li>
           <li>
             <h3>画面が開く</h3>
@@ -154,15 +154,16 @@
           <h2 id="first-popup-title">CLI を準備して最初の画面を出す</h2>
           <p>
             ダウンロードしたアプリは、画面（popup）を表示する待機役です。
-            AI からアプリを呼び出すためのコマンド（CLI）はこのリポジトリに入っているので、
-            ターミナルで以下を実行します。
+            AI からアプリを呼び出すためのコマンド（CLI）は、現時点ではこのリポジトリに入っています。
+            各プロジェクトに clone するのではなく、共通のツール置き場に一度だけ取得して使います。
           </p>
         </div>
         <div class="code-stack">
           <figure>
-            <figcaption><span class="num">01</span> リポジトリを取得してセットアップ</figcaption>
-            <pre tabindex="0"><code id="clone-command">git clone https://github.com/s-hiraoku/genui-agent-workbench.git
-cd genui-agent-workbench
+            <figcaption><span class="num">01</span> CLI 用 checkout を一度だけセットアップ</figcaption>
+            <pre tabindex="0"><code id="clone-command">mkdir -p ~/Developer/tools
+git clone https://github.com/s-hiraoku/genui-agent-workbench.git ~/Developer/tools/genui-agent-workbench
+cd ~/Developer/tools/genui-agent-workbench
 npm install</code></pre>
           </figure>
           <figure>
@@ -259,8 +260,9 @@ a1 = { label: "Open popup", priority: "medium", owner: "agent" }</code></pre>
           <p class="eyebrow">For agents</p>
           <h2 id="agent-title">AI に渡す最小手順</h2>
           <p>
-            コマンド（CLI）は AI に向けて自分の使い方を説明します。まず使い方を取得し、
-            「指示書を作る → 内容をチェック → 画面を表示」の順に進めます。
+            コマンド（CLI）は AI に向けて自分の使い方を説明します。
+            現在の developer preview では、共通 checkout の中で <code>npm run genui -- ...</code> を実行します。
+            公開版ではプロジェクトから直接呼べる <code>genui</code> コマンドに寄せる予定です。
           </p>
         </div>
         <div class="code-stack">
@@ -317,11 +319,11 @@ npm run genui -- status</code></pre>
           </details>
           <details name="faq">
             <summary>コマンドがアプリに接続できない</summary>
-            <p>まずアプリを起動してください。<code>genui popup</code> は未起動時に自動でアプリを立ち上げますが、状態は <code>npm run genui -- status</code> で確認できます。通信は <code>127.0.0.1</code>（あなたの Mac の中だけ）に限定され、外部には公開されません。</p>
+            <p>まずアプリを起動してください。CLI は未起動時に broker の起動を試しますが、状態は共通 checkout で <code>npm run genui -- status</code> を実行して確認できます。通信は <code>127.0.0.1</code>（あなたの Mac の中だけ）に限定され、外部には公開されません。</p>
           </details>
           <details name="faq">
             <summary><code>npm run genui</code> が見つからない</summary>
-            <p>CLI はアプリ zip ではなく、この GitHub リポジトリ側にあります。<code>git clone</code> して <code>npm install</code> を実行したディレクトリでコマンドを実行してください。</p>
+            <p>CLI はまだアプリ zip には同梱されていません。この GitHub リポジトリを共通のツール置き場に clone し、<code>npm install</code> を実行したディレクトリで <code>npm run genui -- ...</code> を実行してください。各プロジェクトへリポジトリを複製する必要はありません。</p>
           </details>
           <details name="faq">
             <summary>「こういう画面を出して」と文章で頼める？</summary>
