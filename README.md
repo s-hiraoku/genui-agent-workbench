@@ -12,9 +12,9 @@ GenUI is a visual output surface for agents, not a chat app and not a broker-sid
 
 The intended flow:
 
-1. The agent reads the CLI-provided authoring guide with `npm run genui -- prompt-spec`.
+1. The agent reads the CLI-provided authoring guide with `genui prompt-spec`.
 2. The agent decides the UI and generates OpenUI Lang.
-3. The agent calls `npm run genui -- popup --openui-lang-file ui.openui`.
+3. The agent calls `genui popup --openui-lang-file ui.openui`.
 4. The CLI starts or connects to the resident Electron broker.
 5. The broker validates the OpenUI Lang, saves an artifact under `.genui/artifacts`, and opens a popup.
 6. The preview page renders the artifact with OpenUI `<Renderer>`.
@@ -22,6 +22,22 @@ The intended flow:
 The broker does not interpret natural-language prompts and does not call an LLM. UI planning belongs to the calling agent.
 
 ## Setup
+
+For end users, download `genui-popup-broker-macos-arm64.zip`, move
+`GenUI Popup Broker.app` to `/Applications`, and copy the bundled `genui`
+command to a directory on `PATH`:
+
+```bash
+mkdir -p ~/.local/bin
+cp ./genui ~/.local/bin/genui
+chmod +x ~/.local/bin/genui
+```
+
+The release CLI runs through the Electron runtime inside
+`/Applications/GenUI Popup Broker.app`. If the app is not installed yet, it can
+also use Node.js from `PATH`.
+
+For local development from this repository:
 
 ```bash
 npm install
@@ -45,18 +61,18 @@ The `popup` command also attempts to start the broker when it is not reachable.
 Ask the CLI how an agent should use it:
 
 ```bash
-npm run genui -- agent-instructions
-npm run genui -- prompt-spec
-npm run genui -- components
-npm run genui -- examples
+genui agent-instructions
+genui prompt-spec
+genui components
+genui examples
 ```
 
 Open a popup from OpenUI Lang:
 
 ```bash
-npm run --silent genui -- examples --name build-review > ui.openui
-npm run genui -- validate --openui-lang-file ui.openui
-npm run genui -- popup \
+genui examples --name build-review > ui.openui
+genui validate --openui-lang-file ui.openui
+genui popup \
   --agent-id codex \
   --title "Build Review" \
   --size panel \
@@ -66,7 +82,7 @@ npm run genui -- popup \
 Open from stdin:
 
 ```bash
-cat ui.openui | npm run genui -- popup \
+cat ui.openui | genui popup \
   --agent-id codex \
   --title "Build Review" \
   --stdin-openui
@@ -75,7 +91,7 @@ cat ui.openui | npm run genui -- popup \
 Wait until the popup is closed:
 
 ```bash
-npm run genui -- popup \
+genui popup \
   --agent-id codex \
   --title "Build Review" \
   --openui-lang-file ui.openui \
@@ -85,10 +101,10 @@ npm run genui -- popup \
 Close and inspect:
 
 ```bash
-npm run genui -- close --popup-id "<popupId>"
-npm run genui -- complete --popup-id "<popupId>" --outcome completed
-npm run genui -- status
-npm run genui -- guide
+genui close --popup-id "<popupId>"
+genui complete --popup-id "<popupId>" --outcome completed
+genui status
+genui guide
 ```
 
 Popup chrome includes a completion control. When an agent opens a popup with
@@ -105,9 +121,13 @@ popup reported an explicit outcome.
   "previewUrl": "http://127.0.0.1:3000/preview/art_...",
   "status": "open",
   "generationMode": "provided",
-  "brokerProtocolVersion": "0.2.0"
+  "brokerProtocolVersion": "0.3.0"
 }
 ```
+
+Repository developers can still use `npm run genui -- ...`; the release zip
+bundles the standalone `genui` command so users do not need to clone this repo
+or run `npm install`.
 
 ## OpenUI Lang Example
 
@@ -137,7 +157,7 @@ The component library is the design boundary. Agents can compose listed componen
 - Conversation and people: `MessageThread`, `TranscriptView`, `PersonCard`, `EventList`
 - Charts: `BarChart`, `LineChart`, `ComboChart`, `DonutChart`, `Sparkline`
 
-Run `npm run genui -- prompt-spec` for full signatures and examples.
+Run `genui prompt-spec` for full signatures and examples.
 
 ## Liquid Glass Design
 
@@ -161,10 +181,14 @@ Available presets:
 - `GET /v1/status`
 - `GET /v1/components`
 - `GET /v1/guide`
+- `GET /v1/prompt-spec`
+- `GET /v1/agent-instructions`
+- `GET /v1/examples`
 - `GET /v1/sizes`
 - `GET /v1/settings`
 - `POST /v1/settings`
 - `POST /v1/popups`
+- `POST /v1/validate`
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
 - `POST /v1/popups/:popupId/complete`
@@ -212,8 +236,19 @@ Build an unsigned local macOS `.zip` package:
 npm run electron:pack
 ```
 
-The artifact is written under `dist/`. This is the default local sharing target
-because it does not depend on macOS disk image tooling.
+The Electron app artifact is written under `dist/`.
+
+Build the end-user release zip with the app, standalone `genui` CLI, and
+`INSTALL.txt`:
+
+```bash
+npm run release:macos
+```
+
+The stable release asset is written to
+`release/genui-popup-broker-macos-arm64.zip`. This is the default local sharing
+target because it does not require a repo clone or npm install on the target
+machine.
 
 Build an unsigned local macOS `.dmg` when the host supports `hdiutil`:
 

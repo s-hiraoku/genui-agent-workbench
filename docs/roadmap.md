@@ -26,6 +26,7 @@ Status: complete for local development.
 ## Phase 3: Packaging
 
 - Build a local unsigned macOS `.zip` package.
+- Bundle the standalone `genui` CLI with the macOS release zip.
 - Keep `.dmg` as an optional host-dependent packaging target.
 - Add macOS signing and notarization.
 - Add optional login-item auto-start.

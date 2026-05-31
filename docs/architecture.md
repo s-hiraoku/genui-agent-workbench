@@ -8,7 +8,7 @@
 AI agent
   ↓ reads CLI prompt-spec and components
 OpenUI Lang
-  ↓ `npm run genui -- popup --openui-lang-file ...`
+  ↓ `genui popup --openui-lang-file ...`
 Electron main process
   ↓ local control API
 renderGenUI(input)
@@ -25,7 +25,8 @@ OpenUI Renderer + custom component library
 ## Responsibilities
 
 - Electron main owns tray lifecycle, settings, local control API, popup windows, and the Next.js child service.
-- `scripts/genui-cli.ts` is the supported agent-facing interface. It exposes authoring instructions and sends OpenUI Lang to the broker.
+- `scripts/genui-standalone-cli.mjs` is the distributed agent-facing interface. It starts/connects to the packaged broker, reads `broker.json`, and sends OpenUI Lang through the local control API.
+- `scripts/genui-cli.ts` is the repository development CLI with the same command surface.
 - `src/server/genui/render.ts` validates caller-provided OpenUI Lang and creates artifacts. It does not call an LLM and does not infer UI from natural language.
 - `src/library.ts` owns OpenUI custom components, schemas, prompt guidance, and visual implementation.
 - `src/server/genui/component-catalog.ts` owns concise component discovery metadata.
@@ -42,12 +43,15 @@ OpenUI Renderer + custom component library
 - `GET /v1/settings`: read resident broker settings.
 - `POST /v1/settings`: update resident broker settings.
 - `POST /v1/popups`: validate OpenUI Lang, create an artifact, and open a popup.
+- `POST /v1/validate`: validate caller-provided OpenUI Lang without opening a popup.
 - `GET /v1/popups/:popupId`: inspect popup state.
 - `POST /v1/popups/:popupId/close`: close a popup.
 - `POST /v1/popups/:popupId/complete`: complete, cancel, or fail a popup with optional structured payload.
 - `GET /v1/artifacts`: list stored artifacts.
 - `DELETE /v1/artifacts/:artifactId`: delete an artifact.
 - `POST /v1/artifacts/prune`: keep the newest N artifacts and delete older entries.
+- `GET /v1/prompt-spec`, `GET /v1/agent-instructions`, and
+  `GET /v1/examples`: expose agent-facing CLI guidance for the standalone CLI.
 
 The control API is local-only on `127.0.0.1`. The current URL and per-run
 control token are written to `.genui/broker.json`. Private and mutating

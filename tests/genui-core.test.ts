@@ -5,6 +5,7 @@ import path from "node:path";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
+import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli-guidance";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
 import { library, promptOptions } from "../src/library";
@@ -111,6 +112,7 @@ describe("agent interface scaffold", () => {
     expect(agentUsageGuide.preferredFlow.join("\n")).toContain("validate");
     expect(agentUsageGuide.cli.open).toContain("--openui-lang-file");
     expect(agentUsageGuide.cli.openAndWait).toContain("--wait");
+    expect(agentUsageGuide.cli.open).toContain("genui popup");
     expect(agentUsageGuide.purpose).toContain("The agent generates OpenUI Lang");
   });
 
@@ -119,6 +121,14 @@ describe("agent interface scaffold", () => {
     expect(promptSpec).toContain("MetricGrid");
     expect(promptSpec).toContain("ActionPanel");
     expect(promptSpec).toContain("MapView");
+  });
+
+  it("builds broker-served CLI guidance for standalone commands", () => {
+    const instructions = buildAgentInstructions();
+    expect(buildPromptSpec()).toContain("MetricGrid");
+    expect(instructions).toContain("genui prompt-spec");
+    expect(instructions).toContain("genui popup");
+    expect(instructions.indexOf("genui validate")).toBeLessThan(instructions.indexOf("genui popup"));
   });
 
   it("exposes a component catalog without duplicate names", () => {
@@ -174,5 +184,66 @@ describe("broker state", () => {
       pid: 1234,
       controlToken: "token-123",
     });
+  });
+
+  it("can read broker state from an explicit state file", async () => {
+    const stateFile = path.join(genuiTestRoot, randomUUID(), "broker.json");
+    await fs.mkdir(path.dirname(stateFile), { recursive: true });
+    await fs.writeFile(
+      stateFile,
+      JSON.stringify({
+        controlUrl: "http://127.0.0.1:48232",
+        nextUrl: "http://127.0.0.1:3001",
+        pid: 5678,
+        brokerProtocolVersion: "test",
+        appVersion: "0.0.0",
+        controlToken: "token-456",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }),
+      "utf8",
+    );
+
+    const previousDataDir = process.env.GENUI_DATA_DIR;
+    try {
+      process.env.GENUI_BROKER_STATE_FILE = stateFile;
+      delete process.env.GENUI_DATA_DIR;
+      await expect(readBrokerState()).resolves.toMatchObject({
+        controlUrl: "http://127.0.0.1:48232",
+        controlToken: "token-456",
+      });
+    } finally {
+      process.env.GENUI_DATA_DIR = previousDataDir;
+      delete process.env.GENUI_BROKER_STATE_FILE;
+      await fs.rm(path.dirname(stateFile), { force: true, recursive: true });
+    }
+  });
+
+  it("skips malformed broker state files", async () => {
+    const stateFile = path.join(genuiTestRoot, randomUUID(), "broker.json");
+    await fs.mkdir(path.dirname(stateFile), { recursive: true });
+    await fs.writeFile(stateFile, "{not-json", "utf8");
+
+    const previousDataDir = process.env.GENUI_DATA_DIR;
+    try {
+      process.env.GENUI_DATA_DIR = path.join(genuiTestRoot, randomUUID());
+      await writeBrokerState({
+        controlUrl: "http://127.0.0.1:48233",
+        nextUrl: "http://127.0.0.1:3002",
+        pid: 9012,
+        brokerProtocolVersion: "test",
+        appVersion: "0.0.0",
+        controlToken: "token-789",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+      process.env.GENUI_BROKER_STATE_FILE = stateFile;
+      await expect(readBrokerState()).resolves.toMatchObject({
+        controlUrl: "http://127.0.0.1:48233",
+        controlToken: "token-789",
+      });
+    } finally {
+      process.env.GENUI_DATA_DIR = previousDataDir;
+      delete process.env.GENUI_BROKER_STATE_FILE;
+      await fs.rm(path.dirname(stateFile), { force: true, recursive: true });
+    }
   });
 });

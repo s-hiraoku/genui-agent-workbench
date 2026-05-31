@@ -27,14 +27,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install --include=optional
-      - name: Build macOS arm64 zip
-        run: npm run electron:zip -- --arm64
-      - name: Prepare stable asset name
-        run: |
-          mkdir -p release
-          asset="$(find dist -maxdepth 1 -name 'GenUI Popup Broker-*-arm64-mac.zip' -print -quit)"
-          test -n "$asset"
-          cp "$asset" "release/genui-popup-broker-macos-arm64.zip"
+      - name: Build macOS arm64 release zip
+        run: npm run release:macos
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
