@@ -209,7 +209,13 @@ async function startNextService(): Promise<void> {
   };
 
   if (app.isPackaged) {
-    const standaloneDir = path.join(app.getAppPath(), ".next", "standalone");
+    // The standalone server is unpacked from the asar (see build.asarUnpack)
+    // so it can be spawned as a real file/dir. app.getAppPath() points at
+    // app.asar, which is a file, not a directory — using it as cwd yields
+    // ENOTDIR. Redirect to the .unpacked sibling.
+    const standaloneDir = path
+      .join(app.getAppPath(), ".next", "standalone")
+      .replace(`${path.sep}app.asar${path.sep}`, `${path.sep}app.asar.unpacked${path.sep}`);
     const serverPath = path.join(standaloneDir, "server.js");
     nextProcess = spawn(process.execPath, [serverPath], {
       cwd: standaloneDir,
@@ -871,9 +877,23 @@ async function boot(): Promise<void> {
     app.dock?.hide();
   }
 
-  await startNextService();
-  await startControlApi();
+  // Build the tray first so the app is always reachable from the menu bar,
+  // even if a background service fails to start. Otherwise an early service
+  // error leaves the process running with no tray and no dock icon.
   buildTray();
+
+  try {
+    await startNextService();
+  } catch (err) {
+    nextServiceStatus = "failed";
+    console.error("[genui] next service failed to start:", err);
+    scheduleNextRestart();
+  }
+  try {
+    await startControlApi();
+  } catch (err) {
+    console.error("[genui] control API failed to start:", err);
+  }
   console.log(`[genui] control API: ${controlUrl}`);
   console.log(`[genui] next service: ${nextUrl}`);
 }
