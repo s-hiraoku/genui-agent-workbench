@@ -5,10 +5,11 @@ This repository includes a static download and setup site under `site/`.
 ## Publish
 
 1. Enable GitHub Pages for the repository if it is not already enabled.
-2. Set the Pages source to the `gh-pages` branch.
+2. Set the Pages source to GitHub Actions.
 3. Push to `main`, or run the `Publish GitHub Pages` workflow manually.
 
-The Pages workflow publishes the `site/` directory to the `gh-pages` branch.
+The Pages workflow uploads the `site/` directory as a Pages artifact and
+deploys it from GitHub Actions. No generated site branch is required.
 
 ## Release Asset
 
