@@ -116,6 +116,9 @@ describe("renderGenUI", () => {
 
   it("keeps all shipped examples parser-valid", () => {
     expect(genUIExamples.length).toBeGreaterThan(0);
+    expect(genUIExamples.map((example) => example.name)).toEqual(
+      expect.arrayContaining(["code-review", "research-brief", "support-triage", "data-quality"]),
+    );
     for (const example of genUIExamples) {
       expect(() => validateOpenUILang(example.openuiLang)).not.toThrow();
     }
@@ -128,6 +131,8 @@ describe("agent interface scaffold", () => {
     expect(agentUsageGuide.preferredFlow.join("\n")).toContain("validate");
     expect(agentUsageGuide.cli.open).toContain("--openui-lang-file");
     expect(agentUsageGuide.cli.openAndWait).toContain("--wait");
+    expect(agentUsageGuide.cli.artifacts).toContain("artifacts");
+    expect(agentUsageGuide.cli.replay).toContain("replay");
     expect(agentUsageGuide.purpose).toContain("The agent generates OpenUI Lang");
   });
 

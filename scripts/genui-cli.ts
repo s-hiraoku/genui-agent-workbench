@@ -110,6 +110,14 @@ function parseJsonObject(label: string, value: string): Record<string, unknown> 
   return parsed as Record<string, unknown>;
 }
 
+function requireStringOption(options: CliOptions, key: string): string {
+  const value = options[key];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`--${key} is required`);
+  }
+  return value;
+}
+
 async function resolveOpenUILang(options: CliOptions): Promise<string> {
   if (typeof options["openui-lang"] === "string") return options["openui-lang"];
   if (typeof options["openui-lang-file"] === "string") return readTextFile(options["openui-lang-file"]);
@@ -248,21 +256,17 @@ async function popup(options: CliOptions): Promise<unknown> {
 }
 
 async function close(options: CliOptions): Promise<unknown> {
-  if (typeof options["popup-id"] !== "string" || options["popup-id"].trim().length === 0) {
-    throw new Error("--popup-id is required");
-  }
+  const popupId = requireStringOption(options, "popup-id");
 
   const connection = await resolveBrokerConnection(options);
   const status = await brokerStatus(connection);
   if (!status) throw new Error("GenUI broker is not reachable.");
   assertCompatibleBroker(status);
-  return requestJson(`${connection.controlUrl}/v1/popups/${options["popup-id"]}/close`, { method: "POST" }, connection.controlToken);
+  return requestJson(`${connection.controlUrl}/v1/popups/${encodeURIComponent(popupId)}/close`, { method: "POST" }, connection.controlToken);
 }
 
 async function complete(options: CliOptions): Promise<unknown> {
-  if (typeof options["popup-id"] !== "string" || options["popup-id"].trim().length === 0) {
-    throw new Error("--popup-id is required");
-  }
+  const popupId = requireStringOption(options, "popup-id");
 
   const connection = await resolveBrokerConnection(options);
   const status = await brokerStatus(connection);
@@ -276,7 +280,7 @@ async function complete(options: CliOptions): Promise<unknown> {
   const payload = await resolvePayload(options);
 
   return requestJson(
-    `${connection.controlUrl}/v1/popups/${options["popup-id"]}/complete`,
+    `${connection.controlUrl}/v1/popups/${encodeURIComponent(popupId)}/complete`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -291,6 +295,84 @@ async function status(options: CliOptions): Promise<unknown> {
   const result = await brokerStatus(connection);
   if (!result) throw new Error("GenUI broker status is unavailable.");
   return result;
+}
+
+async function popups(options: CliOptions): Promise<unknown> {
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
+  if (!status) throw new Error("GenUI broker is not reachable.");
+  assertCompatibleBroker(status);
+  return requestJson(`${connection.controlUrl}/v1/popups`, undefined, connection.controlToken);
+}
+
+async function artifacts(options: CliOptions): Promise<unknown> {
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
+  if (!status) throw new Error("GenUI broker is not reachable.");
+  assertCompatibleBroker(status);
+  const limit = typeof options.limit === "string" ? Number(options.limit) : 20;
+  const search = new URLSearchParams({
+    limit: String(Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 20),
+  });
+  return requestJson(`${connection.controlUrl}/v1/artifacts?${search}`, undefined, connection.controlToken);
+}
+
+async function artifact(options: CliOptions): Promise<unknown> {
+  const artifactId = requireStringOption(options, "artifact-id");
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
+  if (!status) throw new Error("GenUI broker is not reachable.");
+  assertCompatibleBroker(status);
+  return requestJson(`${connection.controlUrl}/v1/artifacts/${encodeURIComponent(artifactId)}`, undefined, connection.controlToken);
+}
+
+async function replay(options: CliOptions): Promise<unknown> {
+  const artifactId = requireStringOption(options, "artifact-id");
+  const connection = await ensureBroker(options);
+  const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
+  const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
+  const result = await requestJson(
+    `${connection.controlUrl}/v1/artifacts/${encodeURIComponent(artifactId)}/replay`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentId: options["agent-id"],
+        title: options.title,
+        locale: options.locale,
+        size: typeof options.size === "string" ? options.size : undefined,
+        width: Number.isFinite(widthOption) ? widthOption : undefined,
+        height: Number.isFinite(heightOption) ? heightOption : undefined,
+      }),
+    },
+    connection.controlToken,
+  );
+
+  if (options.wait === true) {
+    return waitForPopup(connection, result, options);
+  }
+
+  return result;
+}
+
+async function prune(options: CliOptions): Promise<unknown> {
+  const maxArtifacts = Number(requireStringOption(options, "max-artifacts"));
+  if (!Number.isFinite(maxArtifacts) || maxArtifacts < 1) {
+    throw new Error("--max-artifacts must be a positive number");
+  }
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
+  if (!status) throw new Error("GenUI broker is not reachable.");
+  assertCompatibleBroker(status);
+  return requestJson(
+    `${connection.controlUrl}/v1/artifacts/prune`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxArtifacts }),
+    },
+    connection.controlToken,
+  );
 }
 
 async function waitForPopup(
@@ -380,6 +462,7 @@ Workflow:
 4. Validate before opening with \`npm run genui -- validate --openui-lang-file <file>\`.
 5. Use \`npm run genui -- examples\` and \`npm run genui -- components\` for examples and the concise component catalog.
 6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result.
+7. Use \`npm run genui -- artifacts\` and \`npm run genui -- replay --artifact-id <artifactId>\` to inspect and reopen prior UI.
 
 Do not send natural-language prompts to GenUI. The CLI/broker is an OpenUI Lang popup runtime, not a UI-planning LLM.
 Never include secrets in OpenUI Lang or context.`;
@@ -400,6 +483,11 @@ Usage:
   npm run genui -- complete --popup-id "<popupId>" --outcome completed
   npm run genui -- close --popup-id "<popupId>"
   npm run genui -- status
+  npm run genui -- popups
+  npm run genui -- artifacts --limit 20
+  npm run genui -- artifact --artifact-id "<artifactId>"
+  npm run genui -- replay --artifact-id "<artifactId>" --wait
+  npm run genui -- prune --max-artifacts 50
 
 Options:
   --service-url <url>       Override broker control URL
@@ -420,6 +508,10 @@ Options:
   --wait                    Wait until the popup is completed, cancelled, closed, or failed
   --wait-timeout-ms <ms>    Timeout for --wait. Omit for no timeout
   --outcome <outcome>       completed | cancelled | failed
+  --popup-id <popupId>      Select a popup for close/complete
+  --artifact-id <artifactId> Select an artifact for inspect/replay
+  --limit <count>           Limit artifacts returned by artifacts
+  --max-artifacts <count>   Keep newest N artifacts for prune
   --name <example>          Select an example for the examples command
   --json                    Return selected example as JSON
 `);
@@ -454,6 +546,31 @@ async function main(): Promise<void> {
 
   if (command === "status") {
     console.log(JSON.stringify(await status(options), null, 2));
+    return;
+  }
+
+  if (command === "popups") {
+    console.log(JSON.stringify(await popups(options), null, 2));
+    return;
+  }
+
+  if (command === "artifacts") {
+    console.log(JSON.stringify(await artifacts(options), null, 2));
+    return;
+  }
+
+  if (command === "artifact") {
+    console.log(JSON.stringify(await artifact(options), null, 2));
+    return;
+  }
+
+  if (command === "replay") {
+    console.log(JSON.stringify(await replay(options), null, 2));
+    return;
+  }
+
+  if (command === "prune") {
+    console.log(JSON.stringify(await prune(options), null, 2));
     return;
   }
 
