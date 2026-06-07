@@ -12,6 +12,7 @@ export const agentUsageGuide = {
     "Open the popup with `genui popup --openui-lang-file <file> --title <title> --agent-id <agent>`.",
     "Use `--wait` when the workflow needs a completion, cancellation, close, or failure result.",
     "Use `genui components` for a concise component catalog.",
+    "Use `genui artifacts` to inspect saved UI and `genui replay --artifact-id <artifactId>` to reopen it.",
     "Close the popup with `genui close --popup-id <popupId>` when it is no longer useful.",
   ],
   cli: {
@@ -26,6 +27,11 @@ export const agentUsageGuide = {
       "cat ui.openui | genui popup --agent-id <agent> --title <title> --stdin-openui",
     openAndWait:
       "genui popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait",
+    popups: "genui popups",
+    artifacts: "genui artifacts --limit 20",
+    artifact: "genui artifact --artifact-id <artifactId>",
+    replay: "genui replay --artifact-id <artifactId>",
+    prune: "genui prune --max-artifacts 50",
     close: "genui close --popup-id <popupId>",
     status: "genui status",
   },
@@ -56,6 +62,7 @@ export const agentUsageGuide = {
     "AnimationCard",
     "AudioPlayer",
     "VideoPlayer",
+    "VideoPlaylist",
     "MessageThread",
     "TranscriptView",
     "PersonCard",

@@ -104,6 +104,11 @@ Close and inspect:
 genui close --popup-id "<popupId>"
 genui complete --popup-id "<popupId>" --outcome completed
 genui status
+genui popups
+genui artifacts --limit 20
+genui artifact --artifact-id "<artifactId>"
+genui replay --artifact-id "<artifactId>"
+genui prune --max-artifacts 50
 genui guide
 ```
 
@@ -118,8 +123,10 @@ popup reported an explicit outcome.
 {
   "popupId": "pop_...",
   "artifactId": "art_...",
+  "title": "Build Review",
   "previewUrl": "http://127.0.0.1:3000/preview/art_...",
   "status": "open",
+  "createdAt": "2026-06-07T00:00:00.000Z",
   "generationMode": "provided",
   "brokerProtocolVersion": "0.3.0"
 }
@@ -128,6 +135,10 @@ popup reported an explicit outcome.
 Repository developers can still use `npm run genui -- ...`; the release zip
 bundles the standalone `genui` command so users do not need to clone this repo
 or run `npm install`.
+
+Artifacts remain available after a popup closes. Use `artifacts` for a compact
+history, `artifact` for full OpenUI Lang/context inspection, and `replay` to
+open a saved artifact again without regenerating OpenUI Lang.
 
 ## OpenUI Lang Example
 
@@ -152,7 +163,7 @@ The component library is the design boundary. Agents can compose listed componen
 - Progress: `ProgressStepper`, `TimelinePanel`, `TaskBoard`, `WizardForm`
 - Data: `DataTable`, `DataPreview`, `TreeView`
 - Code and changes: `CodeDiff`, `CodeBlock`
-- Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`
+- Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`, `VideoPlaylist`
 - Geography: `MapView`, `MapWithList`, `GeoHeatmap`, `WeatherCard`
 - Conversation and people: `MessageThread`, `TranscriptView`, `PersonCard`, `EventList`
 - Charts: `BarChart`, `LineChart`, `ComboChart`, `DonutChart`, `Sparkline`
@@ -189,10 +200,13 @@ Available presets:
 - `POST /v1/settings`
 - `POST /v1/popups`
 - `POST /v1/validate`
+- `GET /v1/popups`
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
 - `POST /v1/popups/:popupId/complete`
 - `GET /v1/artifacts`
+- `GET /v1/artifacts/:artifactId`
+- `POST /v1/artifacts/:artifactId/replay`
 - `DELETE /v1/artifacts/:artifactId`
 - `POST /v1/artifacts/prune`
 

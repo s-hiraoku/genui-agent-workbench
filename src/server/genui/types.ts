@@ -88,8 +88,11 @@ export type PopupRecord = {
 export type PopupOpenResponse = {
   popupId: string;
   artifactId: string;
+  agentId?: string;
+  title: string;
   previewUrl: string;
   status: PopupStatus;
+  createdAt: string;
   closedAt?: string;
   error?: string;
   completion?: PopupCompletion;

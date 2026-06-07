@@ -4,7 +4,7 @@ import net from "node:net";
 import path from "node:path";
 import { URL } from "node:url";
 import { app, BrowserWindow, Menu, nativeImage, nativeTheme, screen, shell, Tray } from "electron";
-import { deleteArtifact, listArtifacts, pruneArtifacts } from "../src/server/genui/artifacts";
+import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 import { writeBrokerState } from "../src/server/genui/broker-state";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
@@ -18,7 +18,7 @@ import {
   sanitizeSettings,
   writeSettings,
 } from "../src/server/genui/settings";
-import type { PopupOpenResponse, PopupRecord, PopupStatus, RenderGenUIInput } from "../src/server/genui/types";
+import type { GenUIArtifact, PopupOpenResponse, PopupRecord, PopupStatus, RenderGenUIInput } from "../src/server/genui/types";
 
 type PopupRuntime = PopupRecord & {
   window?: BrowserWindow;
@@ -211,7 +211,13 @@ async function startNextService(): Promise<void> {
   };
 
   if (app.isPackaged) {
-    const standaloneDir = path.join(app.getAppPath(), ".next", "standalone");
+    // The standalone server is unpacked from the asar (see build.asarUnpack)
+    // so it can be spawned as a real file/dir. app.getAppPath() points at
+    // app.asar, which is a file, not a directory — using it as cwd yields
+    // ENOTDIR. Redirect to the .unpacked sibling.
+    const standaloneDir = path
+      .join(app.getAppPath(), ".next", "standalone")
+      .replace(`${path.sep}app.asar${path.sep}`, `${path.sep}app.asar.unpacked${path.sep}`);
     const serverPath = path.join(standaloneDir, "server.js");
     nextProcess = spawn(process.execPath, [serverPath], {
       cwd: standaloneDir,
@@ -339,6 +345,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   const popupMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)$/);
   const popupCloseMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/close$/);
   const popupCompleteMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/complete$/);
+  const artifactReplayMatch = url.pathname.match(/^\/v1\/artifacts\/([^/]+)\/replay$/);
   const artifactMatch = url.pathname.match(/^\/v1\/artifacts\/([^/]+)$/);
 
   if (req.method === "GET" && url.pathname === "/v1/status") {
@@ -484,6 +491,16 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/v1/popups") {
+    requireControlToken(req);
+    sendJson(res, 200, {
+      popups: Array.from(popupRegistry.values())
+        .map(serializePopup)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    });
+    return;
+  }
+
   if (req.method === "GET" && popupMatch) {
     requireControlToken(req);
     const popup = popupRegistry.get(popupMatch[1]);
@@ -527,6 +544,31 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     sendJson(res, 200, {
       artifacts: await listArtifacts(Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 20),
     });
+    return;
+  }
+
+  if (req.method === "GET" && artifactMatch) {
+    requireControlToken(req);
+    const artifact = await loadArtifact(artifactMatch[1]);
+    sendJson(res, artifact ? 200 : 404, artifact ?? { error: "Artifact not found" });
+    return;
+  }
+
+  if (req.method === "POST" && artifactReplayMatch) {
+    requireControlToken(req);
+    const artifact = await loadArtifact(artifactReplayMatch[1]);
+    if (!artifact) {
+      sendJson(res, 404, { error: "Artifact not found" });
+      return;
+    }
+    const body = await readRequestJson(req);
+    const replayInput = body as Partial<RenderGenUIInput>;
+    const opened = await openArtifactPopup(artifact, {
+      ...replayInput,
+      agentId: typeof replayInput.agentId === "string" ? replayInput.agentId : artifact.agentId,
+      title: typeof replayInput.title === "string" ? replayInput.title : artifact.title,
+    });
+    sendJson(res, 200, opened);
     return;
   }
 
@@ -593,7 +635,7 @@ const PRESET_MIN: Record<SizePreset, { w: number; h: number }> = {
   fullscreen: { w: 800, h: 600 },
 };
 
-function pickPreset(input: RenderGenUIInput): SizePreset {
+function pickPreset(input: Partial<RenderGenUIInput>): SizePreset {
   const raw = (input as { size?: unknown; preset?: unknown }).size ?? (input as { preset?: unknown }).preset;
   if (typeof raw === "string" && raw in PRESET_RATIOS) {
     return raw as SizePreset;
@@ -638,15 +680,22 @@ function nextWindowPosition(geometry: WindowGeometry): { x: number; y: number } 
 async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
   const renderInput: RenderGenUIInput = { ...input, design: input.design ?? settings.design };
   const result = await renderGenUI(renderInput);
+  return openArtifactPopup(result.artifact, input);
+}
+
+async function openArtifactPopup(
+  artifact: GenUIArtifact,
+  input: Partial<RenderGenUIInput> = {},
+): Promise<PopupOpenResponse> {
   const popupId = createId("pop");
-  const title = input.title ?? `${input.agentId ?? "Agent"} GenUI`;
+  const title = input.title ?? artifact.title ?? `${input.agentId ?? artifact.agentId ?? "Agent"} GenUI`;
   const theme = resolveTheme(settings.theme);
   const preset = pickPreset(input);
   const geometry = geometryForPreset(preset, input as { width?: unknown; height?: unknown });
   const pos = nextWindowPosition(geometry);
 
   const previewUrl =
-    `${nextUrl}${result.previewPath}` +
+    `${nextUrl}/preview/${artifact.artifactId}` +
     `?popupId=${encodeURIComponent(popupId)}` +
     `&controlUrl=${encodeURIComponent(controlUrl)}` +
     `&theme=${theme}` +
@@ -656,7 +705,7 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
     `&animation=${settings.design.windowAnimationPreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
     `&opaque=${settings.design.opaque ? "1" : "0"}` +
-    `&agent=${encodeURIComponent(input.agentId ?? "agent")}`;
+    `&agent=${encodeURIComponent(input.agentId ?? artifact.agentId ?? "agent")}`;
 
   // The page renders the Aether-style glass material itself. The
   // BrowserWindow stays transparent so the page-level wallpaper and
@@ -691,13 +740,13 @@ async function openPopup(input: RenderGenUIInput): Promise<PopupOpenResponse> {
   }
   const popup: PopupRuntime = {
     popupId,
-    artifactId: result.artifact.artifactId,
-    agentId: input.agentId,
+    artifactId: artifact.artifactId,
+    agentId: input.agentId ?? artifact.agentId,
     title,
     status: "opening",
     previewUrl,
     createdAt: new Date().toISOString(),
-    generationMode: result.artifact.generationMode,
+    generationMode: artifact.generationMode,
     window,
   };
 
@@ -778,8 +827,11 @@ function serializePopup(popup: PopupRuntime): PopupOpenResponse {
   return {
     popupId: popup.popupId,
     artifactId: popup.artifactId,
+    agentId: popup.agentId,
+    title: popup.title,
     previewUrl: popup.previewUrl,
     status: popup.status,
+    createdAt: popup.createdAt,
     closedAt: popup.closedAt,
     error: popup.error,
     completion: popup.completion,
@@ -936,9 +988,23 @@ async function boot(): Promise<void> {
     app.dock?.hide();
   }
 
-  await startNextService();
-  await startControlApi();
+  // Build the tray first so the app is always reachable from the menu bar,
+  // even if a background service fails to start. Otherwise an early service
+  // error leaves the process running with no tray and no dock icon.
   buildTray();
+
+  try {
+    await startNextService();
+  } catch (err) {
+    nextServiceStatus = "failed";
+    console.error("[genui] next service failed to start:", err);
+    scheduleNextRestart();
+  }
+  try {
+    await startControlApi();
+  } catch (err) {
+    console.error("[genui] control API failed to start:", err);
+  }
   console.log(`[genui] control API: ${controlUrl}`);
   console.log(`[genui] next service: ${nextUrl}`);
 }

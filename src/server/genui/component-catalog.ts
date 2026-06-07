@@ -67,7 +67,7 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "ResourceList",
     category: "Agent Explanation",
-    description: "Resource list for files, URLs, documents, generated artifacts, and handoff references.",
+    description: "Clickable resource cards for files, URLs, documents, generated artifacts, and handoff references.",
     useCases: ["file links", "references", "documents", "generated artifacts", "handoff materials"],
     examplePrompt: "関連ファイルと参考URLをリソース一覧として表示して。",
   },
@@ -81,7 +81,7 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "ActionPanel",
     category: "Agent Explanation",
-    description: "Prioritized next-action panel with owner, due date, and severity for agent recommendations.",
+    description: "Prioritized next-action panel with owner, due date, severity, and optional URL handoff CTAs for agent recommendations.",
     useCases: ["next actions", "handoff", "approval workflow", "support escalation", "agent plan"],
     examplePrompt: "この調査結果から、優先度付きの次アクションをユーザーに見せて。",
   },
@@ -138,21 +138,30 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "AudioPlayer",
     category: "Media",
-    description: "Playlist-style audio player for music, voice notes, podcasts, recordings, and generated audio.",
+    description: "Playlist-style audio player with one focused player and a clickable queue for music, voice notes, podcasts, recordings, and generated audio.",
     useCases: ["music preview", "voice note review", "meeting recordings", "podcasts", "generated speech"],
     examplePrompt: "音声メモをプレーヤーで表示して。概要と再生リストも付けて。",
   },
   {
     name: "VideoPlayer",
     category: "Media",
-    description: "Video player with poster, chapters, and transcript support for demos, clips, recordings, and walkthroughs.",
-    useCases: ["screen recordings", "feature demos", "tutorials", "incident evidence", "generated clips"],
+    description:
+      "Video player with poster, chapters, transcript support, and inline YouTube embeds for demos, clips, recordings, and walkthroughs.",
+    useCases: ["YouTube embeds", "screen recordings", "feature demos", "tutorials", "incident evidence", "generated clips"],
     examplePrompt: "デモ動画をチャプター付きで表示して。重要な場面もまとめて。",
+  },
+  {
+    name: "VideoPlaylist",
+    category: "Media",
+    description:
+      "Recommended video playlist with a main inline player and clickable candidate table. Put the best match first for automatic main playback.",
+    useCases: ["YouTube recommendations", "video search results", "tutorial playlist", "demo playlist", "learning queue"],
+    examplePrompt: "おすすめYouTube動画を、1本目をメイン再生、次候補をクリックで切り替えられるUIで表示して。",
   },
   {
     name: "ImageGallery",
     category: "Media",
-    description: "Caption-bearing image grid for screenshots, product photos, design candidates, and visual evidence.",
+    description: "Caption-bearing image gallery with focused preview and selectable thumbnails for screenshots, product photos, design candidates, and visual evidence.",
     useCases: ["screenshot review", "design candidates", "product photos", "visual evidence", "store/cafe imagery"],
     examplePrompt: "スクリーンショットをキャプション付きで並べて表示して。",
   },
@@ -180,7 +189,7 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "QuickActions",
     category: "Decisions",
-    description: "Tile-style shortcut row for fast picking. No per-item description — pair with ActionPanel for details.",
+    description: "Tile-style shortcut row for fast picking with optional URL links. No per-item description — pair with ActionPanel for details.",
     useCases: ["dashboard shortcuts", "command palette", "frequent operations", "home tiles", "navigation buttons"],
     examplePrompt: "よく使う4つの操作をタイル状のショートカットで表示して。",
   },

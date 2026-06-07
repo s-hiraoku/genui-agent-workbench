@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: "GenUI Popup Broker",
   description:
     "A resident GenUI broker that lets AI agents open OpenUI Lang popups through the CLI.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 const noFlash = `

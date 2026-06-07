@@ -43,6 +43,137 @@ const MapWithListDynamic = dynamic<MapWithListProps>(() => import("./app/_ui/Map
       "Loading map…",
     ),
 });
+
+type VideoEmbedSource =
+  | { kind: "native"; src: string }
+  | { kind: "iframe"; src: string; provider: "YouTube" };
+
+type ResolveVideoEmbedOptions = {
+  autoplay?: boolean;
+};
+
+function parseTimestampSeconds(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+
+  const match = value.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const [, hours = "0", minutes = "0", seconds = "0"] = match;
+  const total = Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
+  return total > 0 ? total : null;
+}
+
+function youtubeIdFromPath(pathname: string): string | null {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) {
+    return null;
+  }
+
+  if (["embed", "shorts", "live"].includes(segments[0]) && segments[1]) {
+    return segments[1];
+  }
+
+  return segments[0];
+}
+
+function normalizeYouTubeEmbedUrl(src: string, options: ResolveVideoEmbedOptions = {}): string | null {
+  let url: URL;
+  try {
+    url = new URL(src);
+  } catch {
+    return null;
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^www\./, "").replace(/^m\./, "");
+  const isYouTube = host === "youtube.com" || host === "youtube-nocookie.com";
+  const isShortYouTube = host === "youtu.be";
+  if (!isYouTube && !isShortYouTube) {
+    return null;
+  }
+
+  const videoId = isShortYouTube ? youtubeIdFromPath(url.pathname) : url.searchParams.get("v") ?? youtubeIdFromPath(url.pathname);
+  if (!videoId || !/^[\w-]{6,}$/.test(videoId)) {
+    return null;
+  }
+
+  const embedUrl = new URL(`https://www.youtube-nocookie.com/embed/${videoId}`);
+  embedUrl.searchParams.set("rel", "0");
+  if (options.autoplay) {
+    embedUrl.searchParams.set("autoplay", "1");
+    embedUrl.searchParams.set("mute", "1");
+  }
+
+  const start = parseTimestampSeconds(url.searchParams.get("start") ?? url.searchParams.get("t"));
+  if (start) {
+    embedUrl.searchParams.set("start", String(start));
+  }
+
+  const playlist = url.searchParams.get("list");
+  if (playlist) {
+    embedUrl.searchParams.set("list", playlist);
+  }
+
+  return embedUrl.toString();
+}
+
+export function resolveVideoEmbedSource(src: string, options: ResolveVideoEmbedOptions = {}): VideoEmbedSource {
+  const youtubeEmbedUrl = normalizeYouTubeEmbedUrl(src, options);
+  if (youtubeEmbedUrl) {
+    return { kind: "iframe", provider: "YouTube", src: youtubeEmbedUrl };
+  }
+
+  return { kind: "native", src };
+}
+
+function renderVideoSurface({
+  autoplay = false,
+  posterUrl,
+  src,
+  title,
+}: {
+  autoplay?: boolean;
+  posterUrl?: string;
+  src: string;
+  title?: string;
+}): React.ReactElement {
+  const media = resolveVideoEmbedSource(src, { autoplay });
+  if (media.kind === "iframe") {
+    return React.createElement("iframe", {
+      allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+      allowFullScreen: true,
+      loading: "lazy",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      src: media.src,
+      style: {
+        aspectRatio: "16 / 9",
+        background: "#0a0a0a",
+        border: 0,
+        display: "block",
+        width: "100%",
+      },
+      title: title ? `${title} (${media.provider})` : `${media.provider} video`,
+    });
+  }
+
+  return React.createElement("video", {
+    autoPlay: autoplay,
+    controls: true,
+    muted: autoplay,
+    playsInline: true,
+    poster: posterUrl,
+    preload: "metadata",
+    src: media.src,
+    style: { background: "#0a0a0a", display: "block", width: "100%" },
+  });
+}
 import {
   Bar as RcBar,
   BarChart as RcBarChart,
@@ -616,71 +747,123 @@ const AudioPlayer = defineComponent({
   props: z.object({
     title: z.string().optional(),
     description: z.string().optional(),
-    tracks: z.array(
-      z.object({
-        title: z.string(),
-        artist: z.string().optional(),
-        src: z.string(),
-        coverUrl: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    ),
+    tracks: z
+      .array(
+        z.object({
+          title: z.string(),
+          artist: z.string().optional(),
+          src: z.string(),
+          coverUrl: z.string().optional(),
+          description: z.string().optional(),
+        }),
+      )
+      .min(1),
     ...glassProps,
   }),
   description:
     "Audio playlist player for music, generated audio, voice notes, podcasts, meeting recordings, and sound previews. Each track needs title and src; artist, coverUrl, and description are optional.",
-  component: ({ props }) =>
-    React.createElement(
+  component: ({ props }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [selectedIndex, setSelectedIndex] = React.useState(0);
+    const selected = props.tracks[Math.min(selectedIndex, props.tracks.length - 1)];
+
+    return React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
         { style: { display: "grid", gap: 12, padding: 14 } },
-        props.tracks.map((track, index) =>
-          React.createElement(
-            "article",
-            {
-              key: `${track.title}:${index}`,
-              style: {
-                alignItems: "center",
-                background: hudCellWash,
-                border: `1px solid ${hudEdge}`,
-                borderRadius: 8,
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: track.coverUrl ? "72px 1fr" : "1fr",
-                padding: 12,
-              },
+        React.createElement(
+          "article",
+          {
+            style: {
+              alignItems: "center",
+              background: hudCellWash,
+              border: `1px solid ${hudEdge}`,
+              borderRadius: 8,
+              display: "grid",
+              gap: 12,
+              gridTemplateColumns: selected.coverUrl ? "88px 1fr" : "1fr",
+              padding: 12,
             },
-            track.coverUrl
-              ? React.createElement("img", {
-                  alt: "",
-                  src: track.coverUrl,
-                  style: { borderRadius: 6, height: 72, objectFit: "cover", width: 72 },
-                })
-              : null,
+          },
+          selected.coverUrl
+            ? React.createElement("img", {
+                alt: "",
+                src: selected.coverUrl,
+                style: { borderRadius: 8, height: 88, objectFit: "cover", width: 88 },
+              })
+            : null,
+          React.createElement(
+            "div",
+            null,
             React.createElement(
               "div",
-              null,
-              React.createElement("div", { style: { color: hudText, fontSize: 14, fontWeight: 700 } }, track.title),
-              track.artist
-                ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 2 } }, track.artist)
-                : null,
-              track.description
-                ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: "6px 0" } }, track.description)
-                : null,
-              React.createElement("audio", {
-                controls: true,
-                preload: "metadata",
-                src: track.src,
-                style: { marginTop: 8, width: "100%" },
-              }),
+              { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" } },
+              React.createElement("strong", { style: { color: hudText, fontSize: 16 } }, selected.title),
+              labelElement(`Track ${selectedIndex + 1}/${props.tracks.length}`, selectedIndex === 0 ? "positive" : "info", "xs"),
             ),
+            selected.artist
+              ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 3 } }, selected.artist)
+              : null,
+            selected.description
+              ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: "6px 0" } }, selected.description)
+              : null,
+            React.createElement("audio", {
+              controls: true,
+              key: `${selected.src}:${selectedIndex}`,
+              preload: "metadata",
+              src: selected.src,
+              style: { marginTop: 8, width: "100%" },
+            }),
           ),
         ),
+        props.tracks.length > 1
+          ? React.createElement(
+              "div",
+              { style: { display: "grid", gap: 8 } },
+              props.tracks.map((track, index) => {
+                const selectedTrack = index === selectedIndex;
+                const tone = selectedTrack ? toneFor("positive") : toneFor("neutral");
+                return React.createElement(
+                  "button",
+                  {
+                    "aria-current": selectedTrack ? "true" : undefined,
+                    key: `${track.src}:${index}`,
+                    onClick: () => setSelectedIndex(index),
+                    style: {
+                      alignItems: "center",
+                      background: selectedTrack ? tone.background : hudPanelWash,
+                      border: `1px solid ${selectedTrack ? tone.border : hudEdge}`,
+                      borderRadius: 8,
+                      color: selectedTrack ? tone.text : hudText,
+                      cursor: "pointer",
+                      display: "grid",
+                      gap: 10,
+                      gridTemplateColumns: "34px 1fr",
+                      padding: 10,
+                      textAlign: "left",
+                      ...readableGlassStyle,
+                    },
+                    type: "button",
+                  },
+                  labelElement(String(index + 1), selectedTrack ? "positive" : "neutral", "xs"),
+                  React.createElement(
+                    "span",
+                    null,
+                    React.createElement("span", { style: { display: "block", fontSize: 13, fontWeight: 800 } }, track.title),
+                    track.artist
+                      ? React.createElement("span", { style: { color: hudTextSoft, display: "block", fontSize: 12, marginTop: 2 } }, track.artist)
+                      : null,
+                  ),
+                );
+              }),
+            )
+          : null,
       ),
-    ),
+    );
+  },
 });
 
 const VideoPlayer = defineComponent({
@@ -703,19 +886,12 @@ const VideoPlayer = defineComponent({
     ...glassProps,
   }),
   description:
-    "Video player for demos, screen recordings, generated clips, design walkthroughs, tutorials, and incident evidence. Supports src, posterUrl, transcript, and chapter list.",
-  component: ({ props }) =>
-    React.createElement(
+    "Video player for demos, screen recordings, generated clips, design walkthroughs, tutorials, YouTube links, and incident evidence. Supports src, posterUrl, transcript, and chapter list.",
+  component: ({ props }) => {
+    return React.createElement(
       "section",
       { style: panelStyleFor(props) },
-      React.createElement("video", {
-        controls: true,
-        playsInline: true,
-        poster: props.posterUrl,
-        preload: "metadata",
-        src: props.src,
-        style: { background: "#0a0a0a", display: "block", width: "100%" },
-      }),
+      renderVideoSurface({ posterUrl: props.posterUrl, src: props.src, title: props.title }),
       React.createElement(
         "div",
         { style: { padding: 14 } },
@@ -748,7 +924,181 @@ const VideoPlayer = defineComponent({
             )
           : null,
       ),
-    ),
+    );
+  },
+});
+
+const VideoPlaylist = defineComponent({
+  name: "VideoPlaylist",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    videos: z
+      .array(
+        z.object({
+          title: z.string(),
+          src: z.string(),
+          channel: z.string().optional(),
+          description: z.string().optional(),
+          reason: z.string().optional(),
+          posterUrl: z.string().optional(),
+          transcript: z.string().optional(),
+        }),
+      )
+      .min(1),
+    autoplay: z.boolean().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Recommendation video playlist with a main inline player and a clickable candidate table. The first video is selected by default; set autoplay to true to start it muted where the browser allows.",
+  component: ({ props }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [selectedIndex, setSelectedIndex] = React.useState(0);
+    const selected = props.videos[Math.min(selectedIndex, props.videos.length - 1)];
+    const shouldAutoplay = props.autoplay ?? true;
+
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "div",
+          { key: `${selected.src}:${selectedIndex}` },
+          renderVideoSurface({
+            autoplay: shouldAutoplay,
+            posterUrl: selected.posterUrl,
+            src: selected.src,
+            title: selected.title,
+          }),
+        ),
+        React.createElement(
+          "div",
+          null,
+          React.createElement(
+            "div",
+            { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" } },
+            React.createElement("h3", { style: { color: hudText, fontSize: 16, fontWeight: 760, margin: 0 } }, selected.title),
+            labelElement(`候補 ${selectedIndex + 1}/${props.videos.length}`, selectedIndex === 0 ? "positive" : "info", "xs"),
+          ),
+          selected.channel
+            ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 3 } }, selected.channel)
+            : null,
+          selected.description
+            ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, selected.description)
+            : null,
+          selected.reason
+            ? React.createElement("p", { style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, margin: "5px 0 0" } }, selected.reason)
+            : null,
+        ),
+        React.createElement(
+          "div",
+          { style: { overflowX: "auto", overscrollBehaviorX: "contain", scrollbarGutter: "stable", width: "100%" } },
+          React.createElement(
+            "table",
+            { style: { borderCollapse: "collapse", minWidth: 620, width: "100%" } },
+            React.createElement(
+              "thead",
+              { style: { background: hudCellWash } },
+              React.createElement(
+                "tr",
+                null,
+                ["#", "候補", "チャンネル", "理由"].map((label) =>
+                  React.createElement(
+                    "th",
+                    {
+                      key: label,
+                      style: {
+                        borderBottom: `1px solid ${hudEdge}`,
+                        color: hudTextMid,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        padding: "9px 10px",
+                        textAlign: "left",
+                        whiteSpace: "nowrap",
+                      },
+                    },
+                    label,
+                  ),
+                ),
+              ),
+            ),
+            React.createElement(
+              "tbody",
+              null,
+              props.videos.map((video, index) => {
+                const selectedRow = index === selectedIndex;
+                const tone = selectedRow ? toneFor("positive") : toneFor("neutral");
+                return React.createElement(
+                  "tr",
+                  {
+                    key: `${video.src}:${index}`,
+                    style: {
+                      background: selectedRow ? tone.background : index % 2 === 0 ? "rgba(2,18,32,0.08)" : "rgba(72,138,82,0.045)",
+                    },
+                  },
+                  React.createElement(
+                    "td",
+                    { style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextSoft, fontSize: 13, padding: "9px 10px" } },
+                    `${index + 1}.`,
+                  ),
+                  React.createElement(
+                    "td",
+                    { style: { borderBottom: `1px solid ${hudEdge}`, padding: "7px 10px", verticalAlign: "top" } },
+                    React.createElement(
+                      "button",
+                      {
+                        "aria-current": selectedRow ? "true" : undefined,
+                        onClick: () => setSelectedIndex(index),
+                        style: {
+                          background: "transparent",
+                          border: 0,
+                          color: selectedRow ? tone.text : hudText,
+                          cursor: "pointer",
+                          font: "inherit",
+                          fontSize: 13,
+                          fontWeight: selectedRow ? 800 : 700,
+                          padding: 0,
+                          textAlign: "left",
+                          textDecoration: selectedRow ? "none" : "underline",
+                          textUnderlineOffset: 3,
+                        },
+                        type: "button",
+                      },
+                      video.title,
+                    ),
+                    video.description
+                      ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, marginTop: 4 } }, video.description)
+                      : null,
+                  ),
+                  React.createElement(
+                    "td",
+                    { style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, fontSize: 13, padding: "9px 10px", verticalAlign: "top" } },
+                    video.channel ?? "-",
+                  ),
+                  React.createElement(
+                    "td",
+                    { style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, fontSize: 13, lineHeight: 1.45, padding: "9px 10px", verticalAlign: "top" } },
+                    video.reason ?? "",
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+        selected.transcript
+          ? React.createElement(
+              "details",
+              null,
+              React.createElement("summary", { style: { color: hudText, cursor: "pointer", fontSize: 13, fontWeight: 700 } }, "Transcript"),
+              React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, selected.transcript),
+            )
+          : null,
+      ),
+    );
+  },
 });
 
 const MetricGrid = defineComponent({
@@ -825,6 +1175,7 @@ const ActionPanel = defineComponent({
         priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
         owner: z.string().optional(),
         due: z.string().optional(),
+        href: z.string().optional(),
       }),
     ),
     ...glassProps,
@@ -868,6 +1219,31 @@ const ActionPanel = defineComponent({
                   { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 } },
                   action.owner ? labelElement(`Owner: ${action.owner}`, "neutral", "xs") : null,
                   action.due ? labelElement(`Due: ${action.due}`, "neutral", "xs") : null,
+                )
+              : null,
+            action.href
+              ? React.createElement(
+                  "a",
+                  {
+                    href: action.href,
+                    rel: "noreferrer",
+                    style: {
+                      alignItems: "center",
+                      background: hudPanelWash,
+                      border: `1px solid ${tone.border}`,
+                      borderRadius: 7,
+                      color: tone.text,
+                      display: "inline-flex",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      marginTop: 10,
+                      padding: "6px 10px",
+                      textDecoration: "none",
+                      width: "fit-content",
+                    },
+                    target: "_blank",
+                  },
+                  "Open",
                 )
               : null,
           );
@@ -2381,23 +2757,28 @@ const ResourceList = defineComponent({
         props.resources.map((resource, index) => {
           const title = React.createElement("strong", { style: { color: hudText, fontSize: 14, overflowWrap: "anywhere" } }, resource.title);
           return React.createElement(
-            "article",
+            resource.url ? "a" : "article",
             {
+              href: resource.url,
               key: `${resource.title}:${index}`,
+              rel: resource.url ? "noreferrer" : undefined,
               style: {
                 background: hudPanelWash,
                 border: `1px solid ${hudEdge}`,
                 borderRadius: 8,
+                color: "inherit",
+                cursor: resource.url ? "pointer" : "default",
+                display: "block",
                 padding: 12,
+                textDecoration: "none",
                 ...readableGlassStyle,
               },
+              target: resource.url ? "_blank" : undefined,
             },
             React.createElement(
               "div",
               { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
-              resource.url
-                ? React.createElement("a", { href: resource.url, rel: "noreferrer", style: { textDecoration: "none" }, target: "_blank" }, title)
-                : title,
+              title,
               labelElement(resource.status ?? resource.type ?? "resource", resource.status === "blocked" ? "danger" : resource.status === "draft" ? "warning" : "info", "xs", { flexShrink: 0 }),
             ),
             resource.description
@@ -2492,56 +2873,113 @@ const ImageGallery = defineComponent({
   props: z.object({
     title: z.string().optional(),
     description: z.string().optional(),
-    images: z.array(
-      z.object({
-        src: z.string(),
-        alt: z.string().optional(),
-        caption: z.string().optional(),
-      }),
-    ),
+    images: z
+      .array(
+        z.object({
+          src: z.string(),
+          alt: z.string().optional(),
+          caption: z.string().optional(),
+        }),
+      )
+      .min(1),
     columns: z.number().int().min(1).max(6).optional(),
     ...glassProps,
   }),
   description:
-    "Image grid for screenshots, photo previews, design candidates, store/cafe imagery, and visual evidence. images = [{ src, alt, caption }].",
-  component: ({ props }) =>
-    React.createElement(
+    "Image gallery for screenshots, photo previews, design candidates, store/cafe imagery, and visual evidence. Shows a focused preview with selectable thumbnails.",
+  component: ({ props }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [selectedIndex, setSelectedIndex] = React.useState(0);
+    const selected = props.images[Math.min(selectedIndex, props.images.length - 1)];
+
+    return React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
-        {
-          style: {
-            display: "grid",
-            gap: 10,
-            gridTemplateColumns: `repeat(${props.columns ?? Math.min(3, Math.max(1, props.images.length))}, minmax(0, 1fr))`,
-            padding: 14,
-          },
-        },
-        props.images.map((img, index) =>
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "figure",
+          { style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 10, margin: 0, overflow: "hidden" } },
+          React.createElement("img", {
+            alt: selected.alt ?? selected.caption ?? `image ${selectedIndex + 1}`,
+            src: selected.src,
+            style: { aspectRatio: "16 / 9", display: "block", height: "auto", objectFit: "contain", width: "100%" },
+          }),
           React.createElement(
-            "figure",
+            "figcaption",
             {
-              key: `${img.src}:${index}`,
-              style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 10, margin: 0, overflow: "hidden" },
+              style: {
+                alignItems: "center",
+                color: hudTextMid,
+                display: "flex",
+                flexWrap: "wrap",
+                fontSize: 12,
+                gap: 8,
+                justifyContent: "space-between",
+                padding: "8px 10px",
+              },
             },
-            React.createElement("img", {
-              alt: img.alt ?? img.caption ?? `image ${index + 1}`,
-              src: img.src,
-              style: { aspectRatio: "4 / 3", display: "block", height: "auto", objectFit: "cover", width: "100%" },
-            }),
-            img.caption
-              ? React.createElement(
-                  "figcaption",
-                  { style: { color: hudTextMid, fontSize: 12, padding: "8px 10px" } },
-                  img.caption,
-                )
-              : null,
+            React.createElement("span", null, selected.caption ?? selected.alt ?? `Image ${selectedIndex + 1}`),
+            labelElement(`${selectedIndex + 1}/${props.images.length}`, "info", "xs"),
           ),
         ),
+        props.images.length > 1
+          ? React.createElement(
+              "div",
+              {
+                style: {
+                  display: "grid",
+                  gap: 10,
+                  gridTemplateColumns: `repeat(${props.columns ?? Math.min(4, Math.max(1, props.images.length))}, minmax(0, 1fr))`,
+                },
+              },
+              props.images.map((img, index) => {
+                const selectedImage = index === selectedIndex;
+                return React.createElement(
+                  "button",
+                  {
+                    "aria-current": selectedImage ? "true" : undefined,
+                    key: `${img.src}:${index}`,
+                    onClick: () => setSelectedIndex(index),
+                    style: {
+                      background: selectedImage ? "rgba(86, 174, 122, 0.16)" : hudPanelWash,
+                      border: `1px solid ${selectedImage ? "rgba(126, 220, 164, 0.55)" : hudEdge}`,
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      display: "grid",
+                      gap: 6,
+                      overflow: "hidden",
+                      padding: 0,
+                      textAlign: "left",
+                    },
+                    type: "button",
+                  },
+                  React.createElement("img", {
+                    alt: img.alt ?? img.caption ?? `image ${index + 1}`,
+                    src: img.src,
+                    style: { aspectRatio: "4 / 3", display: "block", height: "auto", objectFit: "cover", width: "100%" },
+                  }),
+                  React.createElement(
+                    "span",
+                    {
+                      style: {
+                        color: selectedImage ? hudText : hudTextMid,
+                        fontSize: 12,
+                        fontWeight: selectedImage ? 800 : 600,
+                        padding: "0 8px 8px",
+                      },
+                    },
+                    img.caption ?? img.alt ?? `Image ${index + 1}`,
+                  ),
+                );
+              }),
+            )
+          : null,
       ),
-    ),
+    );
+  },
 });
 
 const ConfirmDialog = defineComponent({
@@ -3140,6 +3578,7 @@ const QuickActions = defineComponent({
         icon: z.string().optional(),
         tone: z.enum(["neutral", "info", "positive", "warning", "danger"]).optional(),
         hint: z.string().optional(),
+        href: z.string().optional(),
       }),
     ),
     ...glassProps,
@@ -3164,9 +3603,11 @@ const QuickActions = defineComponent({
         props.actions.map((a, i) => {
           const tone = toneFor(a.tone ?? "info");
           return React.createElement(
-            "button",
+            a.href ? "a" : "button",
             {
+              href: a.href,
               key: i,
+              rel: a.href ? "noreferrer" : undefined,
               style: {
                 background: tone.background,
                 border: `1px solid ${tone.border}`,
@@ -3177,8 +3618,10 @@ const QuickActions = defineComponent({
                 gap: 4,
                 padding: "10px 12px",
                 textAlign: "left",
+                textDecoration: "none",
               },
-              type: "button",
+              target: a.href ? "_blank" : undefined,
+              type: a.href ? undefined : "button",
             },
             React.createElement(
               "span",
@@ -3681,11 +4124,12 @@ const componentGroups: ComponentGroup[] = [
   },
   {
     name: "Media",
-    components: ["AudioPlayer", "VideoPlayer", "ImageGallery", "AnimationCard"],
+    components: ["AudioPlayer", "VideoPlayer", "VideoPlaylist", "ImageGallery", "AnimationCard"],
     notes: [
-      "- Use AudioPlayer for music, generated speech/audio, podcasts, meeting recordings, and sound previews. Never autoplay.",
-      "- Use VideoPlayer for demos, screen recordings, walkthroughs, clips, tutorials, and visual evidence. Never autoplay.",
-      "- Use ImageGallery for screenshots, product photos, design candidates, store/cafe imagery, and any caption-bearing image grid.",
+      "- Use AudioPlayer for music, generated speech/audio, podcasts, meeting recordings, and sound previews. It renders one focused player plus a clickable queue. Never autoplay.",
+      "- Use VideoPlayer for demos, screen recordings, walkthroughs, clips, tutorials, YouTube links, and visual evidence. YouTube watch/short/embed URLs render inline as embeds. Never autoplay.",
+      "- Use VideoPlaylist for recommended YouTube/video candidates: first item plays in the main slot, and the table below switches the inline player. Use this for 'おすすめ動画' and search results.",
+      "- Use ImageGallery for screenshots, product photos, design candidates, store/cafe imagery, and any caption-bearing image set. It renders one focused preview plus selectable thumbnails.",
       "- Use AnimationCard for short motion clips (Lottie JSON, looping video, animated GIF/SVG): empty states, micro-interactions, success/error animations, onboarding hooks.",
       "- Prefer caller-provided media URLs. If no URL is available, explain that media source is required or use a clearly labeled sample only for demos.",
     ],
@@ -3803,6 +4247,7 @@ const customComponents = [
   MapWithList,
   AudioPlayer,
   VideoPlayer,
+  VideoPlaylist,
   ImageGallery,
   ConfirmDialog,
   CompareTable,
@@ -3849,6 +4294,7 @@ const customComponentNames = new Set([
   "MapWithList",
   "AudioPlayer",
   "VideoPlayer",
+  "VideoPlaylist",
   "ImageGallery",
   "ConfirmDialog",
   "CompareTable",
@@ -3897,7 +4343,7 @@ export const promptOptions: PromptOptions = {
     "For two series with different units shown together (e.g. PV + CVR, revenue + growth-rate, requests + latency), prefer ComboChart(title, description, data=[{label, barValue, lineValue}], barUnit, lineUnit, barLabel, lineLabel, barTone). Bars use the left axis, the line uses the right axis. If all series use the same unit, use LineChart or BarChart instead.",
     "For files, URLs, docs, generated artifacts, and references, prefer ResourceList(title, description, resources).",
     "For required inputs, intake review, confirmation, and missing fields, prefer FormPanel(title, description, fields).",
-    "For recommended next steps, approvals, handoffs, and follow-up work, prefer ActionPanel(title, description, actions).",
+    "For recommended next steps, approvals, handoffs, and follow-up work, prefer ActionPanel(title, description, actions). actions can include href when an action should open a URL.",
     "For chronological explanations, incidents, launches, or multi-step progress, prefer TimelinePanel(title, description, events).",
     "For alternatives, tradeoffs, or recommendations, prefer DecisionMatrix(title, description, options).",
     "For structured rows, evidence, tickets, files, search results, or ranked lists, prefer DataTable(title, description, columns, rows, caption).",
@@ -3905,9 +4351,10 @@ export const promptOptions: PromptOptions = {
     "For code, config, prompt, or document changes, prefer CodeDiff(title, description, files).",
     "For map requests, use MapView(title, description, center, zoom, height, markers) as part of the UI. Include useful marker labels and colors.",
     "For interactive map + list directories (cafe lists, store maps, tour stops, customer directories), prefer MapWithList(title, description, center?, zoom, height, items). Each item has { id, lat, lng, label, description?, category?, color?, links?: [{label, url}] }. Pass real http(s) URLs for official sites, review pages, social profiles, etc. A 'Google Maps' link is auto-generated from lat/lng — do not duplicate it. The list and map stay in sync: clicking a list entry flies the map to it; clicking a marker highlights the entry. Links open in the user's default browser.",
-    "For audio or music requests, use AudioPlayer(title, description, tracks). Do not autoplay. Prefer provided audio URLs.",
-    "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters). Do not autoplay. Prefer provided video URLs.",
-    "For screenshots, photo grids, and visual evidence, prefer ImageGallery(title, description, images, columns).",
+    "For audio or music requests, use AudioPlayer(title, description, tracks). It shows a focused player plus a clickable queue. Do not autoplay. Prefer provided audio URLs.",
+    "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters). Do not autoplay. Prefer provided video URLs. YouTube watch, shorts, youtu.be, and embed URLs are supported inline.",
+    "For recommended video or YouTube search results, prefer VideoPlaylist(title, description, videos, autoplay). Put the best match first; it becomes the main inline player, and candidates below switch playback when clicked. videos = [{title, src, channel?, description?, reason?, posterUrl?, transcript?}].",
+    "For screenshots, photo grids, and visual evidence, prefer ImageGallery(title, description, images, columns). It shows a focused preview plus selectable thumbnails.",
     "For single high-stakes confirmation (delete, approve, deploy, autonomous-run gate), prefer ConfirmDialog(title, description, question, detail, risk, confirmLabel, cancelLabel, consequences).",
     "For side-by-side option comparison with shared specs, prefer CompareTable(title, description, options, specOrder). Each option has { name, tagline, recommended, specs }.",
     "For a single code or command snippet to paste or run, prefer CodeBlock(title, description, language, code, runnable, filename). Use CodeDiff only for changes.",
@@ -3916,7 +4363,7 @@ export const promptOptions: PromptOptions = {
     "For schedules, agendas, today/upcoming events, prefer EventList(title, description, events). Each event has { title, start, end, location, category, attendees, notes }.",
     "For team intros, reviewer lists, owner handoffs, prefer PersonCard(title, description, people). Each person has { name, role, avatar, email, phone, status, bio }.",
     "For CI/env health checks with pass|warn|fail|skip|pending statuses, prefer DiagnosticsCard(title, description, checks).",
-    "For tile-style shortcut rows without per-item descriptions, prefer QuickActions(title, description, actions). Use ActionPanel when each action needs its own description.",
+    "For tile-style shortcut rows without per-item descriptions, prefer QuickActions(title, description, actions). actions can include href for external links. Use ActionPanel when each action needs its own description.",
     "For chat or transcript replays, prefer TranscriptView(title, description, messages). Each message has { speaker, role, time, text }.",
     "For share/composition charts where parts sum to a whole, prefer DonutChart(title, description, total, segments).",
     "For any hierarchy (file tree, JSON shape, org chart, dependency tree), prefer TreeView(title, description, nodes). Nodes are recursive: { label, meta, children }.",

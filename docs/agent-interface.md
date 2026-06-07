@@ -31,7 +31,15 @@ genui popup --agent-id codex --title "Decision Review" --size wide --openui-lang
 
 7. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
 8. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed.
-9. Close when done:
+9. Inspect and replay saved UI when the user wants to revisit a prior artifact:
+
+```bash
+genui artifacts --limit 20
+genui artifact --artifact-id "<artifactId>"
+genui replay --artifact-id "<artifactId>"
+```
+
+10. Close when done:
 
 ```bash
 genui close --popup-id "<popupId>"
@@ -62,6 +70,11 @@ genui popup --openui-lang-file ui.openui --title "Status" --agent-id codex
 genui popup --openui-lang-file ui.openui --title "Status" --agent-id codex --wait
 genui complete --popup-id "<popupId>" --outcome completed
 genui status
+genui popups
+genui artifacts --limit 20
+genui artifact --artifact-id "<artifactId>"
+genui replay --artifact-id "<artifactId>"
+genui prune --max-artifacts 50
 genui close --popup-id "<popupId>"
 ```
 
@@ -75,6 +88,10 @@ the local control API directly, private and mutating endpoints require the
 The release zip bundles both `GenUI Popup Broker.app` and the standalone
 `genui` command. End users do not need to clone this repository or run
 `npm install` just to open popups.
+
+Artifacts are saved OpenUI Lang plus metadata and optional context. Replaying
+an artifact reopens the saved UI through the broker; it does not ask the
+broker to infer or regenerate UI.
 
 ## Size Presets
 
