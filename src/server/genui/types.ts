@@ -3,6 +3,7 @@ export type GenUIGenerationMode = "provided";
 export type GenUIGlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
 export type GenUILabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
 export type GenUIWindowAnimationPreset = "center" | "left" | "right" | "top" | "fade";
+export type GenUIVisualThemePreset = "hud" | "workbench" | "studio" | "briefing";
 export type GenUIThemeColorPreset =
   | "blue"
   | "azure"
@@ -17,6 +18,7 @@ export type GenUIThemeColorPreset =
   | "crimson"
   | "graphite";
 export type GenUIDesignSettings = {
+  visualThemePreset: GenUIVisualThemePreset;
   glassPreset: GenUIGlassPreset;
   labelInkPreset: GenUILabelInkPreset;
   themeColorPreset: GenUIThemeColorPreset;

@@ -703,6 +703,7 @@ async function openArtifactPopup(
     `&token=${encodeURIComponent(controlToken)}` +
     `&size=${preset}` +
     `&animation=${settings.design.windowAnimationPreset}` +
+    `&visualTheme=${settings.design.visualThemePreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
     `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&agent=${encodeURIComponent(input.agentId ?? artifact.agentId ?? "agent")}`;
@@ -927,6 +928,7 @@ function openSettingsWindow(): void {
     `&token=${encodeURIComponent(controlToken)}` +
     `&theme=${theme}` +
     `&animation=${settings.design.windowAnimationPreset}` +
+    `&visualTheme=${settings.design.visualThemePreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
     `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&chrome=hud`;
@@ -949,7 +951,7 @@ async function restartService(): Promise<void> {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     const theme = resolveTheme(settings.theme);
     settingsWindow.loadURL(
-      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&token=${encodeURIComponent(controlToken)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&themeColor=${settings.design.themeColorPreset}&opaque=${settings.design.opaque ? "1" : "0"}&chrome=hud`,
+      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&token=${encodeURIComponent(controlToken)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&visualTheme=${settings.design.visualThemePreset}&themeColor=${settings.design.themeColorPreset}&opaque=${settings.design.opaque ? "1" : "0"}&chrome=hud`,
     );
   }
 }

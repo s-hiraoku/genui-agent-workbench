@@ -182,6 +182,7 @@ describe("settings", () => {
   it("uses mint as the tactical HUD theme preset", () => {
     const settings = sanitizeSettings({
       design: {
+        visualThemePreset: "hud",
         glassPreset: "milky",
         labelInkPreset: "green",
         opaque: true,
@@ -196,6 +197,7 @@ describe("settings", () => {
   it("accepts the bright blue theme preset", () => {
     const settings = sanitizeSettings({
       design: {
+        visualThemePreset: "hud",
         glassPreset: "milky",
         labelInkPreset: "green",
         opaque: true,
@@ -205,6 +207,32 @@ describe("settings", () => {
     });
 
     expect(settings.design.themeColorPreset).toBe("azure");
+  });
+
+  it("accepts practical popup visual theme presets", () => {
+    const settings = sanitizeSettings({
+      design: {
+        visualThemePreset: "workbench",
+        glassPreset: "milky",
+        labelInkPreset: "green",
+        opaque: false,
+        themeColorPreset: "graphite",
+        windowAnimationPreset: "fade",
+      },
+    });
+
+    expect(settings.design.visualThemePreset).toBe("workbench");
+  });
+
+  it("falls back to the HUD visual theme preset", () => {
+    const invalidDesign = JSON.parse('{"visualThemePreset":"unknown"}') as Parameters<
+      typeof sanitizeSettings
+    >[0]["design"];
+    const settings = sanitizeSettings({
+      design: invalidDesign,
+    });
+
+    expect(settings.design.visualThemePreset).toBe("hud");
   });
 });
 
