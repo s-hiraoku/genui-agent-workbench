@@ -88,6 +88,11 @@ Close and inspect:
 npm run genui -- close --popup-id "<popupId>"
 npm run genui -- complete --popup-id "<popupId>" --outcome completed
 npm run genui -- status
+npm run genui -- popups
+npm run genui -- artifacts --limit 20
+npm run genui -- artifact --artifact-id "<artifactId>"
+npm run genui -- replay --artifact-id "<artifactId>"
+npm run genui -- prune --max-artifacts 50
 npm run genui -- guide
 ```
 
@@ -102,12 +107,18 @@ popup reported an explicit outcome.
 {
   "popupId": "pop_...",
   "artifactId": "art_...",
+  "title": "Build Review",
   "previewUrl": "http://127.0.0.1:3000/preview/art_...",
   "status": "open",
+  "createdAt": "2026-06-07T00:00:00.000Z",
   "generationMode": "provided",
   "brokerProtocolVersion": "0.2.0"
 }
 ```
+
+Artifacts remain available after a popup closes. Use `artifacts` for a compact
+history, `artifact` for full OpenUI Lang/context inspection, and `replay` to
+open a saved artifact again without regenerating OpenUI Lang.
 
 ## OpenUI Lang Example
 
@@ -165,10 +176,13 @@ Available presets:
 - `GET /v1/settings`
 - `POST /v1/settings`
 - `POST /v1/popups`
+- `GET /v1/popups`
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
 - `POST /v1/popups/:popupId/complete`
 - `GET /v1/artifacts`
+- `GET /v1/artifacts/:artifactId`
+- `POST /v1/artifacts/:artifactId/replay`
 - `DELETE /v1/artifacts/:artifactId`
 - `POST /v1/artifacts/prune`
 

@@ -31,7 +31,15 @@ npm run genui -- popup --agent-id codex --title "Decision Review" --size wide --
 
 7. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
 8. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed.
-9. Close when done:
+9. Inspect and replay saved UI when the user wants to revisit a prior artifact:
+
+```bash
+npm run genui -- artifacts --limit 20
+npm run genui -- artifact --artifact-id "<artifactId>"
+npm run genui -- replay --artifact-id "<artifactId>"
+```
+
+10. Close when done:
 
 ```bash
 npm run genui -- close --popup-id "<popupId>"
@@ -62,6 +70,11 @@ npm run genui -- popup --openui-lang-file ui.openui --title "Status" --agent-id 
 npm run genui -- popup --openui-lang-file ui.openui --title "Status" --agent-id codex --wait
 npm run genui -- complete --popup-id "<popupId>" --outcome completed
 npm run genui -- status
+npm run genui -- popups
+npm run genui -- artifacts --limit 20
+npm run genui -- artifact --artifact-id "<artifactId>"
+npm run genui -- replay --artifact-id "<artifactId>"
+npm run genui -- prune --max-artifacts 50
 npm run genui -- close --popup-id "<popupId>"
 ```
 
@@ -69,6 +82,10 @@ The broker writes its current control URL and per-run control token to
 `.genui/broker.json`. The CLI reads that file automatically. If a tool calls
 the local control API directly, private and mutating endpoints require the
 `x-genui-token` header.
+
+Artifacts are saved OpenUI Lang plus metadata and optional context. Replaying
+an artifact reopens the saved UI through the broker; it does not ask the
+broker to infer or regenerate UI.
 
 ## Size Presets
 

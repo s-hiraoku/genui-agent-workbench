@@ -12,6 +12,7 @@ export const agentUsageGuide = {
     "Open the popup with `npm run genui -- popup --openui-lang-file <file> --title <title> --agent-id <agent>`.",
     "Use `--wait` when the workflow needs a completion, cancellation, close, or failure result.",
     "Use `npm run genui -- components` for a concise component catalog.",
+    "Use `npm run genui -- artifacts` to inspect saved UI and `npm run genui -- replay --artifact-id <artifactId>` to reopen it.",
     "Close the popup with `npm run genui -- close --popup-id <popupId>` when it is no longer useful.",
   ],
   cli: {
@@ -26,6 +27,11 @@ export const agentUsageGuide = {
       "cat ui.openui | npm run genui -- popup --agent-id <agent> --title <title> --stdin-openui",
     openAndWait:
       "npm run genui -- popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait",
+    popups: "npm run genui -- popups",
+    artifacts: "npm run genui -- artifacts --limit 20",
+    artifact: "npm run genui -- artifact --artifact-id <artifactId>",
+    replay: "npm run genui -- replay --artifact-id <artifactId>",
+    prune: "npm run genui -- prune --max-artifacts 50",
     close: "npm run genui -- close --popup-id <popupId>",
     status: "npm run genui -- status",
   },
