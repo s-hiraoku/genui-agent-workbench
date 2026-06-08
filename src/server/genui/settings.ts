@@ -6,6 +6,7 @@ import type {
   GenUIGlassPreset,
   GenUILabelInkPreset,
   GenUIThemeColorPreset,
+  GenUIVisualThemePreset,
   GenUIWindowAnimationPreset,
 } from "./types";
 
@@ -27,6 +28,7 @@ export const DEFAULT_SETTINGS: BrokerSettings = {
   controlPort: null,
   nextPort: null,
   design: {
+    visualThemePreset: "hud",
     glassPreset: "milky",
     labelInkPreset: "green",
     themeColorPreset: "mint",
@@ -66,6 +68,7 @@ export function sanitizePort(value: unknown): number | null {
 
 const GLASS_PRESETS = new Set<GenUIGlassPreset>(["clear", "pane", "milky", "dense", "mint", "sky", "rose", "amber"]);
 const LABEL_INK_PRESETS = new Set<GenUILabelInkPreset>(["green", "slate", "white", "blue", "amber", "red"]);
+const VISUAL_THEME_PRESETS = new Set<GenUIVisualThemePreset>(["hud", "workbench", "studio", "briefing"]);
 const THEME_COLOR_PRESETS = new Set<GenUIThemeColorPreset>([
   "blue",
   "azure",
@@ -84,6 +87,9 @@ const WINDOW_ANIMATION_PRESETS = new Set<GenUIWindowAnimationPreset>(["center", 
 
 function sanitizeDesign(value: unknown): GenUIDesignSettings {
   const input = typeof value === "object" && value !== null ? (value as Partial<GenUIDesignSettings>) : {};
+  const visualThemePreset = VISUAL_THEME_PRESETS.has(input.visualThemePreset as GenUIVisualThemePreset)
+    ? (input.visualThemePreset as GenUIVisualThemePreset)
+    : DEFAULT_SETTINGS.design.visualThemePreset;
   const glassPreset = GLASS_PRESETS.has(input.glassPreset as GenUIGlassPreset)
     ? (input.glassPreset as GenUIGlassPreset)
     : DEFAULT_SETTINGS.design.glassPreset;
@@ -97,10 +103,12 @@ function sanitizeDesign(value: unknown): GenUIDesignSettings {
     ? (input.windowAnimationPreset as GenUIWindowAnimationPreset)
     : DEFAULT_SETTINGS.design.windowAnimationPreset;
   const opaque = typeof input.opaque === "boolean" ? input.opaque : DEFAULT_SETTINGS.design.opaque;
-  return { glassPreset, labelInkPreset, themeColorPreset, windowAnimationPreset, opaque };
+  return { visualThemePreset, glassPreset, labelInkPreset, themeColorPreset, windowAnimationPreset, opaque };
 }
 
-export function sanitizeSettings(input: Partial<BrokerSettings>): BrokerSettings {
+export function sanitizeSettings(
+  input: Partial<Omit<BrokerSettings, "design">> & { design?: Partial<GenUIDesignSettings> },
+): BrokerSettings {
   const theme: AppearanceTheme =
     input.theme === "dark" || input.theme === "light" || input.theme === "auto" ? input.theme : DEFAULT_SETTINGS.theme;
   return {

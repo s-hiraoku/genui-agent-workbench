@@ -12,6 +12,7 @@ type PreviewPageProps = {
     agent?: string;
     animation?: string;
     themeColor?: string;
+    visualTheme?: string;
     theme?: string;
     opaque?: string;
   }>;
@@ -19,7 +20,7 @@ type PreviewPageProps = {
 
 export default async function PreviewPage({ params, searchParams }: PreviewPageProps) {
   const { artifactId } = await params;
-  const { popupId, controlUrl, token, size, agent, animation, themeColor, opaque } = await searchParams;
+  const { popupId, controlUrl, token, size, agent, animation, themeColor, visualTheme, opaque } = await searchParams;
   const artifact = await loadArtifact(artifactId);
 
   if (!artifact) {
@@ -38,6 +39,7 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
       popupId={popupId}
       size={size}
       themeColor={themeColor}
+      visualTheme={visualTheme}
       initialOpaque={opaque === "1" || opaque === "true"}
     />
   );

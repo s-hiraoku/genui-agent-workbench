@@ -182,6 +182,7 @@ Design defaults can be changed from:
 
 Available presets:
 
+- `visualThemePreset`: `hud` (default, existing Liquid Glass HUD), `workbench` (light practical surface), `studio` (dark neutral surface), `briefing` (report-style surface)
 - `themeColorPreset`: `mint` (default, shown as Tactical), `blue`, `azure` (shown as Bright Blue), `cyan`, `violet`, `rose`, `amber`, `white`, `midnight`, `forest`, `crimson`, `graphite`
 - `glassPreset`: `clear`, `pane`, `milky` (default), `dense`, `mint`, `sky`, `rose`, `amber`
 - `labelInkPreset`: `green` (default), `slate`, `white`, `blue`, `amber`, `red`

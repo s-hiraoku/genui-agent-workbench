@@ -14,6 +14,7 @@ type BrokerSettings = {
 
 type GlassPreset = "clear" | "pane" | "milky" | "dense" | "mint" | "sky" | "rose" | "amber";
 type LabelInkPreset = "green" | "slate" | "white" | "blue" | "amber" | "red";
+type VisualThemePreset = "hud" | "workbench" | "studio" | "briefing";
 type ThemeColorPreset =
   | "blue"
   | "azure"
@@ -29,6 +30,7 @@ type ThemeColorPreset =
   | "graphite";
 type WindowAnimationPreset = "center" | "left" | "right" | "top" | "fade";
 type DesignSettings = {
+  visualThemePreset: VisualThemePreset;
   glassPreset: GlassPreset;
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
@@ -44,6 +46,7 @@ type ApiResponse = {
 };
 
 const DESIGN_DEFAULTS: DesignSettings = {
+  visualThemePreset: "hud",
   glassPreset: "milky",
   labelInkPreset: "green",
   themeColorPreset: "mint",
@@ -78,6 +81,13 @@ const labelInkOptions: Array<{ value: LabelInkPreset; label: string }> = [
   { value: "red", label: "Red" },
 ];
 
+const visualThemeOptions: Array<{ value: VisualThemePreset; label: string; description: string }> = [
+  { value: "hud", label: "HUD Glass", description: "Current liquid glass frame" },
+  { value: "workbench", label: "Workbench", description: "Light, quiet, practical" },
+  { value: "studio", label: "Studio", description: "Dark neutral developer view" },
+  { value: "briefing", label: "Briefing", description: "Report-style reading surface" },
+];
+
 const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
   { value: "blue", label: "Blue" },
   { value: "azure", label: "Bright Blue" },
@@ -106,11 +116,13 @@ export function SettingsClient({
   controlToken,
   controlUrl,
   themeColor,
+  visualTheme,
 }: {
   animation?: string;
   controlToken: string;
   controlUrl: string;
   themeColor?: string;
+  visualTheme?: string;
 }) {
   const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +207,7 @@ export function SettingsClient({
       animation={settings.design.windowAnimationPreset ?? animation}
       opaque={opaque}
       themeColor={settings.design.themeColorPreset ?? themeColor}
+      visualTheme={settings.design.visualThemePreset ?? visualTheme}
     >
       <div className="lg-content h-full mx-auto w-full max-w-lg">
         <section className="lg-glass-card-wrap min-h-0 flex-1">
@@ -242,6 +255,28 @@ export function SettingsClient({
                     <span className="lg-meta-faint">Theme and glass presets for newly generated popups</span>
                   </span>
                   <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2">
+                      <span className="lg-meta-faint">Popup visual theme</span>
+                      <div className="lg-visual-theme-grid" aria-label="Popup visual theme">
+                        {visualThemeOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className="lg-visual-theme-card"
+                            data-visual-theme-option={option.value}
+                            data-selected={settings.design.visualThemePreset === option.value}
+                            aria-pressed={settings.design.visualThemePreset === option.value}
+                            onClick={() => save({ design: { visualThemePreset: option.value } })}
+                          >
+                            <span className="lg-visual-theme-preview" aria-hidden="true" />
+                            <span className="min-w-0">
+                              <span>{option.label}</span>
+                              <span>{option.description}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <div className="flex flex-col gap-2">
                       <span className="lg-meta-faint">Theme color preset</span>
                       <div className="lg-theme-swatch-grid" aria-label="Theme color preset">
