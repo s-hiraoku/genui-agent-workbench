@@ -1864,6 +1864,17 @@ body::before,
   color: var(--glass-label-ink) !important;
 }
 
+.lg-shell[data-visual-theme="workbench"] .lg-preview .recharts-tooltip-wrapper :where(div, span, p, li),
+.lg-shell[data-visual-theme="briefing"] .lg-preview .recharts-tooltip-wrapper :where(div, span, p, li) {
+  color: rgba(248, 253, 255, 0.98) !important;
+  text-shadow: none !important;
+}
+
+.lg-shell[data-visual-theme="workbench"] .lg-preview .recharts-tooltip-wrapper .recharts-tooltip-label,
+.lg-shell[data-visual-theme="briefing"] .lg-preview .recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: rgba(228, 244, 251, 0.86) !important;
+}
+
 @media (max-width: 520px) {
   .lg-row {
     align-items: stretch;
