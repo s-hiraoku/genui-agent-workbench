@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 
 type LiquidGlassSurfaceProps = {
+  appearanceTheme?: string;
   animation?: string;
   children: ReactNode;
   opaque?: boolean;
@@ -10,6 +11,7 @@ type LiquidGlassSurfaceProps = {
   visualTheme?: string;
 };
 
+const appearanceThemes = new Set(["auto", "dark", "light"]);
 const animationPresets = new Set(["center", "left", "right", "top", "fade"]);
 const visualThemePresets = new Set(["hud", "workbench", "studio", "briefing"]);
 const themeColorPresets = new Set([
@@ -27,7 +29,15 @@ const themeColorPresets = new Set([
   "graphite",
 ]);
 
-export function LiquidGlassSurface({ animation, children, opaque, themeColor, visualTheme }: LiquidGlassSurfaceProps) {
+export function LiquidGlassSurface({
+  appearanceTheme,
+  animation,
+  children,
+  opaque,
+  themeColor,
+  visualTheme,
+}: LiquidGlassSurfaceProps) {
+  const appearanceThemePreset = appearanceThemes.has(appearanceTheme ?? "") ? appearanceTheme : "auto";
   const animationPreset = animationPresets.has(animation ?? "") ? animation : "center";
   const visualThemePreset = visualThemePresets.has(visualTheme ?? "") ? visualTheme : "hud";
   const themeColorPreset = themeColorPresets.has(themeColor ?? "") ? themeColor : "mint";
@@ -35,6 +45,7 @@ export function LiquidGlassSurface({ animation, children, opaque, themeColor, vi
   return (
     <div
       className="lg-shell"
+      data-appearance-theme={appearanceThemePreset}
       data-opaque={opaque ? "true" : "false"}
       data-theme-color={themeColorPreset}
       data-visual-theme={visualThemePreset}

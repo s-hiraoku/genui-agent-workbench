@@ -1,12 +1,31 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { X } from "lucide-react";
+import {
+  Check,
+  Database,
+  Droplets,
+  Gauge,
+  Layers,
+  Monitor,
+  Moon,
+  Radar,
+  RefreshCcw,
+  Rocket,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sun,
+  TerminalSquare,
+  X,
+  Zap,
+} from "lucide-react";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
 import { NativeSelect } from "@/app/_ui/NativeSelect";
 
+type AppearanceTheme = "auto" | "dark" | "light";
 type BrokerSettings = {
+  theme: AppearanceTheme;
   launchAtLogin: boolean;
   controlPort: number | null;
   nextPort: number | null;
@@ -42,24 +61,53 @@ type SettingsState = BrokerSettings & {
 };
 
 type ApiResponse = {
-  settings: BrokerSettings & { design?: Partial<DesignSettings>; theme?: string };
+  settings: BrokerSettings & { design?: Partial<DesignSettings> };
 };
 
 const DESIGN_DEFAULTS: DesignSettings = {
   visualThemePreset: "hud",
   glassPreset: "milky",
   labelInkPreset: "green",
-  themeColorPreset: "mint",
+  themeColorPreset: "cyan",
   windowAnimationPreset: "center",
-  opaque: false,
+  opaque: true,
 };
 
 const DEFAULTS: SettingsState = {
+  theme: "dark",
   launchAtLogin: false,
   controlPort: null,
   nextPort: null,
   design: DESIGN_DEFAULTS,
 };
+
+const appearanceOptions: Array<{ value: AppearanceTheme; label: string; icon: ReactNode }> = [
+  { value: "auto", label: "Auto", icon: <Monitor size={17} strokeWidth={1.7} /> },
+  { value: "dark", label: "Dark", icon: <Moon size={17} strokeWidth={1.7} /> },
+  { value: "light", label: "Light", icon: <Sun size={17} strokeWidth={1.7} /> },
+];
+
+const visualThemeOptions: Array<{ value: VisualThemePreset; label: string }> = [
+  { value: "hud", label: "HUD" },
+  { value: "workbench", label: "Workbench" },
+  { value: "studio", label: "Studio" },
+  { value: "briefing", label: "Briefing" },
+];
+
+const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
+  { value: "blue", label: "Blue" },
+  { value: "azure", label: "Bright Blue" },
+  { value: "cyan", label: "Cyan" },
+  { value: "violet", label: "Violet" },
+  { value: "mint", label: "Tactical" },
+  { value: "rose", label: "Rose" },
+  { value: "amber", label: "Amber" },
+  { value: "white", label: "White" },
+  { value: "midnight", label: "Midnight" },
+  { value: "forest", label: "Forest" },
+  { value: "crimson", label: "Crimson" },
+  { value: "graphite", label: "Graphite" },
+];
 
 const glassPresetOptions: Array<{ value: GlassPreset; label: string }> = [
   { value: "clear", label: "Clear" },
@@ -81,28 +129,6 @@ const labelInkOptions: Array<{ value: LabelInkPreset; label: string }> = [
   { value: "red", label: "Red" },
 ];
 
-const visualThemeOptions: Array<{ value: VisualThemePreset; label: string; description: string }> = [
-  { value: "hud", label: "HUD Glass", description: "Current liquid glass frame" },
-  { value: "workbench", label: "Workbench", description: "Light, quiet, practical" },
-  { value: "studio", label: "Studio", description: "Dark neutral developer view" },
-  { value: "briefing", label: "Briefing", description: "Report-style reading surface" },
-];
-
-const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
-  { value: "blue", label: "Blue" },
-  { value: "azure", label: "Bright Blue" },
-  { value: "cyan", label: "Cyan" },
-  { value: "violet", label: "Violet" },
-  { value: "mint", label: "Tactical" },
-  { value: "rose", label: "Rose" },
-  { value: "amber", label: "Amber" },
-  { value: "white", label: "White" },
-  { value: "midnight", label: "Midnight" },
-  { value: "forest", label: "Forest" },
-  { value: "crimson", label: "Crimson" },
-  { value: "graphite", label: "Graphite" },
-];
-
 const windowAnimationOptions: Array<{ value: WindowAnimationPreset; label: string }> = [
   { value: "center", label: "Center" },
   { value: "left", label: "Left reveal" },
@@ -111,23 +137,56 @@ const windowAnimationOptions: Array<{ value: WindowAnimationPreset; label: strin
   { value: "fade", label: "Fade" },
 ];
 
+const appearanceValues = new Set<AppearanceTheme>(["auto", "dark", "light"]);
+const visualThemeValues = new Set<VisualThemePreset>(["hud", "workbench", "studio", "briefing"]);
+const themeColorValues = new Set<ThemeColorPreset>(themeColorOptions.map((option) => option.value));
+const windowAnimationValues = new Set<WindowAnimationPreset>(windowAnimationOptions.map((option) => option.value));
+
+function isAppearanceTheme(value: string | undefined): value is AppearanceTheme {
+  return appearanceValues.has(value as AppearanceTheme);
+}
+
+function isVisualThemePreset(value: string | undefined): value is VisualThemePreset {
+  return visualThemeValues.has(value as VisualThemePreset);
+}
+
+function isThemeColorPreset(value: string | undefined): value is ThemeColorPreset {
+  return themeColorValues.has(value as ThemeColorPreset);
+}
+
+function isWindowAnimationPreset(value: string | undefined): value is WindowAnimationPreset {
+  return windowAnimationValues.has(value as WindowAnimationPreset);
+}
+
 export function SettingsClient({
   animation,
   controlToken,
   controlUrl,
+  theme,
   themeColor,
   visualTheme,
 }: {
   animation?: string;
   controlToken: string;
   controlUrl: string;
+  theme?: string;
   themeColor?: string;
   visualTheme?: string;
 }) {
-  const [settings, setSettings] = useState<SettingsState>(DEFAULTS);
+  const [settings, setSettings] = useState<SettingsState>(() => ({
+    ...DEFAULTS,
+    theme: isAppearanceTheme(theme) ? theme : DEFAULTS.theme,
+    design: {
+      ...DEFAULTS.design,
+      themeColorPreset: isThemeColorPreset(themeColor) ? themeColor : DEFAULTS.design.themeColorPreset,
+      visualThemePreset: isVisualThemePreset(visualTheme) ? visualTheme : DEFAULTS.design.visualThemePreset,
+      windowAnimationPreset: isWindowAnimationPreset(animation) ? animation : DEFAULTS.design.windowAnimationPreset,
+    },
+  }));
   const [error, setError] = useState<string | null>(null);
-  const opaque = settings.design.opaque;
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
+  const canSave = Boolean(controlUrl);
 
   useEffect(() => {
     if (!controlUrl) return;
@@ -136,8 +195,9 @@ export function SettingsClient({
       .then((r) => r.json() as Promise<ApiResponse>)
       .then((data) => {
         if (cancelled) return;
-        const { launchAtLogin, controlPort, nextPort, design } = data.settings;
+        const { theme, launchAtLogin, controlPort, nextPort, design } = data.settings;
         setSettings({
+          theme,
           launchAtLogin,
           controlPort,
           nextPort,
@@ -155,246 +215,207 @@ export function SettingsClient({
 
   const save = async (patch: Partial<BrokerSettings> & { design?: Partial<DesignSettings> }) => {
     const previous = settings;
-    setSettings((s) => ({
-      ...s,
+    const nextOptimistic = {
+      ...settings,
       ...patch,
-      design: patch.design ? { ...s.design, ...patch.design } : s.design,
-    }));
+      design: patch.design ? { ...settings.design, ...patch.design } : settings.design,
+    };
+    setSettings(nextOptimistic);
     setError(null);
+    setStatus("saving");
+    if (!canSave) {
+      setStatus("idle");
+      return;
+    }
     try {
       const res = await fetch(`${controlUrl}/v1/settings`, {
         method: "POST",
         headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
         body: JSON.stringify(patch),
       });
-      if (!res.ok) {
-        throw new Error(`Save failed: ${res.status} ${res.statusText}`);
-      }
+      if (!res.ok) throw new Error(`Save failed: ${res.status} ${res.statusText}`);
       const data = (await res.json()) as ApiResponse;
-      const { launchAtLogin, controlPort, nextPort, design } = data.settings;
+      const { theme, launchAtLogin, controlPort, nextPort, design } = data.settings;
       setSettings({
+        theme,
         launchAtLogin,
         controlPort,
         nextPort,
         design: { ...DESIGN_DEFAULTS, ...design },
       });
+      setStatus("saved");
+      window.setTimeout(() => setStatus("idle"), 1200);
     } catch (e: unknown) {
-      // Roll back the optimistic update so the UI matches what the
-      // broker actually persisted.
       setSettings(previous);
+      setStatus("idle");
       setError(e instanceof Error ? e.message : "Failed to save settings");
     }
   };
 
   const close = () => window.close();
   const portValue = (n: number | null) => (n === null ? "" : String(n));
-
-  // Parse a port input. Returns:
-  //   null      → empty (reset to auto)
-  //   number    → valid TCP port in [1, 65535]
-  //   undefined → invalid input; the caller should skip the save
   const parsePort = (raw: string): number | null | undefined => {
     const v = raw.trim();
     if (v === "") return null;
     if (!/^\d+$/.test(v)) return undefined;
     const n = Number(v);
-    if (!Number.isInteger(n) || n < 1 || n > 65535) return undefined;
+    if (!Number.isInteger(n) || n < 1024 || n > 65535) return undefined;
     return n;
   };
 
   return (
     <LiquidGlassSurface
-      animation={settings.design.windowAnimationPreset ?? animation}
-      opaque={opaque}
-      themeColor={settings.design.themeColorPreset ?? themeColor}
-      visualTheme={settings.design.visualThemePreset ?? visualTheme}
+      appearanceTheme={settings.theme}
+      animation={settings.design.windowAnimationPreset}
+      opaque={settings.design.opaque}
+      themeColor={settings.design.themeColorPreset}
+      visualTheme={settings.design.visualThemePreset}
     >
-      <div className="lg-content h-full mx-auto w-full max-w-lg">
+      <div className="lg-content h-full mx-auto w-full max-w-5xl">
         <section className="lg-glass-card-wrap min-h-0 flex-1">
-          <div className="lg-card-content flex h-full min-h-0 flex-col gap-4 p-5" data-variant="sunk">
-            <header className="lg-drag flex shrink-0 items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-col">
-                <span className="lg-label">Broker</span>
-                <h1 className="lg-title truncate">Settings</h1>
-              </div>
-              <div className="lg-window-drag-grip" aria-hidden="true" />
-              <div className="flex shrink-0 items-center gap-2">
-                <label className="lg-opacity-toggle">
-                  <input
-                    checked={opaque}
-                    onChange={(event) => save({ design: { opaque: event.currentTarget.checked } })}
-                    type="checkbox"
-                  />
-                  <span>Opaque</span>
-                </label>
-                <button
-                  className="lg-icon-button"
-                  onClick={close}
-                  type="button"
-                  aria-label="Close"
-                >
-                  <X size={16} strokeWidth={1.5} />
-                </button>
-              </div>
-            </header>
+          <div className="lg-card-content lg-ai-settings" data-variant="sunk">
+            <aside className="lg-ai-sidebar lg-drag" aria-label="Broker status">
+              <div className="lg-ai-brand-mark" aria-hidden="true">G</div>
+              <div className="lg-ai-circuit" aria-hidden="true" />
+              <StatusBlock icon={<Zap size={18} strokeWidth={1.6} />} label="Status" value={canSave ? "Online" : "Preview"} />
+              <StatusBlock label="v0.3.0" value="Protocol" muted />
+              <StatusBlock icon={<Gauge size={19} strokeWidth={1.6} />} label="API" value={canSave ? "Ready" : "Local"} />
+              <StatusBlock icon={<ShieldCheck size={18} strokeWidth={1.6} />} label="Secure" value={controlToken ? "Token OK" : "No token"} />
+              <StatusBlock icon={<Database size={18} strokeWidth={1.6} />} label="Data" value="Local" />
+            </aside>
 
-            <nav className="lg-menu-bar" aria-label="Broker menu">
-              <Link className="lg-menu-link" href="/">
-                Workbench
-              </Link>
-              <span className="lg-menu-link" data-active="true">
-                Settings
-              </span>
-            </nav>
-
-            <main className="lg-scroll min-h-0 flex-1 overflow-auto">
-              <div className="flex flex-col gap-2">
-                <div className="lg-row flex-col gap-3" style={{ alignItems: "stretch" }}>
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="lg-label">Design Defaults</span>
-                    <span className="lg-meta-faint">Theme and glass presets for newly generated popups</span>
-                  </span>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-2">
-                      <span className="lg-meta-faint">Popup visual theme</span>
-                      <div className="lg-visual-theme-grid" aria-label="Popup visual theme">
-                        {visualThemeOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className="lg-visual-theme-card"
-                            data-visual-theme-option={option.value}
-                            data-selected={settings.design.visualThemePreset === option.value}
-                            aria-pressed={settings.design.visualThemePreset === option.value}
-                            onClick={() => save({ design: { visualThemePreset: option.value } })}
-                          >
-                            <span className="lg-visual-theme-preview" aria-hidden="true" />
-                            <span className="min-w-0">
-                              <span>{option.label}</span>
-                              <span>{option.description}</span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="lg-meta-faint">Theme color preset</span>
-                      <div className="lg-theme-swatch-grid" aria-label="Theme color preset">
-                        {themeColorOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className="lg-theme-swatch"
-                            data-color={option.value}
-                            data-selected={settings.design.themeColorPreset === option.value}
-                            aria-pressed={settings.design.themeColorPreset === option.value}
-                            onClick={() => save({ design: { themeColorPreset: option.value } })}
-                          >
-                            <span className="lg-theme-swatch-mark" aria-hidden="true" />
-                            <span>{option.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <label className="flex min-w-0 flex-col gap-1">
-                        <span className="lg-meta-faint">Glass preset</span>
-                        <NativeSelect
-                          ariaLabel="Glass preset"
-                          options={glassPresetOptions}
-                          value={settings.design.glassPreset}
-                          onValueChange={(value) => save({ design: { glassPreset: value as GlassPreset } })}
-                        />
-                      </label>
-                      <label className="flex min-w-0 flex-col gap-1">
-                        <span className="lg-meta-faint">Label ink</span>
-                        <NativeSelect
-                          ariaLabel="Label ink"
-                          options={labelInkOptions}
-                          value={settings.design.labelInkPreset}
-                          onValueChange={(value) => save({ design: { labelInkPreset: value as LabelInkPreset } })}
-                        />
-                      </label>
-                      <label className="flex min-w-0 flex-col gap-1">
-                        <span className="lg-meta-faint">Open animation</span>
-                        <NativeSelect
-                          ariaLabel="Window animation"
-                          options={windowAnimationOptions}
-                          value={settings.design.windowAnimationPreset}
-                          onValueChange={(value) => save({ design: { windowAnimationPreset: value as WindowAnimationPreset } })}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <Field label="Default opacity" hint="Open new popups in opaque mode by default">
-                  <button
-                    aria-pressed={settings.design.opaque}
-                    className="lg-switch"
-                    data-on={settings.design.opaque}
-                    onClick={() => save({ design: { opaque: !settings.design.opaque } })}
-                    type="button"
-                  />
-                </Field>
-
-                <Field label="Launch at login" hint="Start broker silently">
-                  <button
-                    aria-pressed={settings.launchAtLogin}
-                    className="lg-switch"
-                    data-on={settings.launchAtLogin}
-                    onClick={() => save({ launchAtLogin: !settings.launchAtLogin })}
-                    type="button"
-                  />
-                </Field>
-
-                <Field label="Control API port" hint="Empty = auto">
-                  <input
-                    className="lg-input"
-                    inputMode="numeric"
-                    onChange={(e) => {
-                      const parsed = parsePort(e.target.value);
-                      if (parsed === undefined) return;
-                      setSettings((s) => ({ ...s, controlPort: parsed }));
-                    }}
-                    onBlur={(e) => {
-                      const parsed = parsePort(e.target.value);
-                      if (parsed === undefined) return;
-                      save({ controlPort: parsed });
-                    }}
-                    placeholder="auto"
-                    value={portValue(settings.controlPort)}
-                    data-mono
-                  />
-                </Field>
-
-                <Field label="Next.js port" hint="Empty = auto">
-                  <input
-                    className="lg-input"
-                    inputMode="numeric"
-                    onChange={(e) => {
-                      const parsed = parsePort(e.target.value);
-                      if (parsed === undefined) return;
-                      setSettings((s) => ({ ...s, nextPort: parsed }));
-                    }}
-                    onBlur={(e) => {
-                      const parsed = parsePort(e.target.value);
-                      if (parsed === undefined) return;
-                      save({ nextPort: parsed });
-                    }}
-                    placeholder="auto"
-                    value={portValue(settings.nextPort)}
-                    data-mono
-                  />
-                </Field>
-
-                {error && (
-                  <p className="lg-meta" style={{ color: "var(--danger)" }}>
-                    {error}
+            <section className="lg-ai-console">
+              <header className="lg-ai-console-header lg-drag">
+                <div>
+                  <h1>Settings</h1>
+                  <p>
+                    GenUI Popup Broker
+                    <span aria-hidden="true" />
+                    {canSave ? "Running" : "Preview"}
                   </p>
-                )}
-              </div>
-            </main>
+                </div>
+                <button className="lg-icon-button" onClick={close} type="button" aria-label="Close">
+                  <X size={20} strokeWidth={1.6} />
+                </button>
+              </header>
+
+              <main className="lg-scroll lg-ai-settings-main">
+                {error && <div className="lg-ai-alert" role="alert">{error}</div>}
+
+                <Panel title="Theme">
+                  <FieldLabel>Appearance</FieldLabel>
+                  <div className="lg-ai-segmented">
+                    {appearanceOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        aria-pressed={settings.theme === option.value}
+                        data-selected={settings.theme === option.value}
+                        onClick={() => save({ theme: option.value })}
+                        type="button"
+                      >
+                        {option.icon}
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <FieldLabel>Visual style</FieldLabel>
+                  <div className="lg-ai-visual-grid">
+                    {visualThemeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        aria-pressed={settings.design.visualThemePreset === option.value}
+                        className="lg-ai-visual-card"
+                        data-selected={settings.design.visualThemePreset === option.value}
+                        data-style={option.value}
+                        onClick={() => save({ design: { visualThemePreset: option.value } })}
+                        type="button"
+                      >
+                        <span aria-hidden="true" />
+                        <strong>{option.label}</strong>
+                      </button>
+                    ))}
+                  </div>
+
+                  <FieldLabel>Accent color</FieldLabel>
+                  <div className="lg-ai-accent-row" aria-label="Accent color">
+                    {themeColorOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        aria-label={option.label}
+                        aria-pressed={settings.design.themeColorPreset === option.value}
+                        className="lg-ai-swatch"
+                        data-color={option.value}
+                        data-selected={settings.design.themeColorPreset === option.value}
+                        onClick={() => save({ design: { themeColorPreset: option.value } })}
+                        title={option.label}
+                        type="button"
+                      >
+                        <span aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </Panel>
+
+                <Panel title="Appearance (Advanced)">
+                  <div className="lg-ai-control-grid" data-columns="3">
+                    <SelectField icon={<SlidersHorizontal size={16} />} label="Glass preset" options={glassPresetOptions} value={settings.design.glassPreset} onChange={(value) => save({ design: { glassPreset: value as GlassPreset } })} />
+                    <SelectField icon={<Droplets size={16} />} label="Label ink" options={labelInkOptions} value={settings.design.labelInkPreset} onChange={(value) => save({ design: { labelInkPreset: value as LabelInkPreset } })} />
+                    <SelectField icon={<Radar size={16} />} label="Open animation" options={windowAnimationOptions} value={settings.design.windowAnimationPreset} onChange={(value) => save({ design: { windowAnimationPreset: value as WindowAnimationPreset } })} />
+                  </div>
+                  <SettingRow label="Default opacity" hint="Open new popups in opaque mode">
+                    <Switch checked={settings.design.opaque} onClick={() => save({ design: { opaque: !settings.design.opaque } })} />
+                  </SettingRow>
+                </Panel>
+
+                <Panel title="System">
+                  <SystemRow icon={<Rocket size={18} />} label="Launch at login" hint="Start the broker automatically when you log in">
+                    <Switch checked={settings.launchAtLogin} disabled={!canSave} onClick={() => save({ launchAtLogin: !settings.launchAtLogin })} />
+                  </SystemRow>
+                  <SystemRow icon={<TerminalSquare size={18} />} label="Control API port" hint="Port for local control API">
+                    <PortInput
+                      value={portValue(settings.controlPort)}
+                      onBlur={(value) => {
+                        const parsed = parsePort(value);
+                        if (parsed !== undefined) void save({ controlPort: parsed });
+                      }}
+                      onChange={(value) => {
+                        const parsed = parsePort(value);
+                        if (parsed !== undefined) setSettings((s) => ({ ...s, controlPort: parsed }));
+                      }}
+                    />
+                  </SystemRow>
+                  <SystemRow icon={<Layers size={18} />} label="Next popup port" hint="Starting port for popup windows">
+                    <PortInput
+                      value={portValue(settings.nextPort)}
+                      onBlur={(value) => {
+                        const parsed = parsePort(value);
+                        if (parsed !== undefined) void save({ nextPort: parsed });
+                      }}
+                      onChange={(value) => {
+                        const parsed = parsePort(value);
+                        if (parsed !== undefined) setSettings((s) => ({ ...s, nextPort: parsed }));
+                      }}
+                    />
+                  </SystemRow>
+                </Panel>
+
+                <div className="lg-ai-action-bar">
+                  <button
+                    className="lg-ai-secondary-action"
+                    onClick={() => save({ theme: DEFAULTS.theme, design: DESIGN_DEFAULTS })}
+                    type="button"
+                  >
+                    <RefreshCcw size={17} strokeWidth={1.7} />
+                    Reset to defaults
+                  </button>
+                  <button className="lg-ai-primary-action" onClick={() => save({})} type="button">
+                    <Check size={18} strokeWidth={1.9} />
+                    {status === "saving" ? "Saving" : status === "saved" ? "Saved" : "Save changes"}
+                  </button>
+                </div>
+              </main>
+            </section>
           </div>
         </section>
       </div>
@@ -402,22 +423,92 @@ export function SettingsClient({
   );
 }
 
-function Field({
+function StatusBlock({ icon, label, muted, value }: { icon?: ReactNode; label: string; muted?: boolean; value: string }) {
+  return (
+    <div className="lg-ai-status-block" data-muted={muted}>
+      {icon && <span aria-hidden="true">{icon}</span>}
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function Panel({ children, title }: { children: ReactNode; title: string }) {
+  return (
+    <section className="lg-ai-panel">
+      <h2>{title}</h2>
+      <div className="lg-ai-panel-body">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="lg-ai-field-label">{children}</span>;
+}
+
+function SelectField({
+  icon,
   label,
-  hint,
-  children,
+  onChange,
+  options,
+  value,
 }: {
+  icon: ReactNode;
   label: string;
-  hint?: string;
-  children: React.ReactNode;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  value: string;
 }) {
   return (
-    <label className="lg-row lg-field">
-      <span className="flex min-w-0 flex-col gap-1">
-        <span className="lg-label">{label}</span>
-        {hint && <span className="lg-meta-faint">{hint}</span>}
+    <label className="lg-ai-select-field">
+      <span>{label}</span>
+      <span className="lg-ai-select-shell">
+        <span aria-hidden="true">{icon}</span>
+        <NativeSelect ariaLabel={label} options={options} value={value} onValueChange={onChange} />
       </span>
-      <span className="lg-field-control">{children}</span>
     </label>
+  );
+}
+
+function SettingRow({ children, hint, label }: { children: ReactNode; hint: string; label: string }) {
+  return (
+    <div className="lg-ai-setting-row">
+      <span>
+        <strong>{label}</strong>
+        <small>{hint}</small>
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function SystemRow({ children, hint, icon, label }: { children: ReactNode; hint: string; icon: ReactNode; label: string }) {
+  return (
+    <div className="lg-ai-system-row">
+      <span aria-hidden="true">{icon}</span>
+      <span>
+        <strong>{label}</strong>
+        <small>{hint}</small>
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function Switch({ checked, disabled, onClick }: { checked: boolean; disabled?: boolean; onClick: () => void }) {
+  return <button aria-pressed={checked} className="lg-switch" data-on={checked} disabled={disabled} onClick={onClick} type="button" />;
+}
+
+function PortInput({ onBlur, onChange, value }: { onBlur: (value: string) => void; onChange: (value: string) => void; value: string }) {
+  return (
+    <input
+      className="lg-ai-port-input"
+      inputMode="numeric"
+      onBlur={(event) => onBlur(event.currentTarget.value)}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      placeholder="auto"
+      value={value}
+      data-mono
+    />
   );
 }

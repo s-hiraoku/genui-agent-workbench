@@ -999,8 +999,8 @@ function openSettingsWindow(): void {
   const theme = resolveTheme(settings.theme);
   settingsWindow = new BrowserWindow({
     title: "GenUI Broker — Settings",
-    width: 560,
-    height: 640,
+    width: 980,
+    height: 900,
     resizable: false,
     minimizable: false,
     maximizable: false,
