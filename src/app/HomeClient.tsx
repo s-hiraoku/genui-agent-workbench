@@ -300,10 +300,10 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
       themeColor={design.themeColorPreset}
       visualTheme={design.visualThemePreset}
     >
-      <div className="lg-content lg-content-scrollable lg-scroll mx-auto w-full max-w-5xl">
-        <section className="lg-glass-card-wrap">
-          <div className="lg-card-content flex flex-col gap-5 p-6" data-variant="sunk">
-            <header className="flex flex-col gap-4">
+      <div className="lg-content h-full mx-auto w-full max-w-5xl">
+        <section className="lg-glass-card-wrap min-h-0 flex-1">
+          <div className="lg-card-content flex h-full min-h-0 flex-col gap-5 p-6" data-variant="sunk">
+            <header className="flex shrink-0 flex-col gap-4">
               <div className="lg-drag flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex min-w-0 flex-col gap-2">
                   <span className="lg-label">GenUI Popup Broker</span>
@@ -329,6 +329,8 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
               </p>
             </header>
 
+            <main className="lg-scroll min-h-0 flex-1 overflow-auto">
+              <div className="flex min-w-0 flex-col gap-5">
             {(error || message) && (
               <div className="lg-row">
                 <span className="lg-meta-faint" style={{ color: error ? "var(--danger)" : "var(--ink-mid)" }}>
@@ -586,6 +588,8 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
                 )}
               </div>
             </section>
+              </div>
+            </main>
           </div>
         </section>
       </div>

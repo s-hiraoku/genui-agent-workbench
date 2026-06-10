@@ -20,7 +20,7 @@ type PreviewPageProps = {
 
 export default async function PreviewPage({ params, searchParams }: PreviewPageProps) {
   const { artifactId } = await params;
-  const { popupId, controlUrl, token, size, agent, animation, themeColor, visualTheme, opaque } = await searchParams;
+  const { popupId, controlUrl, token, size, agent, animation, theme, themeColor, visualTheme, opaque } = await searchParams;
   const artifact = await loadArtifact(artifactId);
 
   if (!artifact) {
@@ -38,6 +38,7 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
       openuiLang={artifact.openuiLang}
       popupId={popupId}
       size={size}
+      theme={theme}
       themeColor={themeColor}
       visualTheme={visualTheme}
       initialOpaque={opaque === "1" || opaque === "true"}

@@ -34,6 +34,11 @@ type PopupRuntime = PopupRecord & {
 
 const popupRegistry = new Map<string, PopupRuntime>();
 const MAX_REQUEST_BYTES = 1024 * 1024;
+const GENUI_DATA_DIR_NAME = "genui-agent-workbench";
+
+function getDefaultGenUIDataDir(): string {
+  return path.join(app.getPath("appData"), GENUI_DATA_DIR_NAME, "genui-data");
+}
 
 // Route external links (target="_blank", window.open) from popup/settings
 // windows to the OS default browser, instead of spawning new floating
@@ -236,7 +241,7 @@ async function startNextService(): Promise<void> {
   nextUrl = `http://127.0.0.1:${port}`;
   const env = {
     ...process.env,
-    GENUI_DATA_DIR: process.env.GENUI_DATA_DIR ?? path.join(app.getPath("userData"), "genui-data"),
+    GENUI_DATA_DIR: process.env.GENUI_DATA_DIR ?? getDefaultGenUIDataDir(),
     HOSTNAME: "127.0.0.1",
     PORT: String(port),
   };
@@ -997,11 +1002,16 @@ function openSettingsWindow(): void {
   }
 
   const theme = resolveTheme(settings.theme);
+  const workArea = screen.getPrimaryDisplay().workArea;
+  const settingsWindowWidth = Math.min(980, Math.max(560, Math.floor(workArea.width - 48)));
+  const settingsWindowHeight = Math.min(900, Math.max(560, Math.floor(workArea.height - 48)));
   settingsWindow = new BrowserWindow({
     title: "GenUI Broker — Settings",
-    width: 560,
-    height: 640,
-    resizable: false,
+    width: settingsWindowWidth,
+    height: settingsWindowHeight,
+    minWidth: Math.min(560, settingsWindowWidth),
+    minHeight: Math.min(560, settingsWindowHeight),
+    resizable: true,
     minimizable: false,
     maximizable: false,
     show: true,
@@ -1078,7 +1088,7 @@ function buildTray(): void {
 }
 
 async function boot(): Promise<void> {
-  process.env.GENUI_DATA_DIR = process.env.GENUI_DATA_DIR ?? path.join(app.getPath("userData"), "genui-data");
+  process.env.GENUI_DATA_DIR = process.env.GENUI_DATA_DIR ?? getDefaultGenUIDataDir();
   controlToken = controlToken || crypto.randomUUID();
   settings = await readSettings();
   nativeTheme.themeSource = settings.theme === "auto" ? "system" : settings.theme;

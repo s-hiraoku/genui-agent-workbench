@@ -20,6 +20,7 @@ type PreviewClientProps = {
   controlUrl?: string;
   controlToken?: string;
   size?: string;
+  theme?: string;
   themeColor?: string;
   visualTheme?: string;
   initialOpaque?: boolean;
@@ -32,6 +33,7 @@ export function PreviewClient({
   popupId,
   controlUrl,
   controlToken,
+  theme,
   themeColor,
   visualTheme,
   initialOpaque = false,
@@ -101,7 +103,13 @@ export function PreviewClient({
   }, [closePopup]);
 
   return (
-    <LiquidGlassSurface animation={animation} opaque={opaque} themeColor={themeColor} visualTheme={visualTheme}>
+    <LiquidGlassSurface
+      appearanceTheme={theme}
+      animation={animation}
+      opaque={opaque}
+      themeColor={themeColor}
+      visualTheme={visualTheme}
+    >
       <div className="lg-content h-full">
         <header className="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
           <h1 className="lg-title min-w-0 truncate">{artifactTitle}</h1>
