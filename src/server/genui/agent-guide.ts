@@ -4,6 +4,25 @@ export const agentUsageGuide = {
   brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
   purpose:
     "Use GenUI Popup Broker when an AI agent needs to show a local visual popup. The agent generates OpenUI Lang; the CLI/broker validates, stores, and renders it.",
+  whenToUse: [
+    "The user needs to inspect more than a few facts, rows, risks, options, or steps.",
+    "A visual layout would make a decision, review, status report, or handoff clearer than prose.",
+    "The task involves approvals, forms, checklists, diffs, maps, media, timelines, dashboards, or structured evidence.",
+    "The agent should keep working in text while giving the user a separate local popup to review.",
+  ],
+  whenNotToUse: [
+    "The answer is a single sentence or a short plain-text explanation.",
+    "The user asked only for code edits, shell output, or a file change and no visual review is useful.",
+    "The UI would contain secrets or sensitive data that should not be written to a local artifact.",
+    "The agent cannot provide concrete data for the popup and would only show generic filler.",
+  ],
+  quickStart: [
+    "Run `genui doctor --json` to check availability without opening a popup.",
+    "Run `genui prompt-spec` for the exact OpenUI Lang syntax and component signatures.",
+    "Run `genui examples` to pick a starter, or `genui examples --name build-review > ui.openui`.",
+    "Validate with `genui validate --openui-lang-file ui.openui`.",
+    "Open with `genui popup --openui-lang-file ui.openui --title \"Status\" --agent-id <agent>`.",
+  ],
   preferredFlow: [
     "Run `genui prompt-spec` to learn the OpenUI Lang syntax and available components.",
     "Use `genui examples` for known-good starter OpenUI Lang.",
@@ -17,6 +36,8 @@ export const agentUsageGuide = {
   ],
   cli: {
     agentInstructions: "genui agent-instructions",
+    agentSnippet: "genui agent-snippet",
+    doctor: "genui doctor --json",
     promptSpec: "genui prompt-spec",
     examples: "genui examples",
     validate: "genui validate --openui-lang-file ui.openui",
@@ -39,7 +60,10 @@ export const agentUsageGuide = {
     "MetricGrid",
     "Stat",
     "KeyValuePanel",
+    "InsightStack",
     "AlertList",
+    "Gauge",
+    "ChecklistPanel",
     "NotificationToast",
     "DiagnosticsCard",
     "DecisionMatrix",

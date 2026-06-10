@@ -9,6 +9,41 @@ const EXPECTED_PROTOCOL_VERSION = "0.3.0";
 const DEFAULT_CONTROL_URL = "http://127.0.0.1:48231";
 const DEFAULT_APP_NAME = "GenUI Popup Broker";
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+const AGENT_WHEN_TO_USE = [
+  "The user needs to inspect more than a few facts, rows, risks, options, or steps.",
+  "A visual layout would make a decision, review, status report, or handoff clearer than prose.",
+  "The task involves approvals, forms, checklists, diffs, maps, media, timelines, dashboards, or structured evidence.",
+  "The agent should keep working in text while giving the user a separate local popup to review.",
+];
+const AGENT_WHEN_NOT_TO_USE = [
+  "The answer is a single sentence or a short plain-text explanation.",
+  "The user asked only for code edits, shell output, or a file change and no visual review is useful.",
+  "The UI would contain secrets or sensitive data that should not be written to a local artifact.",
+  "The agent cannot provide concrete data for the popup and would only show generic filler.",
+];
+const AGENT_COMMANDS = {
+  doctor: "genui doctor --json",
+  agentSnippet: "genui agent-snippet",
+  agentInstructions: "genui agent-instructions",
+  promptSpec: "genui prompt-spec",
+  examples: "genui examples",
+  validate: "genui validate --openui-lang-file ui.openui",
+  components: "genui components",
+  open: 'genui popup --agent-id <agent> --title <title> --size review --openui-lang-file ui.openui',
+  openAndWait: 'genui popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait',
+};
+
+function agentSnippet() {
+  return `## GenUI Popup Broker
+
+If the \`genui\` CLI is available, use it when a local visual popup would make the answer easier to inspect: status dashboards, risks, decisions, checklists, tables, diffs, maps, media, diagnostics, insights, or approvals.
+
+Paste this block into project instructions such as \`AGENTS.md\` when you want agents to discover and use GenUI automatically.
+
+Before first use, run \`genui doctor --json\` to check availability. For authoring, run \`genui prompt-spec\` and generate OpenUI Lang directly; do not send natural-language UI requests to GenUI. Validate with \`genui validate --openui-lang-file <file>\`, then open with \`genui popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
+
+Do not use GenUI for a short plain-text answer or generic placeholder UI. Never include secrets in OpenUI Lang or context.`;
+}
 
 function parseArgs(argv) {
   const [command = "help", ...rest] = argv;
@@ -438,10 +473,60 @@ async function examples(options) {
   return jsonCommand(options, "/v1/examples");
 }
 
+async function doctor(options) {
+  let connection = await findReachableConnection(options);
+  let broker = connection ? await brokerStatus(connection) : null;
+  let brokerError;
+
+  if (!broker && options.start === true) {
+    try {
+      connection = await ensureBroker(options);
+      broker = await brokerStatus(connection);
+    } catch (error) {
+      brokerError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  const fallbackConnection = (await candidateConnections(options))[0] ?? { controlUrl: DEFAULT_CONTROL_URL };
+  return {
+    ok: true,
+    cli: "genui",
+    installed: true,
+    brokerReachable: Boolean(broker),
+    brokerProtocolVersion: EXPECTED_PROTOCOL_VERSION,
+    controlUrl: connection?.controlUrl ?? fallbackConnection.controlUrl,
+    canAutoStartBroker: process.platform === "darwin",
+    broker,
+    brokerError,
+    whenToUse: AGENT_WHEN_TO_USE,
+    whenNotToUse: AGENT_WHEN_NOT_TO_USE,
+    quickStart: [
+      "Run `genui prompt-spec` for the exact OpenUI Lang syntax and component signatures.",
+      "Run `genui examples` to pick a starter, or `genui examples --name build-review > ui.openui`.",
+      "Validate with `genui validate --openui-lang-file ui.openui`.",
+      "Open with `genui popup --openui-lang-file ui.openui --title \"Status\" --agent-id <agent>`.",
+    ],
+    commands: AGENT_COMMANDS,
+    nextSteps: broker
+      ? [
+          "Run `genui prompt-spec` for syntax.",
+          "Generate OpenUI Lang and validate with `genui validate --openui-lang-file ui.openui`.",
+          "Open with `genui popup --openui-lang-file ui.openui --title \"Status\" --agent-id <agent>`.",
+        ]
+      : [
+          "The CLI is installed but the broker is not reachable yet.",
+          "Run `genui doctor --start --json` to try starting it, or run `genui popup ...` which also auto-starts the broker.",
+          "If startup fails, open GenUI Popup Broker manually and rerun `genui doctor --json`.",
+        ],
+  };
+}
+
 function printHelp() {
   console.log(`GenUI Popup Broker CLI
 
 Usage:
+  genui doctor --json
+  genui agent-snippet
   genui agent-instructions
   genui prompt-spec
   genui components
@@ -475,6 +560,7 @@ Options:
   --outcome <outcome>       completed | cancelled | failed
   --name <example>          Select an example for the examples command
   --json                    Return selected example as JSON
+  --start                   For doctor: try to start the broker before reporting
 
 Environment:
   GENUI_BROKER_APP_PATH     Path to GenUI Popup Broker.app for auto-start
@@ -499,6 +585,16 @@ async function main() {
     if (result.valid === false) {
       process.exitCode = 1;
     }
+    return;
+  }
+
+  if (command === "doctor") {
+    console.log(JSON.stringify(await doctor(options), null, 2));
+    return;
+  }
+
+  if (command === "agent-snippet") {
+    console.log(agentSnippet());
     return;
   }
 

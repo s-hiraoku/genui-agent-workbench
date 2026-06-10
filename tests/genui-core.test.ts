@@ -9,7 +9,7 @@ import packageJson from "../package.json";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
-import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli-guidance";
+import { buildAgentInstructions, buildAgentSnippet, buildPromptSpec } from "../src/server/genui/cli-guidance";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
 import { library, promptOptions, resolveVideoEmbedSource } from "../src/library";
@@ -107,6 +107,20 @@ describe("renderGenUI", () => {
     expect(() => validateOpenUILang(sampleOpenUILang)).not.toThrow();
   });
 
+  it("validates score, checklist, and insight components", () => {
+    const readinessOpenUILang = [
+      "root = Card([gauge, checklist, insights])",
+      'gauge = Gauge("Readiness", "Bounded release score", "Release", 82, 100, "%", 90, "info")',
+      'checklist = ChecklistPanel("Gates", "Go/no-go checks", [c1, c2], "One gate still needs attention")',
+      'c1 = { label: "Tests", status: "done", description: "Regression suite passes" }',
+      'c2 = { label: "Support coverage", status: "warning", owner: "support", description: "Launch window not confirmed" }',
+      'insights = InsightStack("Takeaways", "Agent summary", [i1])',
+      'i1 = { title: "Technical risk is low", detail: "Remaining issue is operational coverage.", confidence: "high", source: "release checklist", tone: "info" }',
+    ].join("\n");
+
+    expect(() => validateOpenUILang(readinessOpenUILang)).not.toThrow();
+  });
+
   it("validates bidirectional interaction components", () => {
     const interactiveOpenUILang = [
       "root = Card([approval, form, wizard, thread, code])",
@@ -163,7 +177,11 @@ describe("renderGenUI", () => {
 describe("agent interface scaffold", () => {
   it("publishes direct OpenUI Lang CLI guidance", () => {
     expect(agentUsageGuide.preferredFlow.join("\n")).toContain("prompt-spec");
+    expect(agentUsageGuide.quickStart.join("\n")).toContain("doctor");
+    expect(agentUsageGuide.whenToUse.join("\n")).toContain("visual");
     expect(agentUsageGuide.preferredFlow.join("\n")).toContain("validate");
+    expect(agentUsageGuide.cli.doctor).toContain("doctor");
+    expect(agentUsageGuide.cli.agentSnippet).toContain("agent-snippet");
     expect(agentUsageGuide.cli.open).toContain("--openui-lang-file");
     expect(agentUsageGuide.cli.openAndWait).toContain("--wait");
     expect(agentUsageGuide.cli.open).toContain("genui popup");
@@ -175,6 +193,9 @@ describe("agent interface scaffold", () => {
   it("builds an OpenUI prompt spec with custom components", () => {
     const promptSpec = library.prompt(promptOptions);
     expect(promptSpec).toContain("MetricGrid");
+    expect(promptSpec).toContain("Gauge");
+    expect(promptSpec).toContain("ChecklistPanel");
+    expect(promptSpec).toContain("InsightStack");
     expect(promptSpec).toContain("ActionPanel");
     expect(promptSpec).toContain("MapView");
     expect(promptSpec).toContain("VideoPlaylist");
@@ -182,8 +203,13 @@ describe("agent interface scaffold", () => {
 
   it("builds broker-served CLI guidance for standalone commands", () => {
     const instructions = buildAgentInstructions();
+    const snippet = buildAgentSnippet();
     expect(buildPromptSpec()).toContain("MetricGrid");
+    expect(snippet).toContain("genui doctor --json");
+    expect(snippet).toContain("AGENTS.md");
     expect(instructions).toContain("genui prompt-spec");
+    expect(instructions).toContain("genui doctor --json");
+    expect(instructions).toContain("Component selection");
     expect(instructions).toContain("genui popup");
     expect(instructions.indexOf("genui validate")).toBeLessThan(instructions.indexOf("genui popup"));
   });
@@ -191,7 +217,7 @@ describe("agent interface scaffold", () => {
   it("exposes a component catalog without duplicate names", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
-    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable", "VideoPlaylist"]));
+    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable", "VideoPlaylist", "Gauge", "ChecklistPanel", "InsightStack"]));
   });
 
   it("publishes MCP and interaction guidance", () => {

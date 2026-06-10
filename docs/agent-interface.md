@@ -13,25 +13,27 @@ The broker is not a UI-planning LLM. Do not send natural-language prompts as the
 
 ## Preferred Agent Flow
 
-1. Run `genui agent-instructions` if the agent has not used GenUI before.
-2. Run `genui prompt-spec` and use the output as the OpenUI Lang authoring guide.
-3. Use `genui examples` for known-good starter snippets when useful.
-4. Generate OpenUI Lang using only listed components.
-5. Validate before opening:
+1. Run `genui agent-snippet` when you need a short reusable instruction block for `AGENTS.md` or an agent profile.
+2. Run `genui agent-instructions` if the agent has not used GenUI before.
+3. Run `genui doctor --json` when the agent needs to confirm the CLI is installed and whether the broker is reachable.
+4. Run `genui prompt-spec` and use the output as the OpenUI Lang authoring guide.
+5. Use `genui examples` for known-good starter snippets when useful.
+6. Generate OpenUI Lang using only listed components.
+7. Validate before opening:
 
 ```bash
 genui validate --openui-lang-file ui.openui
 ```
 
-6. Open a popup:
+8. Open a popup:
 
 ```bash
 genui popup --agent-id codex --title "Decision Review" --size review --openui-lang-file ui.openui
 ```
 
-7. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
-8. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
-9. Inspect and replay saved UI when the user wants to revisit a prior artifact:
+9. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
+10. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
+11. Inspect and replay saved UI when the user wants to revisit a prior artifact:
 
 ```bash
 genui artifacts --limit 20
@@ -39,7 +41,7 @@ genui artifact --artifact-id "<artifactId>"
 genui replay --artifact-id "<artifactId>"
 ```
 
-10. Close when done:
+12. Close when done:
 
 ```bash
 genui close --popup-id "<popupId>"
@@ -56,6 +58,14 @@ o2 = { name: "Broker prompt route", recommendation: "avoid", score: "4/10", pros
 actions = ActionPanel("Next Actions", "Recommended handoff", [a1])
 a1 = { label: "Use direct CLI route", priority: "high", owner: "agent", description: "Generate OpenUI Lang and pass it to --openui-lang-file" }
 ```
+
+## Component Selection
+
+- Use `MetricGrid`, `Stat`, or `Gauge` when a number is the main message.
+- Use `InsightStack` when the UI should explain AI takeaways with confidence or sources.
+- Use `ChecklistPanel` for acceptance criteria, QA gates, and launch-readiness checks.
+- Use `ProgressStepper` or `TimelinePanel` only when sequence or time order matters.
+- Use `AlertList` for multiple risks and `NotificationToast` for one compact status banner.
 
 ## Approval and Form Results
 
@@ -94,6 +104,8 @@ The popup chrome Complete button also includes any previously recorded events in
 ## CLI Commands
 
 ```bash
+genui doctor --json
+genui agent-snippet
 genui agent-instructions
 genui prompt-spec
 genui components
