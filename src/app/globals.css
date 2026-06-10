@@ -21,6 +21,7 @@
   --theme-frame: rgba(72, 114, 184, 0.78);
   --theme-frame-soft: rgba(72, 114, 184, 0.36);
   --theme-frame-glow: rgba(48, 86, 150, 0.34);
+  --theme-frame-cast-shadow: rgba(8, 22, 14, 0.32);
   --aether-window-blur: 7px;
   --aether-window-saturate: 1.06;
   --aether-window-brightness: 1.08;
@@ -397,6 +398,7 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --theme-frame: rgba(72, 102, 138, 0.42);
   --theme-frame-soft: rgba(132, 148, 166, 0.22);
   --theme-frame-glow: rgba(56, 76, 104, 0.10);
+  --theme-frame-cast-shadow: rgba(18, 28, 42, 0.16);
   --aether-window-tint: rgba(248, 250, 252, 0.98);
   --aether-window-tint-soft: rgba(238, 242, 247, 0.94);
   --aether-card-tint: rgba(255, 255, 255, 0.86);
@@ -433,6 +435,7 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --theme-frame: rgba(96, 116, 132, 0.56);
   --theme-frame-soft: rgba(72, 86, 100, 0.34);
   --theme-frame-glow: rgba(64, 144, 172, 0.12);
+  --theme-frame-cast-shadow: rgba(0, 0, 0, 0.34);
   --aether-window-tint: rgba(18, 23, 29, 0.98);
   --aether-window-tint-soft: rgba(24, 30, 38, 0.94);
   --aether-card-tint: rgba(34, 42, 52, 0.88);
@@ -469,6 +472,7 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --theme-frame: rgba(62, 116, 166, 0.50);
   --theme-frame-soft: rgba(92, 140, 184, 0.24);
   --theme-frame-glow: rgba(42, 92, 146, 0.10);
+  --theme-frame-cast-shadow: rgba(24, 54, 88, 0.16);
   --aether-window-tint: rgba(244, 248, 252, 0.98);
   --aether-window-tint-soft: rgba(232, 240, 248, 0.94);
   --aether-card-tint: rgba(255, 255, 255, 0.90);
@@ -503,19 +507,29 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
 .lg-shell:not([data-visual-theme="hud"]) .lg-window-frame::before {
   inset: -2px;
   border-radius: 20px;
-  background: linear-gradient(135deg, var(--theme-frame), var(--edge-soft));
+  background: conic-gradient(
+    from var(--frame-spin, 0deg),
+    var(--theme-frame),
+    var(--theme-frame-glow) 25%,
+    var(--spec-soft) 35%,
+    var(--theme-frame) 50%,
+    var(--theme-frame-soft) 65%,
+    var(--edge-strong) 75%,
+    var(--theme-frame) 100%
+  );
   padding: 1px;
-  filter: drop-shadow(0 18px 36px rgba(18, 28, 42, 0.18));
-  animation: none;
+  filter:
+    drop-shadow(0 0 5px var(--theme-frame))
+    drop-shadow(0 0 14px var(--theme-frame-glow))
+    drop-shadow(0 18px 36px var(--theme-frame-cast-shadow));
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-window-frame::after {
   inset: -1px;
   border-radius: 19px;
   background: linear-gradient(180deg, var(--theme-frame-glow), transparent 60%);
-  filter: none;
+  filter: blur(10px);
   opacity: 0.42;
-  animation: none;
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-glass-window::before {
@@ -686,13 +700,13 @@ body::before,
     filter:
       drop-shadow(0 0 6px var(--theme-frame))
       drop-shadow(0 0 18px var(--theme-frame-glow))
-      drop-shadow(0 14px 22px rgba(8, 22, 14, 0.32));
+      drop-shadow(0 14px 22px var(--theme-frame-cast-shadow));
   }
   50% {
     filter:
       drop-shadow(0 0 12px var(--theme-frame))
       drop-shadow(0 0 32px var(--theme-frame-glow))
-      drop-shadow(0 14px 22px rgba(8, 22, 14, 0.32));
+      drop-shadow(0 14px 22px var(--theme-frame-cast-shadow));
   }
 }
 
@@ -1356,7 +1370,7 @@ body::before,
   border-radius: 7px;
   background:
     linear-gradient(145deg, var(--tint-row), rgba(255, 255, 255, 0.035)),
-    rgba(18, 32, 24, 0.18);
+    var(--tint-row);
   color: var(--ink);
   padding: 10px;
   text-align: left;
@@ -1459,7 +1473,7 @@ body::before,
   border-radius: 6px;
   background:
     linear-gradient(90deg, var(--swatch-color-soft), transparent 42%),
-    rgba(18, 32, 24, 0.28);
+    var(--tint-row);
   color: var(--ink);
   font-size: 13px;
   font-weight: 700;
@@ -1491,8 +1505,8 @@ body::before,
 .lg-theme-swatch[data-selected="true"] {
   background:
     linear-gradient(90deg, var(--swatch-color-soft), rgba(255, 255, 255, 0.08) 54%, transparent),
-    rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.99);
+    var(--tint-chip);
+  color: var(--ink);
   box-shadow:
     inset 0 0 0 2px var(--swatch-color),
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
