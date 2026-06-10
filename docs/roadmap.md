@@ -1,5 +1,9 @@
 # Roadmap
 
+See `docs/practical-usability-plan.md` for the prioritized plan to make the tool
+practical for daily use (bidirectional interaction, MCP server, validation
+feedback, code/diff expressiveness).
+
 ## Phase 1: CLI-First Popup Runtime
 
 Status: complete for local development.
