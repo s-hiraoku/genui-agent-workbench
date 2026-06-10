@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   Database,
@@ -158,6 +158,23 @@ function isWindowAnimationPreset(value: string | undefined): value is WindowAnim
   return windowAnimationValues.has(value as WindowAnimationPreset);
 }
 
+function portValue(n: number | null) {
+  return n === null ? "" : String(n);
+}
+
+function isPortDraft(raw: string) {
+  return /^\d*$/.test(raw.trim());
+}
+
+function parsePort(raw: string): number | null | undefined {
+  const v = raw.trim();
+  if (v === "") return null;
+  if (!/^\d+$/.test(v)) return undefined;
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1024 || n > 65535) return undefined;
+  return n;
+}
+
 export function SettingsClient({
   animation,
   controlToken,
@@ -183,8 +200,11 @@ export function SettingsClient({
       windowAnimationPreset: isWindowAnimationPreset(animation) ? animation : DEFAULTS.design.windowAnimationPreset,
     },
   }));
+  const [controlPortText, setControlPortText] = useState(() => portValue(DEFAULTS.controlPort));
+  const [nextPortText, setNextPortText] = useState(() => portValue(DEFAULTS.nextPort));
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const saveSequence = useRef(0);
   const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
   const canSave = Boolean(controlUrl);
 
@@ -196,13 +216,16 @@ export function SettingsClient({
       .then((data) => {
         if (cancelled) return;
         const { theme, launchAtLogin, controlPort, nextPort, design } = data.settings;
-        setSettings({
+        const nextSettings = {
           theme,
           launchAtLogin,
           controlPort,
           nextPort,
           design: { ...DESIGN_DEFAULTS, ...design },
-        });
+        };
+        setSettings(nextSettings);
+        setControlPortText(portValue(nextSettings.controlPort));
+        setNextPortText(portValue(nextSettings.nextPort));
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -214,6 +237,8 @@ export function SettingsClient({
   }, [authHeaders, controlUrl]);
 
   const save = async (patch: Partial<BrokerSettings> & { design?: Partial<DesignSettings> }) => {
+    const saveId = saveSequence.current + 1;
+    saveSequence.current = saveId;
     const previous = settings;
     const nextOptimistic = {
       ...settings,
@@ -235,32 +260,47 @@ export function SettingsClient({
       });
       if (!res.ok) throw new Error(`Save failed: ${res.status} ${res.statusText}`);
       const data = (await res.json()) as ApiResponse;
+      if (saveId !== saveSequence.current) return;
       const { theme, launchAtLogin, controlPort, nextPort, design } = data.settings;
-      setSettings({
+      const nextSettings = {
         theme,
         launchAtLogin,
         controlPort,
         nextPort,
         design: { ...DESIGN_DEFAULTS, ...design },
-      });
+      };
+      setSettings(nextSettings);
+      setControlPortText(portValue(nextSettings.controlPort));
+      setNextPortText(portValue(nextSettings.nextPort));
       setStatus("saved");
-      window.setTimeout(() => setStatus("idle"), 1200);
+      window.setTimeout(() => {
+        if (saveId === saveSequence.current) setStatus("idle");
+      }, 1200);
     } catch (e: unknown) {
+      if (saveId !== saveSequence.current) return;
       setSettings(previous);
+      setControlPortText(portValue(previous.controlPort));
+      setNextPortText(portValue(previous.nextPort));
       setStatus("idle");
       setError(e instanceof Error ? e.message : "Failed to save settings");
     }
   };
 
   const close = () => window.close();
-  const portValue = (n: number | null) => (n === null ? "" : String(n));
-  const parsePort = (raw: string): number | null | undefined => {
-    const v = raw.trim();
-    if (v === "") return null;
-    if (!/^\d+$/.test(v)) return undefined;
-    const n = Number(v);
-    if (!Number.isInteger(n) || n < 1024 || n > 65535) return undefined;
-    return n;
+  const savePort = (value: string, key: "controlPort" | "nextPort") => {
+    const parsed = parsePort(value);
+    if (parsed === undefined) {
+      setError("Ports must be empty or a number from 1024 to 65535.");
+      if (key === "controlPort") setControlPortText(portValue(settings.controlPort));
+      if (key === "nextPort") setNextPortText(portValue(settings.nextPort));
+      return;
+    }
+
+    if (key === "controlPort") {
+      void save({ controlPort: parsed });
+      return;
+    }
+    void save({ nextPort: parsed });
   };
 
   return (
@@ -364,37 +404,43 @@ export function SettingsClient({
                     <SelectField icon={<Radar size={16} />} label="Open animation" options={windowAnimationOptions} value={settings.design.windowAnimationPreset} onChange={(value) => save({ design: { windowAnimationPreset: value as WindowAnimationPreset } })} />
                   </div>
                   <SettingRow label="Default opacity" hint="Open new popups in opaque mode">
-                    <Switch checked={settings.design.opaque} onClick={() => save({ design: { opaque: !settings.design.opaque } })} />
+                    <Switch ariaLabel="Default opacity" checked={settings.design.opaque} onClick={() => save({ design: { opaque: !settings.design.opaque } })} />
                   </SettingRow>
                 </Panel>
 
                 <Panel title="System">
                   <SystemRow icon={<Rocket size={18} />} label="Launch at login" hint="Start the broker automatically when you log in">
-                    <Switch checked={settings.launchAtLogin} disabled={!canSave} onClick={() => save({ launchAtLogin: !settings.launchAtLogin })} />
+                    <Switch ariaLabel="Launch at login" checked={settings.launchAtLogin} disabled={!canSave} onClick={() => save({ launchAtLogin: !settings.launchAtLogin })} />
                   </SystemRow>
                   <SystemRow icon={<TerminalSquare size={18} />} label="Control API port" hint="Port for local control API">
                     <PortInput
-                      value={portValue(settings.controlPort)}
-                      onBlur={(value) => {
-                        const parsed = parsePort(value);
-                        if (parsed !== undefined) void save({ controlPort: parsed });
-                      }}
+                      ariaLabel="Control API port"
+                      value={controlPortText}
+                      onBlur={(value) => savePort(value, "controlPort")}
                       onChange={(value) => {
-                        const parsed = parsePort(value);
-                        if (parsed !== undefined) setSettings((s) => ({ ...s, controlPort: parsed }));
+                        if (isPortDraft(value)) {
+                          setControlPortText(value);
+                          setError(null);
+                          return;
+                        }
+                        setControlPortText(value);
+                        setError("Ports must contain digits only.");
                       }}
                     />
                   </SystemRow>
                   <SystemRow icon={<Layers size={18} />} label="Next popup port" hint="Starting port for popup windows">
                     <PortInput
-                      value={portValue(settings.nextPort)}
-                      onBlur={(value) => {
-                        const parsed = parsePort(value);
-                        if (parsed !== undefined) void save({ nextPort: parsed });
-                      }}
+                      ariaLabel="Next popup port"
+                      value={nextPortText}
+                      onBlur={(value) => savePort(value, "nextPort")}
                       onChange={(value) => {
-                        const parsed = parsePort(value);
-                        if (parsed !== undefined) setSettings((s) => ({ ...s, nextPort: parsed }));
+                        if (isPortDraft(value)) {
+                          setNextPortText(value);
+                          setError(null);
+                          return;
+                        }
+                        setNextPortText(value);
+                        setError("Ports must contain digits only.");
                       }}
                     />
                   </SystemRow>
@@ -495,13 +541,34 @@ function SystemRow({ children, hint, icon, label }: { children: ReactNode; hint:
   );
 }
 
-function Switch({ checked, disabled, onClick }: { checked: boolean; disabled?: boolean; onClick: () => void }) {
-  return <button aria-pressed={checked} className="lg-switch" data-on={checked} disabled={disabled} onClick={onClick} type="button" />;
+function Switch({
+  ariaLabel,
+  checked,
+  disabled,
+  onClick,
+}: {
+  ariaLabel: string;
+  checked: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return <button aria-label={ariaLabel} aria-pressed={checked} className="lg-switch" data-on={checked} disabled={disabled} onClick={onClick} type="button" />;
 }
 
-function PortInput({ onBlur, onChange, value }: { onBlur: (value: string) => void; onChange: (value: string) => void; value: string }) {
+function PortInput({
+  ariaLabel,
+  onBlur,
+  onChange,
+  value,
+}: {
+  ariaLabel: string;
+  onBlur: (value: string) => void;
+  onChange: (value: string) => void;
+  value: string;
+}) {
   return (
     <input
+      aria-label={ariaLabel}
       className="lg-ai-port-input"
       inputMode="numeric"
       onBlur={(event) => onBlur(event.currentTarget.value)}

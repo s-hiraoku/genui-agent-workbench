@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 type LiquidGlassSurfaceProps = {
   appearanceTheme?: string;
@@ -29,6 +29,21 @@ const themeColorPresets = new Set([
   "graphite",
 ]);
 
+type ResolvedAppearanceTheme = "dark" | "light";
+
+function readResolvedAppearanceTheme(): ResolvedAppearanceTheme {
+  if (typeof document !== "undefined") {
+    const documentAppearance = document.documentElement.getAttribute("data-appearance");
+    if (documentAppearance === "dark" || documentAppearance === "light") return documentAppearance;
+  }
+
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+
+  return "light";
+}
+
 export function LiquidGlassSurface({
   appearanceTheme,
   animation,
@@ -38,14 +53,29 @@ export function LiquidGlassSurface({
   visualTheme,
 }: LiquidGlassSurfaceProps) {
   const appearanceThemePreset = appearanceThemes.has(appearanceTheme ?? "") ? appearanceTheme : "auto";
+  const [systemAppearanceTheme, setSystemAppearanceTheme] = useState<ResolvedAppearanceTheme>(() =>
+    readResolvedAppearanceTheme(),
+  );
   const animationPreset = animationPresets.has(animation ?? "") ? animation : "center";
   const visualThemePreset = visualThemePresets.has(visualTheme ?? "") ? visualTheme : "hud";
   const themeColorPreset = themeColorPresets.has(themeColor ?? "") ? themeColor : "mint";
+  const resolvedAppearanceTheme =
+    appearanceThemePreset === "auto" ? systemAppearanceTheme : (appearanceThemePreset as ResolvedAppearanceTheme);
+
+  useEffect(() => {
+    if (appearanceThemePreset !== "auto" || typeof window === "undefined") return;
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => setSystemAppearanceTheme(readResolvedAppearanceTheme());
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [appearanceThemePreset]);
 
   return (
     <div
       className="lg-shell"
-      data-appearance-theme={appearanceThemePreset}
+      data-appearance-theme={resolvedAppearanceTheme}
       data-opaque={opaque ? "true" : "false"}
       data-theme-color={themeColorPreset}
       data-visual-theme={visualThemePreset}

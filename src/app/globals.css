@@ -1965,6 +1965,7 @@ body::before,
 .lg-ai-swatch {
   position: relative;
   --swatch-color: var(--theme-frame);
+
   display: inline-grid;
   width: 40px;
   aspect-ratio: 1;
@@ -2322,6 +2323,7 @@ body::before,
   .lg-ai-visual-grid,
   .lg-ai-control-grid[data-columns] {
     --ai-columns: 1;
+
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
@@ -2832,6 +2834,42 @@ body::before,
   --openui-sunk-deep: rgba(16, 22, 30, 0.94);
   --openui-highlight: rgba(54, 76, 92, 0.96);
   color: var(--ink);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="hud"] .lg-preview {
+  --openui-foreground: rgba(255, 255, 255, 0.92);
+  --openui-popover-background: rgba(255, 255, 255, 0.98);
+  --openui-sunk: rgba(238, 249, 252, 0.76);
+  --openui-sunk-deep: rgba(224, 242, 248, 0.84);
+  --openui-highlight: rgba(204, 246, 252, 0.80);
+  --openui-border-default: rgba(67, 158, 178, 0.24);
+  --openui-border-interactive: rgba(0, 174, 198, 0.48);
+  color: rgb(13, 28, 54);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="hud"] .lg-preview :where(.openui-card-card, .openui-card-sunk) {
+  background-color: rgba(255, 255, 255, 0.78);
+  background-image:
+    radial-gradient(100% 70% at 12% 0%, rgba(255, 255, 255, 0.70), transparent 58%),
+    linear-gradient(180deg, rgba(248, 254, 255, 0.88), rgba(230, 246, 250, 0.54));
+  border-color: rgba(67, 158, 178, 0.26);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.82),
+    0 10px 24px rgba(72, 122, 150, 0.12);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="hud"] .lg-preview :where(h1, h2, h3, h4, h5, h6, p, span, div, li, button, th, td) {
+  color: rgb(13, 28, 54) !important;
+  text-shadow: none !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="hud"] .lg-preview :where(svg text, .recharts-text) {
+  fill: rgb(58, 80, 118) !important;
+  text-shadow: none !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="hud"] .lg-preview :where(.lg-label-surface, .lg-label-surface *) {
+  color: rgb(18, 86, 98) !important;
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-preview :where(.openui-card-card, .openui-card-sunk) {
