@@ -4,6 +4,37 @@ import { createLibrary, defineComponent, type ComponentGroup, type PromptOptions
 import { openuiLibrary, openuiPromptOptions } from "@openuidev/react-ui/genui-lib";
 import { z } from "zod/v4";
 
+export type PopupEventInput = {
+  kind: "action" | "input" | "submit" | "message";
+  component: string;
+  actionId: string;
+  label?: string;
+  value?: unknown;
+  fields?: Record<string, unknown>;
+};
+
+export type PopupEventOptions = {
+  complete?: boolean;
+  outcome?: "completed" | "cancelled" | "failed";
+};
+
+export type PopupEventReporter = (event: PopupEventInput, options?: PopupEventOptions) => void | Promise<void>;
+
+export const PopupEventContext = React.createContext<PopupEventReporter | null>(null);
+
+function popupEventConsumer(render: (reporter: PopupEventReporter | null) => React.ReactNode): React.ReactElement {
+  return React.createElement(PopupEventContext.Consumer, null, render as unknown as React.ReactNode);
+}
+
+function emitPopupEvent(reporter: PopupEventReporter | null, event: PopupEventInput, options?: PopupEventOptions): void {
+  if (!reporter) return;
+  void reporter(event, options);
+}
+
+function actionIdFor(component: string, actionId: string | undefined, fallback: string): string {
+  return actionId?.trim() || `${component}.${fallback}`;
+}
+
 type MapWithListProps = {
   title?: string;
   description?: string;
@@ -2313,14 +2344,18 @@ const MessageThread = defineComponent({
       .object({
         placeholder: z.string().optional(),
         sendLabel: z.string().optional(),
+        actionId: z.string().optional(),
+        completeOnSend: z.boolean().optional(),
       })
       .optional(),
     ...glassProps,
   }),
   description:
-    "Chat-style message thread with bubbles aligned by role (user right, others left). Use for LLM conversation previews, support/customer chats, agent-to-agent exchanges, and reviewer dialog. Optional composer renders a read-only input row.",
-  component: ({ props }) =>
-    React.createElement(
+    "Chat-style message thread with bubbles aligned by role (user right, others left). Use for LLM conversation previews, support/customer chats, agent-to-agent exchanges, and reviewer dialog. Optional composer sends message events back to the agent.",
+  component: ({ props }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [draft, setDraft] = React.useState("");
+    return popupEventConsumer((reportEvent) => React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
@@ -2363,8 +2398,24 @@ const MessageThread = defineComponent({
         }),
         props.composer
           ? React.createElement(
-              "div",
+              "form",
               {
+                onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+                  event.preventDefault();
+                  if (!draft.trim()) return;
+                  emitPopupEvent(
+                    reportEvent,
+                    {
+                      kind: "message",
+                      component: "MessageThread",
+                      actionId: actionIdFor("MessageThread", props.composer?.actionId, "send"),
+                      label: props.composer?.sendLabel ?? "Send",
+                      value: draft,
+                    },
+                    { complete: props.composer?.completeOnSend === true, outcome: "completed" },
+                  );
+                  setDraft("");
+                },
                 style: {
                   alignItems: "center",
                   background: hudPanelWash,
@@ -2377,19 +2428,24 @@ const MessageThread = defineComponent({
                 },
               },
               React.createElement(
-                "div",
+                "textarea",
                 {
+                  "aria-label": props.composer.placeholder ?? "Message",
+                  onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(event.currentTarget.value),
+                  placeholder: props.composer.placeholder ?? "Type a message...",
                   style: {
-                    background: "rgba(2,18,32,0.20)",
-                    border: `1px solid ${hudEdge}`,
+                    background: "var(--tint-row, rgba(2,18,32,0.20))",
+                    border: "1px solid var(--edge, rgba(128,226,255,0.22))",
                     borderRadius: 6,
-                    color: hudTextSoft,
+                    color: "var(--ink, rgba(235,252,255,0.96))",
                     flex: 1,
                     fontSize: 13,
+                    minHeight: 38,
                     padding: "8px 10px",
+                    resize: "vertical",
                   },
+                  value: draft,
                 },
-                props.composer.placeholder ?? "Type a message…",
               ),
               React.createElement(
                 "button",
@@ -2403,14 +2459,15 @@ const MessageThread = defineComponent({
                     fontWeight: 700,
                     padding: "8px 14px",
                   },
-                  type: "button",
+                  type: "submit",
                 },
                 props.composer.sendLabel ?? "Send",
               ),
             )
           : null,
       ),
-    ),
+    ));
+  },
 });
 
 const Sparkline = defineComponent({
@@ -2799,29 +2856,81 @@ const FormPanel = defineComponent({
     fields: z.array(
       z.object({
         label: z.string(),
+        name: z.string().optional(),
         value: z.string().optional(),
         type: z.enum(["text", "number", "date", "select", "checkbox", "textarea"]).default("text"),
+        options: z.array(z.string()).optional(),
+        placeholder: z.string().optional(),
+        editable: z.boolean().optional(),
         required: z.boolean().optional(),
         status: z.enum(["valid", "missing", "review"]).optional(),
         help: z.string().optional(),
       }),
     ),
+    actionId: z.string().optional(),
+    submitLabel: z.string().optional(),
+    completeOnSubmit: z.boolean().optional(),
     ...glassProps,
   }),
   description:
-    "Read-only form summary for intake, approval, required inputs, user confirmation, request review, and missing-field explanations.",
-  component: ({ props }) =>
-    React.createElement(
+    "Form summary and lightweight editable intake panel for approvals, required inputs, user confirmation, request review, and missing-field explanations. Set actionId to return submitted fields to the agent.",
+  component: ({ props }) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [values, setValues] = React.useState<Record<string, string>>(() =>
+      Object.fromEntries(props.fields.map((field, index) => [field.name ?? field.label ?? `field_${index + 1}`, field.value ?? ""])),
+    );
+    const updateField = (key: string, value: string, reportEvent: PopupEventReporter | null) => {
+      setValues((current) => ({ ...current, [key]: value }));
+      emitPopupEvent(reportEvent, {
+        kind: "input",
+        component: "FormPanel",
+        actionId: actionIdFor("FormPanel", props.actionId, `field.${key}`),
+        label: key,
+        value,
+      });
+    };
+
+    return popupEventConsumer((reportEvent) => React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
-        "div",
-        { style: { display: "grid", gap: 10, padding: 14 } },
+        "form",
+        {
+          onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            emitPopupEvent(
+              reportEvent,
+              {
+                kind: "submit",
+                component: "FormPanel",
+                actionId: actionIdFor("FormPanel", props.actionId, "submit"),
+                label: props.submitLabel ?? "Submit",
+                fields: values,
+              },
+              { complete: props.completeOnSubmit !== false, outcome: "completed" },
+            );
+          },
+          style: { display: "grid", gap: 10, padding: 14 },
+        },
         props.fields.map((field, index) => {
           const tone = toneFor(field.status === "valid" ? "positive" : field.status === "missing" ? "danger" : "warning");
+          const key = field.name ?? field.label ?? `field_${index + 1}`;
+          const inputId = `genui-form-${key.replace(/[^a-z0-9_-]/gi, "-")}-${index}`;
+          const editable = field.editable === true || Boolean(props.actionId);
+          const commonInputStyle = {
+            background: "var(--tint-row, rgba(2,18,32,0.20))",
+            border: "1px solid var(--edge, rgba(128,226,255,0.22))",
+            borderRadius: 6,
+            color: "var(--ink, rgba(235,252,255,0.96))",
+            fontSize: 14,
+            minHeight: field.type === "textarea" ? 72 : 36,
+            padding: "8px 9px",
+            whiteSpace: "pre-wrap" as const,
+            width: "100%",
+          };
           return React.createElement(
-            "label",
+            "div",
             {
               key: `${field.label}:${index}`,
               style: {
@@ -2834,33 +2943,86 @@ const FormPanel = defineComponent({
               },
             },
             React.createElement(
-              "span",
-              { style: { alignItems: "center", color: hudTextMid, display: "flex", flexWrap: "wrap", fontSize: 12, fontWeight: 800, gap: 6 } },
+              "label",
+              {
+                htmlFor: editable ? inputId : undefined,
+                style: { alignItems: "center", color: hudTextMid, display: "flex", flexWrap: "wrap", fontSize: 12, fontWeight: 800, gap: 6 },
+              },
               labelElement(field.label, field.status === "valid" ? "positive" : field.status === "missing" ? "danger" : "neutral", "xs"),
               field.required ? labelElement("required", "danger", "xs") : null,
               field.status ? labelElement(field.status, field.status === "valid" ? "positive" : field.status === "missing" ? "danger" : "warning", "xs") : null,
             ),
-            React.createElement(
-              "div",
-              {
-                style: {
-                  background: "rgba(2,18,32,0.20)",
-                  border: `1px solid ${hudEdge}`,
-                  borderRadius: 6,
-                  color: field.value ? hudText : hudTextSoft,
-                  fontSize: 14,
-                  minHeight: field.type === "textarea" ? 72 : 36,
-                  padding: "8px 9px",
-                  whiteSpace: "pre-wrap",
-                },
-              },
-              field.value || "Not provided",
-            ),
+            editable && field.type === "textarea"
+              ? React.createElement("textarea", {
+                  id: inputId,
+                  name: key,
+                  onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => updateField(key, event.currentTarget.value, reportEvent),
+                  placeholder: field.placeholder,
+                  required: field.required,
+                  style: { ...commonInputStyle, resize: "vertical" },
+                  value: values[key] ?? "",
+                })
+              : editable && field.type === "select" && field.options?.length
+                ? React.createElement(
+                    "select",
+                    {
+                      id: inputId,
+                      name: key,
+                      onChange: (event: React.ChangeEvent<HTMLSelectElement>) => updateField(key, event.currentTarget.value, reportEvent),
+                      required: field.required,
+                      style: commonInputStyle,
+                      value: values[key] ?? "",
+                    },
+                    React.createElement("option", { value: "" }, field.placeholder ?? "Select..."),
+                    field.options.map((option) => React.createElement("option", { key: option, value: option }, option)),
+                  )
+                : editable && field.type === "checkbox"
+                  ? React.createElement("input", {
+                      checked: values[key] === "true",
+                      id: inputId,
+                      name: key,
+                      onChange: (event: React.ChangeEvent<HTMLInputElement>) => updateField(key, event.currentTarget.checked ? "true" : "false", reportEvent),
+                      required: field.required,
+                      style: { height: 18, width: 18 },
+                      type: "checkbox",
+                    })
+                  : editable
+                    ? React.createElement("input", {
+                        id: inputId,
+                        name: key,
+                        onChange: (event: React.ChangeEvent<HTMLInputElement>) => updateField(key, event.currentTarget.value, reportEvent),
+                        placeholder: field.placeholder,
+                        required: field.required,
+                        style: commonInputStyle,
+                        type: field.type === "number" ? "number" : field.type === "date" ? "date" : "text",
+                        value: values[key] ?? "",
+                      })
+                    : React.createElement("div", { style: commonInputStyle }, values[key] || "Not provided"),
             field.help ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 12 } }, field.help) : null,
           );
         }),
+        props.actionId || props.submitLabel
+          ? React.createElement(
+              "button",
+              {
+                style: {
+                  background: toneFor("info").background,
+                  border: `1px solid ${toneFor("info").border}`,
+                  borderRadius: 8,
+                  color: toneFor("info").text,
+                  fontSize: 14,
+                  fontWeight: 800,
+                  justifySelf: "start",
+                  padding: "9px 14px",
+                },
+                type: "submit",
+              },
+              props.submitLabel ?? "Submit",
+            )
+          : null,
       ),
-    ),
+    ));
+  },
 });
 
 // ────────────────────────────────────────────────────────────────────
@@ -2992,16 +3154,18 @@ const ConfirmDialog = defineComponent({
     risk: z.enum(["low", "medium", "high", "critical"]).optional(),
     confirmLabel: z.string().optional(),
     cancelLabel: z.string().optional(),
+    actionId: z.string().optional(),
+    completeOnAction: z.boolean().optional(),
     consequences: z.array(z.string()).optional(),
     ...glassProps,
   }),
   description:
-    "Single high-stakes confirmation card with one accept and one decline action. Use for delete/approve/deploy/destructive prompts and agent autonomy gates.",
+    "Single high-stakes confirmation card with one accept and one decline action. Use for delete/approve/deploy/destructive prompts and agent autonomy gates. Set actionId so the clicked decision is returned to the agent when the popup is completed.",
   component: ({ props }) => {
     const tone = toneFor(
       props.risk === "critical" || props.risk === "high" ? "danger" : props.risk === "medium" ? "warning" : "info",
     );
-    return React.createElement(
+    return popupEventConsumer((reportEvent) => React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
@@ -3029,6 +3193,19 @@ const ConfirmDialog = defineComponent({
           React.createElement(
             "button",
             {
+              onClick: () =>
+                emitPopupEvent(
+                  reportEvent,
+                  {
+                    kind: "action",
+                    component: "ConfirmDialog",
+                    actionId: actionIdFor("ConfirmDialog", props.actionId, "confirm"),
+                    label: props.confirmLabel ?? "Confirm",
+                    value: "confirm",
+                    fields: { question: props.question, risk: props.risk ?? "low" },
+                  },
+                  { complete: props.completeOnAction !== false, outcome: "completed" },
+                ),
               style: {
                 background: tone.background,
                 border: `1px solid ${tone.border}`,
@@ -3045,6 +3222,19 @@ const ConfirmDialog = defineComponent({
           React.createElement(
             "button",
             {
+              onClick: () =>
+                emitPopupEvent(
+                  reportEvent,
+                  {
+                    kind: "action",
+                    component: "ConfirmDialog",
+                    actionId: actionIdFor("ConfirmDialog", props.actionId, "cancel"),
+                    label: props.cancelLabel ?? "Cancel",
+                    value: "cancel",
+                    fields: { question: props.question, risk: props.risk ?? "low" },
+                  },
+                  { complete: props.completeOnAction !== false, outcome: "cancelled" },
+                ),
               style: {
                 background: hudPanelWash,
                 border: `1px solid ${hudEdge}`,
@@ -3060,7 +3250,7 @@ const ConfirmDialog = defineComponent({
           props.risk ? labelElement(`risk: ${props.risk}`, props.risk === "critical" || props.risk === "high" ? "danger" : props.risk === "medium" ? "warning" : "info", "sm") : null,
         ),
       ),
-    );
+    ));
   },
 });
 
@@ -3155,6 +3345,48 @@ const CompareTable = defineComponent({
   },
 });
 
+function codeLineNodes(line: string, language: string | undefined, lineIndex: number): React.ReactNode[] {
+  const lang = language?.toLowerCase() ?? "";
+  if (lang.includes("diff") || lang === "patch") {
+    const tone =
+      line.startsWith("+") && !line.startsWith("+++")
+        ? "#8ef0b4"
+        : line.startsWith("-") && !line.startsWith("---")
+          ? "#ff9aa8"
+          : line.startsWith("@@")
+            ? "#9ed8ff"
+            : undefined;
+    return [React.createElement("span", { key: `diff:${lineIndex}`, style: tone ? { color: tone, fontWeight: 700 } : undefined }, line)];
+  }
+
+  const keywordPattern =
+    /\b(?:async|await|break|case|catch|class|const|continue|def|else|export|false|finally|for|from|function|if|import|in|interface|let|null|return|throw|true|try|type|var|while)\b/g;
+  const tokenPattern = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\/\/.*|#.*|\b\d+(?:\.\d+)?\b)/g;
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  const pushPlain = (text: string, key: string) => {
+    let offset = 0;
+    for (const match of text.matchAll(keywordPattern)) {
+      if (match.index === undefined) continue;
+      if (match.index > offset) nodes.push(text.slice(offset, match.index));
+      nodes.push(React.createElement("span", { key: `${key}:kw:${match.index}`, style: { color: "#9ed8ff", fontWeight: 700 } }, match[0]));
+      offset = match.index + match[0].length;
+    }
+    if (offset < text.length) nodes.push(text.slice(offset));
+  };
+
+  for (const match of line.matchAll(tokenPattern)) {
+    if (match.index === undefined) continue;
+    if (match.index > cursor) pushPlain(line.slice(cursor, match.index), `${lineIndex}:${match.index}`);
+    const token = match[0];
+    const color = token.startsWith("//") || token.startsWith("#") ? "#94a3b8" : /^["'`]/.test(token) ? "#b8f7c9" : "#ffd38a";
+    nodes.push(React.createElement("span", { key: `${lineIndex}:tok:${match.index}`, style: { color } }, token));
+    cursor = match.index + token.length;
+  }
+  if (cursor < line.length) pushPlain(line.slice(cursor), `${lineIndex}:tail`);
+  return nodes.length > 0 ? nodes : [line];
+}
+
 const CodeBlock = defineComponent({
   name: "CodeBlock",
   props: z.object({
@@ -3164,12 +3396,14 @@ const CodeBlock = defineComponent({
     code: z.string(),
     runnable: z.boolean().optional(),
     filename: z.string().optional(),
+    showLineNumbers: z.boolean().optional(),
     ...glassProps,
   }),
   description:
-    "Single code or command snippet with optional filename, language label, and runnable hint. Use whenever the answer is a piece of code to paste or a command to execute (not a diff).",
-  component: ({ props }) =>
-    React.createElement(
+    "Single highlighted code or command snippet with optional filename, language label, line numbers, and runnable hint. Use whenever the answer is a piece of code to paste or a command to execute (not a multi-file diff).",
+  component: ({ props }) => {
+    const lines = props.code.split(/\r?\n/);
+    return React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
@@ -3184,7 +3418,7 @@ const CodeBlock = defineComponent({
           props.runnable ? labelElement("runnable", "positive", "xs") : null,
         ),
         React.createElement(
-          "pre",
+          "div",
           {
             style: {
               background: "rgba(2,18,32,0.40)",
@@ -3201,10 +3435,24 @@ const CodeBlock = defineComponent({
               whiteSpace: "pre",
             },
           },
-          props.code,
+          React.createElement(
+            "pre",
+            { style: { display: "grid", font: "inherit", margin: 0, minWidth: "max-content" } },
+            lines.map((line, index) =>
+              React.createElement(
+                "span",
+                { key: index, style: { display: "grid", gridTemplateColumns: props.showLineNumbers === false ? "1fr" : "4ch 1fr", gap: 12 } },
+                props.showLineNumbers === false
+                  ? null
+                  : React.createElement("span", { style: { color: "rgba(203, 232, 255, 0.42)", textAlign: "right", userSelect: "none" } }, index + 1),
+                React.createElement("span", null, codeLineNodes(line, props.language, index)),
+              ),
+            ),
+          ),
         ),
       ),
-    ),
+    );
+  },
 });
 
 const DataPreview = defineComponent({
@@ -3972,8 +4220,12 @@ const WizardForm = defineComponent({
           .array(
             z.object({
               label: z.string(),
+              name: z.string().optional(),
               value: z.string().optional(),
               type: z.enum(["text", "number", "date", "select", "checkbox", "textarea"]).default("text"),
+              options: z.array(z.string()).optional(),
+              placeholder: z.string().optional(),
+              editable: z.boolean().optional(),
               required: z.boolean().optional(),
               help: z.string().optional(),
             }),
@@ -3982,94 +4234,155 @@ const WizardForm = defineComponent({
         instructions: z.string().optional(),
       }),
     ),
+    actionId: z.string().optional(),
+    submitLabel: z.string().optional(),
+    completeOnSubmit: z.boolean().optional(),
     ...glassProps,
   }),
   description:
-    "Multi-step wizard combining ProgressStepper-style stages with per-step form fields. Use for onboarding, configuration flows, multi-stage approvals.",
-  component: ({ props }) =>
-    React.createElement(
+    "Multi-step wizard combining ProgressStepper-style stages with per-step form fields. Use for onboarding, configuration flows, multi-stage approvals. Set actionId to return collected fields to the agent.",
+  component: ({ props }) => {
+    const firstActive = props.steps.findIndex((step) => step.status === "active");
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [activeIndex, setActiveIndex] = React.useState(firstActive >= 0 ? firstActive : 0);
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
+    const [values, setValues] = React.useState<Record<string, string>>(() => {
+      const entries: Array<[string, string]> = [];
+      props.steps.forEach((step) => {
+        step.fields?.forEach((field, fieldIndex) => {
+          entries.push([field.name ?? `${step.label}.${field.label || `field_${fieldIndex + 1}`}`, field.value ?? ""]);
+        });
+      });
+      return Object.fromEntries(entries);
+    });
+    const activeStep = props.steps[Math.min(activeIndex, props.steps.length - 1)];
+    if (!activeStep) {
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
+        React.createElement(
+          "div",
+          { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, padding: 14 } },
+          "No wizard steps configured.",
+        ),
+      );
+    }
+
+    const setField = (key: string, value: string, reportEvent: PopupEventReporter | null) => {
+      setValues((current) => ({ ...current, [key]: value }));
+      emitPopupEvent(reportEvent, {
+        kind: "input",
+        component: "WizardForm",
+        actionId: actionIdFor("WizardForm", props.actionId, `field.${key}`),
+        label: key,
+        value,
+      });
+    };
+
+    return popupEventConsumer((reportEvent) => React.createElement(
       "section",
       { style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
-        "ol",
-        { style: { display: "grid", gap: 12, listStyle: "none", margin: 0, padding: 14 } },
-        props.steps.map((s, i) => {
-          const tone = toneFor(s.status === "done" ? "positive" : s.status === "active" ? "info" : "neutral");
-          return React.createElement(
-            "li",
-            {
-              key: i,
-              style: { background: tone.background, border: `1px solid ${tone.border}`, borderRadius: 10, display: "grid", gap: 8, padding: 12 },
-            },
-            React.createElement(
-              "div",
-              { style: { alignItems: "center", display: "flex", gap: 8 } },
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "ol",
+          { style: { display: "grid", gap: 8, gridTemplateColumns: `repeat(${Math.min(4, props.steps.length)}, minmax(0, 1fr))`, listStyle: "none", margin: 0, padding: 0 } },
+          props.steps.map((step, index) => {
+            const isActive = index === activeIndex;
+            const tone = toneFor(step.status === "done" ? "positive" : isActive || step.status === "active" ? "info" : "neutral");
+            return React.createElement(
+              "li",
+              { key: index },
               React.createElement(
-                "span",
+                "button",
                 {
-                  style: {
-                    alignItems: "center",
-                    background: hudPanelWash,
-                    border: `1px solid ${tone.border}`,
-                    borderRadius: 999,
-                    color: tone.text,
-                    display: "flex",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    height: 22,
-                    justifyContent: "center",
-                    width: 22,
-                  },
+                  "aria-current": isActive ? "step" : undefined,
+                  onClick: () => setActiveIndex(index),
+                  style: { background: isActive ? tone.background : hudPanelWash, border: `1px solid ${tone.border}`, borderRadius: 10, color: tone.text, cursor: "pointer", display: "grid", gap: 5, minHeight: 64, padding: 10, textAlign: "left", width: "100%" },
+                  type: "button",
                 },
-                String(i + 1),
+                React.createElement("span", { style: { fontSize: 12, fontWeight: 900 } }, `${index + 1}. ${step.label}`),
+                labelElement(step.status ?? (isActive ? "active" : "pending"), step.status === "done" ? "positive" : isActive ? "info" : "neutral", "xs"),
               ),
-              React.createElement("span", { style: { color: hudText, fontSize: 14, fontWeight: 700 } }, s.label),
-              s.status ? labelElement(s.status, s.status === "done" ? "positive" : s.status === "active" ? "info" : "neutral", "xs") : null,
-            ),
-            s.instructions ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: 0 } }, s.instructions) : null,
-            s.fields && s.fields.length > 0
-              ? React.createElement(
-                  "div",
-                  { style: { display: "grid", gap: 8 } },
-                  s.fields.map((f, fi) =>
-                    React.createElement(
-                      "div",
-                      {
-                        key: fi,
-                        style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, display: "grid", gap: 4, padding: 8 },
-                      },
-                      React.createElement(
-                        "div",
-                        { style: { alignItems: "center", color: hudTextMid, display: "flex", fontSize: 12, fontWeight: 700, gap: 6 } },
-                        labelElement(f.label, "neutral", "xs"),
-                        f.required ? labelElement("required", "danger", "xs") : null,
-                      ),
-                      React.createElement(
-                        "div",
-                        {
-                          style: {
-                            background: "rgba(2,18,32,0.20)",
-                            border: `1px solid ${hudEdge}`,
-                            borderRadius: 6,
-                            color: f.value ? hudText : hudTextSoft,
-                            fontSize: 13,
-                            minHeight: f.type === "textarea" ? 64 : 32,
-                            padding: "6px 8px",
-                            whiteSpace: "pre-wrap",
-                          },
-                        },
-                        f.value || "Not provided",
-                      ),
-                      f.help ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 12 } }, f.help) : null,
-                    ),
-                  ),
-                )
-              : null,
-          );
-        }),
+            );
+          }),
+        ),
+        React.createElement(
+          "form",
+          {
+            onSubmit: (event: React.FormEvent<HTMLFormElement>) => {
+              event.preventDefault();
+              emitPopupEvent(
+                reportEvent,
+                {
+                  kind: "submit",
+                  component: "WizardForm",
+                  actionId: actionIdFor("WizardForm", props.actionId, "submit"),
+                  label: props.submitLabel ?? "Finish",
+                  fields: values,
+                },
+                { complete: props.completeOnSubmit !== false, outcome: "completed" },
+              );
+            },
+            style: { background: toneFor("info").background, border: `1px solid ${toneFor("info").border}`, borderRadius: 10, display: "grid", gap: 10, padding: 12 },
+          },
+          React.createElement("h3", { style: { color: hudText, fontSize: 15, margin: 0 } }, activeStep.label),
+          activeStep.instructions ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: 0 } }, activeStep.instructions) : null,
+          activeStep.fields?.map((field, fieldIndex) => {
+            const key = field.name ?? `${activeStep.label}.${field.label || `field_${fieldIndex + 1}`}`;
+            const inputId = `genui-wizard-${key.replace(/[^a-z0-9_-]/gi, "-")}-${fieldIndex}`;
+            const editable = field.editable !== false;
+            const inputStyle = {
+              background: "var(--tint-row, rgba(2,18,32,0.20))",
+              border: "1px solid var(--edge, rgba(128,226,255,0.22))",
+              borderRadius: 6,
+              color: "var(--ink, rgba(235,252,255,0.96))",
+              fontSize: 13,
+              minHeight: field.type === "textarea" ? 64 : 34,
+              padding: "7px 9px",
+              width: "100%",
+            };
+            return React.createElement(
+              "div",
+              { key, style: { display: "grid", gap: 5 } },
+              React.createElement(
+                "label",
+                { htmlFor: editable ? inputId : undefined, style: { alignItems: "center", color: hudTextMid, display: "flex", fontSize: 12, fontWeight: 800, gap: 6 } },
+                labelElement(field.label, "neutral", "xs"),
+                field.required ? labelElement("required", "danger", "xs") : null,
+              ),
+              editable && field.type === "textarea"
+                ? React.createElement("textarea", { id: inputId, name: key, onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => setField(key, event.currentTarget.value, reportEvent), placeholder: field.placeholder, required: field.required, style: { ...inputStyle, resize: "vertical" }, value: values[key] ?? "" })
+                : editable && field.type === "select" && field.options?.length
+                  ? React.createElement(
+                      "select",
+                      { id: inputId, name: key, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => setField(key, event.currentTarget.value, reportEvent), required: field.required, style: inputStyle, value: values[key] ?? "" },
+                      React.createElement("option", { value: "" }, field.placeholder ?? "Select..."),
+                      field.options.map((option) => React.createElement("option", { key: option, value: option }, option)),
+                    )
+                  : editable && field.type === "checkbox"
+                    ? React.createElement("input", { checked: values[key] === "true", id: inputId, name: key, onChange: (event: React.ChangeEvent<HTMLInputElement>) => setField(key, event.currentTarget.checked ? "true" : "false", reportEvent), required: field.required, style: { height: 18, width: 18 }, type: "checkbox" })
+                    : editable
+                      ? React.createElement("input", { id: inputId, name: key, onChange: (event: React.ChangeEvent<HTMLInputElement>) => setField(key, event.currentTarget.value, reportEvent), placeholder: field.placeholder, required: field.required, style: inputStyle, type: field.type === "number" ? "number" : field.type === "date" ? "date" : "text", value: values[key] ?? "" })
+                      : React.createElement("div", { style: inputStyle }, values[key] || "Not provided"),
+              field.help ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 12 } }, field.help) : null,
+            );
+          }),
+          React.createElement(
+            "div",
+            { style: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" } },
+            React.createElement("button", { disabled: activeIndex === 0, onClick: () => setActiveIndex((index) => Math.max(0, index - 1)), style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, color: hudTextMid, padding: "8px 12px" }, type: "button" }, "Back"),
+            activeIndex < props.steps.length - 1
+              ? React.createElement("button", { onClick: () => setActiveIndex((index) => Math.min(props.steps.length - 1, index + 1)), style: { background: toneFor("info").background, border: `1px solid ${toneFor("info").border}`, borderRadius: 8, color: toneFor("info").text, fontWeight: 800, padding: "8px 12px" }, type: "button" }, "Next")
+              : React.createElement("button", { style: { background: toneFor("positive").background, border: `1px solid ${toneFor("positive").border}`, borderRadius: 8, color: toneFor("positive").text, fontWeight: 800, padding: "8px 12px" }, type: "submit" }, props.submitLabel ?? "Finish"),
+          ),
+        ),
       ),
-    ),
+    ));
+  },
 });
 
 const componentGroups: ComponentGroup[] = [

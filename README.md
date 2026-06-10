@@ -115,7 +115,18 @@ genui guide
 Popup chrome includes a completion control. When an agent opens a popup with
 `--wait`, the command now returns when the popup is completed, cancelled,
 closed, or failed. Completion responses include a `completion` object when the
-popup reported an explicit outcome.
+popup reported an explicit outcome. Interactive components such as
+`ConfirmDialog`, `FormPanel`, `WizardForm`, and `MessageThread` can send
+structured events back to the broker. Add an `actionId` when the calling agent
+needs to branch on a button press or submitted form:
+
+```openui
+root = Card([approval])
+approval = ConfirmDialog("Deploy approval", "Release gate", "Deploy now?", "All checks passed.", "medium", "Approve", "Hold", "deploy.approve")
+```
+
+Opened with `--wait`, this returns the clicked action in
+`completion.payload.actionId` and `completion.payload.value`.
 
 `popup` returns JSON:
 
@@ -170,6 +181,18 @@ The component library is the design boundary. Agents can compose listed componen
 
 Run `genui prompt-spec` for full signatures and examples.
 
+## MCP Server
+
+Development checkouts can expose GenUI through MCP:
+
+```bash
+npm run genui:mcp
+```
+
+The stdio server exposes `genui_prompt_spec`, `genui_validate`, `genui_popup`,
+and `genui_wait`. Configure MCP clients to run the command from the repository
+root. The MCP server uses the same CLI and resident broker as normal usage.
+
 ## Liquid Glass Design
 
 The app uses a project-local Liquid Glass HUD design layer built from CSS variables/classes and the custom OpenUI component library. There is no separate Liquid Glass runtime dependency.
@@ -204,6 +227,7 @@ Available presets:
 - `GET /v1/popups`
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
+- `POST /v1/popups/:popupId/event`
 - `POST /v1/popups/:popupId/complete`
 - `GET /v1/artifacts`
 - `GET /v1/artifacts/:artifactId`

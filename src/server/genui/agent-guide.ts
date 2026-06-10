@@ -10,7 +10,7 @@ export const agentUsageGuide = {
     "Generate OpenUI Lang in the agent. Do not send a natural-language UI request to the broker.",
     "Validate the generated OpenUI Lang with `genui validate --openui-lang-file <file>`.",
     "Open the popup with `genui popup --openui-lang-file <file> --title <title> --agent-id <agent>`.",
-    "Use `--wait` when the workflow needs a completion, cancellation, close, or failure result.",
+    "Use `--wait` when the workflow needs a completion, cancellation, close, or failure result. Components with `actionId` return events in `completion.payload`.",
     "Use `genui components` for a concise component catalog.",
     "Use `genui artifacts` to inspect saved UI and `genui replay --artifact-id <artifactId>` to reopen it.",
     "Close the popup with `genui close --popup-id <popupId>` when it is no longer useful.",
@@ -22,7 +22,7 @@ export const agentUsageGuide = {
     validate: "genui validate --openui-lang-file ui.openui",
     components: "genui components",
     open:
-      "genui popup --agent-id <agent> --title <title> --size panel --openui-lang-file ui.openui",
+      "genui popup --agent-id <agent> --title <title> --size review --openui-lang-file ui.openui",
     openFromStdin:
       "cat ui.openui | genui popup --agent-id <agent> --title <title> --stdin-openui",
     openAndWait:
@@ -79,6 +79,7 @@ export const agentUsageGuide = {
     "Always define `root = ...`.",
     "Use only components listed by `prompt-spec` or `components`.",
     "Prefer explicit size presets before custom width/height.",
+    "For approvals or form collection, use ConfirmDialog/FormPanel/WizardForm with actionId and open with --wait.",
     "Use the CLI for private control API calls; it attaches the per-run broker token automatically.",
     "Keep data concrete. Do not claim live external data was used unless the agent actually supplied it.",
     "Use GenUI for visual structure, not simple one-sentence answers.",

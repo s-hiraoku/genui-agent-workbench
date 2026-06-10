@@ -13,30 +13,44 @@ Primary target use cases:
 - **Agent work-review UI** — show build results, diffs, progress, and approvals.
 - **General on-demand UI** — let an agent build whatever UI fits the moment.
 
-## Why it is not practical today
+## Implementation status
+
+This plan has been implemented as the baseline practical workflow:
+
+- Popups can now send interaction events back to the broker through
+  `POST /v1/popups/:popupId/event`.
+- `ConfirmDialog`, `FormPanel`, `WizardForm`, and `MessageThread` can use
+  `actionId` to report button choices, form values, and messages.
+- `genui popup --wait` returns recorded interaction data in
+  `completion.payload`.
+- A stdio MCP server is available through `npm run genui:mcp`.
+- Validation errors include line-oriented context and component-name
+  suggestions where possible.
+- `CodeBlock` has lightweight syntax highlighting and line numbers.
+- A `review` size preset supports diff/code/approval workflows.
+
+The sections below remain useful as design rationale and future QA checklist.
+
+## Why it was not practical before this implementation
 
 ### 1. The interaction loop is not closed (most critical)
 
-The popup is effectively **display-only**. The work-review use case cannot work
-because the agent never learns what the user did inside the popup.
+Previously, the popup was effectively **display-only**. The work-review use case
+could not work because the agent never learned what the user did inside the
+popup.
 
 - `ConfirmDialog` (Confirm/Cancel), `FormPanel` inputs, and `MessageThread`
-  composer buttons are **non-functional decoration** — they have no handlers
-  that report back. In `src/library.ts`, the only `onClick` handlers drive
-  local tab/selection state, not agent feedback.
+  composer buttons needed handlers that report back to the broker.
 - The only thing a user can return is the window-chrome **Complete** button,
   which yields a coarse `completed | cancelled | closed | failed` outcome.
   - Source: `electron/main.ts` `completePopup()`; CLI `waitForPopup()` in
     `scripts/genui-cli.ts`; states in `src/server/genui/types.ts`.
-- The agent therefore cannot tell **which button was pressed** or **what was
-  typed** — so "show an approval dialog and branch on the result" and "collect
-  values via a form" are impossible.
+- The agent could not tell **which button was pressed** or **what was typed**.
 
 ### 2. No path for agents to discover and call the tool
 
-- **No MCP server.** Clients like Claude Code can't auto-discover the tool;
-  every use needs hand-written instructions. (No `mcp` server file exists; see
-  `.agents/skills/genui-agent-workbench/SKILL.md`.)
+- **No MCP server.** Clients like Claude Code could not auto-discover the tool;
+  every use needed hand-written instructions.
 - The agent must **hand-write raw OpenUI Lang** (`root =`, nested arrays and
   object literals) exactly. It is easy to get rejected by validation, and the
   error messages are unfriendly — no line numbers, no typo suggestions.
@@ -45,11 +59,9 @@ because the agent never learns what the user did inside the popup.
 
 ### 3. Expressiveness gaps for the target use cases
 
-- `CodeBlock` is a plain `<pre>` with **no syntax highlighting** → weak for
-  diff/code-review (`src/library.ts`, around the `CodeBlock` definition).
-- Window width is `min(100vw - 44px, 100%)` with **no fixed width preset**
-  suited to diffs (e.g. 960–1200px) — `src/app/globals.css` `.lg-window-frame`.
-- `TreeView`, `WizardForm`, `AnimationCard` are **placeholders / unimplemented**.
+- `CodeBlock` needed syntax highlighting for code-review readability.
+- The popup size presets needed a diff/review-oriented fixed-width option.
+- `WizardForm` needed real step navigation and submission behavior.
 - Some contrast issues remain beyond the recently-fixed chart tooltip
   (e.g. HUD-theme glass labels, long-text tables).
 
@@ -57,11 +69,13 @@ because the agent never learns what the user did inside the popup.
 
 | # | Action | Effect | Size |
 |---|--------|--------|------|
-| **1** | **Return interaction results to the agent.** Add `POST /v1/popups/:id/event`; give buttons/forms an `actionId`; send click/input values to the broker; have CLI `--wait` return the pressed button and entered values in `completion.payload`. | Work-review UI becomes **bidirectional**; approvals and form collection become usable. | Large |
-| **2** | **Ship an MCP server.** Expose `genui_prompt_spec` / `genui_popup` / `genui_wait` as MCP tools. | Claude Code et al. can **auto-discover and call naturally**. | Medium |
-| **3** | **Improve validation feedback.** Add line numbers and component-name typo suggestions to errors. | Higher success rate authoring OpenUI Lang by hand. | Small |
-| **4** | **`CodeBlock` syntax highlighting** + diff-oriented fixed-width size preset. | Diff/review use case becomes practical. | Medium |
-| **5** | **Finish placeholder components** (TreeView/WizardForm) and clear remaining contrast issues. | Close expressiveness gaps. | Medium |
+| # | Action | Status |
+|---|--------|--------|
+| **1** | Return interaction results to the agent. | Implemented |
+| **2** | Ship an MCP server. | Implemented |
+| **3** | Improve validation feedback. | Implemented |
+| **4** | `CodeBlock` syntax highlighting + diff-oriented fixed-width size preset. | Implemented |
+| **5** | Finish placeholder components and clear remaining contrast issues. | Implemented for WizardForm/TreeView/AnimationCard baseline; continue visual QA as components evolve. |
 
 **Start with #1 (bidirectional interaction).** Without it, no amount of visual
 polish makes the popup work as an "agent work-review UI." Implementing it raises

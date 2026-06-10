@@ -1,6 +1,7 @@
 import { createParser } from "@openuidev/react-lang";
 import { library } from "../../library";
 import { saveArtifact } from "./artifacts";
+import { componentCatalog } from "./component-catalog";
 import type { GenUIArtifact, GenUILocale, RenderGenUIInput, RenderGenUIResult } from "./types";
 
 const openuiParser = createParser(library.toJSONSchema(), library.root);
@@ -40,13 +41,64 @@ function normalizeInput(input: RenderGenUIInput): RenderGenUIInput & { openuiLan
   };
 }
 
+const componentNames = componentCatalog.map((component) => component.name);
+
+function levenshtein(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j += 1) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + (a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1),
+      );
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+function closestComponents(name: string): string[] {
+  return componentNames
+    .map((candidate) => ({ candidate, distance: levenshtein(name, candidate) }))
+    .filter(({ distance }) => distance <= Math.max(3, Math.floor(name.length * 0.45)))
+    .sort((a, b) => a.distance - b.distance || a.candidate.localeCompare(b.candidate))
+    .slice(0, 3)
+    .map(({ candidate }) => candidate);
+}
+
+function lineForStatement(openuiLang: string, statementId?: string): number | undefined {
+  if (!statementId) return undefined;
+  const escaped = statementId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matcher = new RegExp(`^\\s*${escaped}\\s*=`);
+  const lines = openuiLang.split(/\r?\n/);
+  const index = lines.findIndex((line) => matcher.test(line));
+  return index >= 0 ? index + 1 : undefined;
+}
+
+function lineForToken(openuiLang: string, token: string): number | undefined {
+  const lines = openuiLang.split(/\r?\n/);
+  const index = lines.findIndex((line) => line.includes(token));
+  return index >= 0 ? index + 1 : undefined;
+}
+
 function validationSummary(
-  errors: Array<{ code: string; message: string }>,
+  openuiLang: string,
+  errors: Array<{ code: string; message: string; component?: string; statementId?: string }>,
   unresolved: string[],
 ): string {
   const parts = [
-    ...errors.map((error) => `${error.code}: ${error.message}`),
-    ...unresolved.map((name) => `unresolved: ${name}`),
+    ...errors.map((error) => {
+      const line = lineForStatement(openuiLang, error.statementId);
+      const prefix = line ? `line ${line}: ` : "";
+      const suggestions = error.component ? closestComponents(error.component) : [];
+      const suffix = suggestions.length > 0 ? `; did you mean ${suggestions.map((name) => `"${name}"`).join(", ")}?` : "";
+      return `${prefix}${error.code}: ${error.message}${suffix}`;
+    }),
+    ...unresolved.map((name) => {
+      const line = lineForToken(openuiLang, name);
+      return `${line ? `line ${line}: ` : ""}unresolved: ${name}`;
+    }),
   ];
   return parts.join("; ");
 }
@@ -63,7 +115,7 @@ export function validateOpenUILang(openuiLang: string): void {
 
   if (result.meta.errors.length > 0 || result.meta.unresolved.length > 0) {
     throw new OpenUILangValidationError(
-      `Invalid OpenUI Lang: ${validationSummary(result.meta.errors, result.meta.unresolved)}`,
+      `Invalid OpenUI Lang: ${validationSummary(openuiLang, result.meta.errors, result.meta.unresolved)}`,
     );
   }
 }

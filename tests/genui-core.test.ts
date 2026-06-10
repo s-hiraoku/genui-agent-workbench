@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Renderer } from "@openuidev/react-lang";
+import packageJson from "../package.json";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
@@ -94,8 +98,38 @@ describe("renderGenUI", () => {
     expect(() => validateOpenUILang("root = MissingCard()")).toThrow(OpenUILangValidationError);
   });
 
+  it("reports validation failures with line context and suggestions", () => {
+    expect(() => validateOpenUILang("root = MissingCard()")).toThrow(/line 1: unknown-component/);
+    expect(() => validateOpenUILang("root = ConfirmDialg(\"Deploy?\")")).toThrow(/ConfirmDialog/);
+  });
+
   it("validates representative OpenUI Lang", () => {
     expect(() => validateOpenUILang(sampleOpenUILang)).not.toThrow();
+  });
+
+  it("validates bidirectional interaction components", () => {
+    const interactiveOpenUILang = [
+      "root = Card([approval, form, wizard, thread, code])",
+      'approval = ConfirmDialog("Deploy approval", "Release gate", "Deploy now?", "All checks passed.", "medium", "Approve", "Hold", "deploy.approve")',
+      'form = FormPanel("Release note", "Returned to the agent", [note], "release.note", "Submit note")',
+      'note = { label: "Note", name: "note", type: "textarea", value: "", required: false }',
+      'wizard = WizardForm("Setup", "Collect release details", [step], "release.setup", "Finish")',
+      'step = { label: "Target", status: "active", fields: [env] }',
+      'env = { label: "Environment", name: "environment", type: "select", options: ["staging", "production"], value: "staging" }',
+      'thread = MessageThread("Reviewer notes", "Send a note", [], { placeholder: "Message", sendLabel: "Send", actionId: "review.message" })',
+      'code = CodeBlock("Command", "Run after approval", "bash", "npm run build", true, "release.sh", true)',
+    ].join("\n");
+
+    expect(() => validateOpenUILang(interactiveOpenUILang)).not.toThrow();
+  });
+
+  it("renders an empty WizardForm without crashing", () => {
+    const emptyWizardOpenUILang = 'root = WizardForm("Setup", "No steps yet", [])';
+
+    expect(() => validateOpenUILang(emptyWizardOpenUILang)).not.toThrow();
+    expect(() =>
+      renderToStaticMarkup(React.createElement(Renderer, { response: emptyWizardOpenUILang, library })),
+    ).not.toThrow();
   });
 
   it("validates interactive media OpenUI Lang", () => {
@@ -158,6 +192,12 @@ describe("agent interface scaffold", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
     expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable", "VideoPlaylist"]));
+  });
+
+  it("publishes MCP and interaction guidance", () => {
+    expect(packageJson.scripts["genui:mcp"]).toBe("node scripts/genui-mcp-server.mjs");
+    expect(buildAgentInstructions()).toContain("actionId");
+    expect(buildAgentInstructions()).toContain("genui:mcp");
   });
 
   it("normalizes YouTube watch and short URLs for inline embeds", () => {

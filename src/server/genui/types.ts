@@ -32,6 +32,7 @@ export type GenUISizePreset =
   | "panel"
   | "default"
   | "wide"
+  | "review"
   | "tall"
   | "stage"
   | "cinema"
@@ -67,9 +68,28 @@ export type RenderGenUIResult = {
 
 export type PopupStatus = "opening" | "open" | "completed" | "cancelled" | "closed" | "failed";
 
+export type PopupInteractionEventKind = "action" | "input" | "submit" | "message";
+
+export type PopupInteractionEvent = {
+  eventId: string;
+  kind: PopupInteractionEventKind;
+  component: string;
+  actionId: string;
+  label?: string;
+  value?: unknown;
+  fields?: Record<string, unknown>;
+  createdAt: string;
+};
+
 export type PopupCompletion = {
   outcome: "completed" | "cancelled" | "failed";
-  payload?: Record<string, unknown>;
+  payload?: {
+    actionId?: string;
+    value?: unknown;
+    fields?: Record<string, unknown>;
+    event?: PopupInteractionEvent;
+    events?: PopupInteractionEvent[];
+  } & Record<string, unknown>;
   completedAt: string;
 };
 
@@ -83,6 +103,7 @@ export type PopupRecord = {
   createdAt: string;
   closedAt?: string;
   error?: string;
+  events?: PopupInteractionEvent[];
   completion?: PopupCompletion;
   generationMode: GenUIGenerationMode;
 };
@@ -97,6 +118,7 @@ export type PopupOpenResponse = {
   createdAt: string;
   closedAt?: string;
   error?: string;
+  events?: PopupInteractionEvent[];
   completion?: PopupCompletion;
   generationMode: GenUIGenerationMode;
   brokerProtocolVersion: string;

@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Renderer } from "@openuidev/react-lang";
 import { Check, X } from "lucide-react";
-import { library } from "@/library";
+import { library, PopupEventContext, type PopupEventInput, type PopupEventOptions } from "@/library";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
 
 type PreviewClientProps = {
@@ -72,6 +72,26 @@ export function PreviewClient({
     window.close();
   }, [authHeaders, popupId, controlUrl]);
 
+  const reportPopupEvent = useCallback(
+    async (event: PopupEventInput, options?: PopupEventOptions) => {
+      if (!popupId || !controlUrl) return;
+      try {
+        await fetch(`${controlUrl}/v1/popups/${popupId}/event`, {
+          method: "POST",
+          headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
+          body: JSON.stringify({
+            ...event,
+            complete: options?.complete === true,
+            outcome: options?.outcome,
+          }),
+        });
+      } catch {
+        /* event reporting should not make the popup unusable */
+      }
+    },
+    [authHeaders, popupId, controlUrl],
+  );
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") void closePopup();
@@ -116,7 +136,9 @@ export function PreviewClient({
         </header>
 
         <main className="lg-scroll lg-preview flex-1 overflow-auto">
-          <Renderer response={openuiLang} library={library} />
+          <PopupEventContext.Provider value={reportPopupEvent}>
+            <Renderer response={openuiLang} library={library} />
+          </PopupEventContext.Provider>
         </main>
       </div>
     </LiquidGlassSurface>

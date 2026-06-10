@@ -23,7 +23,9 @@ Workflow:
 3. Validate before opening with \`${cliCommand} validate --openui-lang-file <file>\`.
 4. Open the popup with \`${cliCommand} popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
 5. Use \`${cliCommand} examples\` and \`${cliCommand} components\` for examples and the concise component catalog.
-6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result.
+6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result. For approvals/forms, give ConfirmDialog, FormPanel, WizardForm, or MessageThread an \`actionId\`; the selected action or submitted fields return in \`completion.payload\`.
+
+Use \`--size review\` for code review, diffs, and approval forms. Development checkouts can expose MCP with \`npm run genui:mcp\` (\`genui_prompt_spec\`, \`genui_validate\`, \`genui_popup\`, \`genui_wait\`).
 
 Do not send natural-language prompts to GenUI. The CLI/broker is an OpenUI Lang popup runtime, not a UI-planning LLM.
 Never include secrets in OpenUI Lang or context.`;

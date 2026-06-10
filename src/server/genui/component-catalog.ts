@@ -74,9 +74,9 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "FormPanel",
     category: "Agent Explanation",
-    description: "Read-only form/input review for intake, approval, missing-field checks, and user confirmation.",
-    useCases: ["intake form", "approval request", "missing fields", "confirmation", "request review"],
-    examplePrompt: "入力内容をフォーム確認UIで表示して。不足項目も示して。",
+    description: "Form/input review and lightweight editable intake panel. Set actionId to return submitted fields in completion.payload.",
+    useCases: ["intake form", "approval request", "missing fields", "confirmation", "request review", "field collection"],
+    examplePrompt: "入力内容をフォーム確認UIで表示して。actionIdを付けて送信結果も返して。",
   },
   {
     name: "ActionPanel",
@@ -168,14 +168,14 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "AnimationCard",
     category: "Media",
-    description: "Single motion-clip card (Lottie JSON, looping video, animated GIF/SVG) with loop/autoplay/speed controls.",
+    description: "Single motion-clip card (Lottie JSON reference, looping video, animated GIF/SVG) with loop/autoplay/speed controls.",
     useCases: ["empty-state animation", "success/error animation", "onboarding hook", "branding moment", "micro-interaction"],
     examplePrompt: "成功時のアニメーションを表示して。Lottie JSONを使って。",
   },
   {
     name: "ConfirmDialog",
     category: "Decisions",
-    description: "Single high-stakes confirmation card with one accept and one decline action plus risk level.",
+    description: "Single high-stakes confirmation card with accept/decline actions, risk level, and optional actionId completion payload.",
     useCases: ["delete confirmation", "deploy approval", "destructive action gate", "autonomous-agent permission", "irreversible step"],
     examplePrompt: "この削除操作の確認ダイアログを表示して。リスクと結果も明記して。",
   },
@@ -196,8 +196,8 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "CodeBlock",
     category: "Code & Data",
-    description: "Single code or command snippet with optional filename, language label, and runnable hint. Use for paste-and-run answers.",
-    useCases: ["command to run", "code snippet", "config example", "shell one-liner", "API call sample"],
+    description: "Highlighted code or command snippet with filename, language label, line numbers, and runnable hint. Use for paste-and-run answers.",
+    useCases: ["command to run", "code snippet", "config example", "shell one-liner", "API call sample", "small diff"],
     examplePrompt: "このコマンドをCodeBlockで表示して。runnableフラグも付けて。",
   },
   {
@@ -258,10 +258,10 @@ export const componentCatalog: ComponentCatalogItem[] = [
   },
   {
     name: "WizardForm",
-    category: "Conversations",
-    description: "Multi-step wizard pairing stages with per-stage form inputs. Use for onboarding/configuration flows.",
+    category: "Diagnostics & Workflow",
+    description: "Interactive multi-step wizard with per-step fields and optional actionId completion payload.",
     useCases: ["onboarding wizard", "setup flow", "multi-stage approval", "configuration steps", "guided form"],
-    examplePrompt: "アプリ初期セットアップを3ステップのウィザードで表示して。",
+    examplePrompt: "設定手順をWizardFormで表示して。最後に入力内容をagentへ返して。",
   },
   {
     name: "InlineSvg",
