@@ -18,7 +18,15 @@ import {
   sanitizeSettings,
   writeSettings,
 } from "../src/server/genui/settings";
-import type { GenUIArtifact, PopupOpenResponse, PopupRecord, PopupStatus, RenderGenUIInput } from "../src/server/genui/types";
+import type {
+  GenUIArtifact,
+  PopupInteractionEvent,
+  PopupInteractionEventKind,
+  PopupOpenResponse,
+  PopupRecord,
+  PopupStatus,
+  RenderGenUIInput,
+} from "../src/server/genui/types";
 
 type PopupRuntime = PopupRecord & {
   window?: BrowserWindow;
@@ -83,6 +91,7 @@ type SizePreset =
   | "panel"
   | "default"
   | "wide"
+  | "review"
   | "tall"
   | "stage"
   | "cinema"
@@ -98,6 +107,28 @@ type WindowGeometry = {
 
 function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+}
+
+function isJsonRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function sanitizeJsonValue(value: unknown, depth = 0): unknown {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (depth > 4) return "[truncated]";
+  if (Array.isArray(value)) {
+    return value.slice(0, 50).map((item) => sanitizeJsonValue(item, depth + 1));
+  }
+  if (isJsonRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .slice(0, 100)
+        .map(([key, item]) => [key, sanitizeJsonValue(item, depth + 1)]),
+    );
+  }
+  return String(value);
 }
 
 function createTrayImage() {
@@ -343,6 +374,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
 
   const url = new URL(req.url ?? "/", controlUrl || "http://127.0.0.1");
   const popupMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)$/);
+  const popupEventMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/event$/);
   const popupCloseMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/close$/);
   const popupCompleteMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/complete$/);
   const artifactReplayMatch = url.pathname.match(/^\/v1\/artifacts\/([^/]+)\/replay$/);
@@ -525,6 +557,31 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
+  if (req.method === "POST" && popupEventMatch) {
+    requireControlToken(req);
+    const body = await readRequestJson(req);
+    const result = recordPopupEvent(popupEventMatch[1], body);
+    if (!result) {
+      sendJson(res, 404, { error: "Popup not found" });
+      return;
+    }
+
+    if (body.complete === true) {
+      const popup = completePopup(popupEventMatch[1], {
+        outcome: body.outcome,
+        payload: popupPayloadFromEvents(result.popup, result.event),
+      });
+      sendJson(res, 200, popup ? serializePopup(popup) : { error: "Popup not found" });
+      return;
+    }
+
+    sendJson(res, 200, {
+      event: result.event,
+      popup: serializePopup(result.popup),
+    });
+    return;
+  }
+
   if (req.method === "POST" && popupCompleteMatch) {
     requireControlToken(req);
     const body = await readRequestJson(req);
@@ -617,6 +674,7 @@ const PRESET_RATIOS: Record<SizePreset, { w: number; h: number }> = {
   panel:      { w: 0.42, h: 0.58 },
   default:    { w: 0.56, h: 0.66 },
   wide:       { w: 0.72, h: 0.58 },
+  review:     { w: 0.78, h: 0.72 },
   tall:       { w: 0.40, h: 0.86 },
   stage:      { w: 0.78, h: 0.78 },
   cinema:     { w: 0.92, h: 0.82 },
@@ -629,6 +687,7 @@ const PRESET_MIN: Record<SizePreset, { w: number; h: number }> = {
   panel:      { w: 520, h: 480 },
   default:    { w: 640, h: 520 },
   wide:       { w: 760, h: 480 },
+  review:     { w: 960, h: 620 },
   tall:       { w: 440, h: 640 },
   stage:      { w: 880, h: 640 },
   cinema:     { w: 1024, h: 640 },
@@ -800,6 +859,47 @@ function closePopup(popupId: string, status: PopupStatus): PopupRuntime | undefi
   return popup;
 }
 
+function popupPayloadFromEvents(
+  popup: PopupRuntime,
+  event = popup.events?.at(-1),
+): NonNullable<PopupRuntime["completion"]>["payload"] | undefined {
+  const events = popup.events ?? [];
+  if (!event && events.length === 0) return undefined;
+  return {
+    actionId: event?.actionId,
+    value: event?.value,
+    fields: event?.fields,
+    event,
+    events,
+  };
+}
+
+function recordPopupEvent(
+  popupId: string,
+  body: Record<string, unknown>,
+): { popup: PopupRuntime; event: PopupInteractionEvent } | undefined {
+  const popup = popupRegistry.get(popupId);
+  if (!popup) {
+    return undefined;
+  }
+
+  const kind = typeof body.kind === "string" ? body.kind : "action";
+  const allowedKinds = new Set<PopupInteractionEventKind>(["action", "input", "submit", "message"]);
+  const event: PopupInteractionEvent = {
+    eventId: createId("evt"),
+    kind: allowedKinds.has(kind as PopupInteractionEventKind) ? (kind as PopupInteractionEventKind) : "action",
+    component: typeof body.component === "string" && body.component.trim() ? body.component.slice(0, 80) : "Unknown",
+    actionId: typeof body.actionId === "string" && body.actionId.trim() ? body.actionId.slice(0, 120) : "default",
+    label: typeof body.label === "string" ? body.label.slice(0, 160) : undefined,
+    value: Object.prototype.hasOwnProperty.call(body, "value") ? sanitizeJsonValue(body.value) : undefined,
+    fields: isJsonRecord(body.fields) ? (sanitizeJsonValue(body.fields) as Record<string, unknown>) : undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  popup.events = [...(popup.events ?? []), event].slice(-50);
+  return { popup, event };
+}
+
 function completePopup(popupId: string, body: Record<string, unknown>): PopupRuntime | undefined {
   const outcome = body.outcome === "cancelled" ? "cancelled" : body.outcome === "failed" ? "failed" : "completed";
   const payload =
@@ -814,7 +914,7 @@ function completePopup(popupId: string, body: Record<string, unknown>): PopupRun
   const completedAt = new Date().toISOString();
   popup.status = outcome;
   popup.closedAt = popup.closedAt ?? completedAt;
-  popup.completion = { outcome, payload, completedAt };
+  popup.completion = { outcome, payload: payload ?? popupPayloadFromEvents(popup), completedAt };
 
   if (popup.window && !popup.window.isDestroyed()) {
     popup.window.close();
@@ -835,6 +935,7 @@ function serializePopup(popup: PopupRuntime): PopupOpenResponse {
     createdAt: popup.createdAt,
     closedAt: popup.closedAt,
     error: popup.error,
+    events: popup.events,
     completion: popup.completion,
     generationMode: popup.generationMode,
     brokerProtocolVersion: BROKER_PROTOCOL_VERSION,

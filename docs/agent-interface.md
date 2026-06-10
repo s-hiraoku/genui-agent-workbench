@@ -26,11 +26,11 @@ genui validate --openui-lang-file ui.openui
 6. Open a popup:
 
 ```bash
-genui popup --agent-id codex --title "Decision Review" --size wide --openui-lang-file ui.openui
+genui popup --agent-id codex --title "Decision Review" --size review --openui-lang-file ui.openui
 ```
 
 7. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
-8. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed.
+8. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
 9. Inspect and replay saved UI when the user wants to revisit a prior artifact:
 
 ```bash
@@ -56,6 +56,40 @@ o2 = { name: "Broker prompt route", recommendation: "avoid", score: "4/10", pros
 actions = ActionPanel("Next Actions", "Recommended handoff", [a1])
 a1 = { label: "Use direct CLI route", priority: "high", owner: "agent", description: "Generate OpenUI Lang and pass it to --openui-lang-file" }
 ```
+
+## Approval and Form Results
+
+`ConfirmDialog`, `FormPanel`, `WizardForm`, and `MessageThread` can report user input back to the broker. Set an `actionId` when the agent needs to branch on the result.
+
+```openui
+root = Card([header, approval, form])
+header = CardHeader("Release Gate", "Approve or adjust the deployment")
+approval = ConfirmDialog("Deploy approval", "Production deploy", "Deploy build 184 now?", "All checks passed.", "medium", "Approve deploy", "Hold", "release.approve")
+form = FormPanel("Release note", "Optional note for the agent", [note], "release.note", "Submit note")
+note = { label: "Note", name: "note", type: "textarea", value: "", required: false, help: "Returned in completion.payload.fields.note" }
+```
+
+When opened with `--wait`, the returned popup JSON includes:
+
+```json
+{
+  "status": "completed",
+  "completion": {
+    "outcome": "completed",
+    "payload": {
+      "actionId": "release.approve",
+      "value": "confirm",
+      "fields": {
+        "question": "Deploy build 184 now?",
+        "risk": "medium"
+      },
+      "events": []
+    }
+  }
+}
+```
+
+The popup chrome Complete button also includes any previously recorded events in `completion.payload.events`.
 
 ## CLI Commands
 
@@ -99,12 +133,30 @@ broker to infer or regenerate UI.
 - `card`: small explanation or one component.
 - `panel`: default work surface for KPI/action UI.
 - `wide`: comparison tables and decision matrices.
+- `review`: code review, diffs, and approval forms.
 - `tall`: timelines and long lists.
 - `stage`: maps and spatial UI.
 - `cinema`: video-heavy UI.
 - `fullscreen`: large review sessions.
 
 Prefer presets before custom `width` and `height`.
+
+## MCP Server
+
+Development checkouts expose a stdio MCP server:
+
+```bash
+npm run genui:mcp
+```
+
+It provides:
+
+- `genui_prompt_spec`: return the OpenUI Lang authoring guide.
+- `genui_validate`: validate OpenUI Lang.
+- `genui_popup`: open a popup and optionally wait for completion.
+- `genui_wait`: wait for an existing popup id.
+
+Configure MCP clients to run the command from the repository root. The server wraps the same CLI and broker state as normal agent usage.
 
 ## Guardrails
 
