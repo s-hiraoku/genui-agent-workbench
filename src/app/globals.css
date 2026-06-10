@@ -1424,6 +1424,43 @@ body::before,
   --ai-text-muted: color-mix(in srgb, var(--ink-soft) 84%, transparent);
 }
 
+.lg-shell[data-appearance-theme="light"][data-opaque="true"] .lg-glass-window::before {
+  background:
+    radial-gradient(80% 58% at 18% 6%, rgba(255, 255, 255, 0.94), transparent 62%),
+    radial-gradient(72% 54% at 82% 94%, rgba(202, 247, 252, 0.64), transparent 68%),
+    linear-gradient(145deg, rgb(248, 253, 255), rgb(236, 249, 252) 48%, rgb(250, 254, 255));
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 180, 204, 0.38),
+    inset 0 0 0 7px rgba(172, 238, 246, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0 rgba(72, 130, 150, 0.16);
+}
+
+.lg-shell[data-appearance-theme="light"][data-opaque="true"] .lg-card-content::before {
+  background:
+    radial-gradient(110% 78% at 18% 0%, rgba(255, 255, 255, 0.84), transparent 52%),
+    radial-gradient(90% 78% at 100% 100%, rgba(198, 242, 248, 0.52), transparent 58%),
+    linear-gradient(145deg, rgba(252, 255, 255, 0.86), rgba(232, 248, 251, 0.74));
+  box-shadow:
+    inset 0 0 0 1px rgba(81, 188, 206, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 18px 48px rgba(64, 122, 150, 0.16);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-settings {
+  --ink: rgb(10, 22, 62);
+  --ink-mid: rgb(62, 82, 124);
+  --ink-soft: rgb(88, 112, 152);
+  --ink-shadow: none;
+  --ai-panel: rgba(255, 255, 255, 0.78);
+  --ai-panel-soft: rgba(239, 250, 252, 0.76);
+  --ai-control: rgba(255, 255, 255, 0.70);
+  --ai-control-strong: rgba(228, 249, 252, 0.88);
+  --ai-border: rgba(79, 184, 204, 0.26);
+  --ai-border-strong: rgba(0, 174, 198, 0.84);
+  --ai-text-muted: rgb(86, 108, 148);
+}
+
 .lg-ai-settings > * {
   position: relative;
   z-index: 1;
@@ -2106,6 +2143,154 @@ body::before,
   background: rgba(8, 28, 40, 0.58);
   color: var(--ink-soft);
   box-shadow: inset 0 0 0 1px var(--ai-border);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-settings::before {
+  background:
+    radial-gradient(70% 48% at 80% 0%, rgba(255, 255, 255, 0.86), transparent 66%),
+    radial-gradient(68% 54% at 12% 10%, rgba(207, 247, 252, 0.36), transparent 72%),
+    linear-gradient(90deg, rgba(46, 184, 204, 0.085) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(46, 184, 204, 0.075) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-sidebar {
+  border-right-color: rgba(66, 174, 196, 0.26);
+  background:
+    linear-gradient(180deg, rgba(238, 252, 254, 0.82), rgba(255, 255, 255, 0.54)),
+    linear-gradient(90deg, rgba(0, 181, 205, 0.14), transparent 58%);
+  box-shadow:
+    inset -1px 0 0 rgba(255, 255, 255, 0.74),
+    inset 1px 0 0 rgba(0, 181, 205, 0.24);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-sidebar::before {
+  opacity: 0.34;
+  filter: drop-shadow(0 0 5px rgba(0, 190, 210, 0.30));
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-brand-mark {
+  color: rgb(0, 126, 154);
+  background: rgba(255, 255, 255, 0.66);
+  text-shadow: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.84),
+    0 14px 30px rgba(0, 150, 180, 0.14);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-status-block strong {
+  color: rgb(0, 142, 124);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-console-header h1 {
+  color: rgb(9, 20, 58);
+  font-weight: 780;
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-console-header p {
+  color: rgb(76, 98, 136);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(250, 254, 255, 0.68)),
+    linear-gradient(135deg, var(--ai-panel), var(--ai-panel-soft));
+  box-shadow:
+    inset 0 0 0 1px var(--ai-border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 44px rgba(74, 130, 156, 0.12);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-panel h2 {
+  color: rgb(7, 143, 170);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-segmented {
+  background: rgba(245, 253, 255, 0.76);
+  box-shadow:
+    inset 0 0 0 1px rgba(95, 178, 198, 0.28),
+    0 10px 24px rgba(76, 124, 154, 0.08);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-segmented button {
+  color: rgb(76, 98, 136);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-segmented button:hover,
+.lg-shell[data-appearance-theme="light"] .lg-ai-segmented button[data-selected="true"] {
+  color: rgb(8, 28, 68);
+  background:
+    linear-gradient(180deg, rgba(226, 251, 254, 0.92), rgba(255, 255, 255, 0.72)),
+    rgba(255, 255, 255, 0.74);
+  box-shadow:
+    inset 0 0 0 2px rgb(0, 174, 198),
+    0 12px 26px rgba(0, 174, 198, 0.16);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-visual-card,
+.lg-shell[data-appearance-theme="light"] .lg-ai-select-shell,
+.lg-shell[data-appearance-theme="light"] .lg-ai-setting-row,
+.lg-shell[data-appearance-theme="light"] .lg-ai-action-bar {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(95, 178, 198, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-visual-card {
+  color: rgb(58, 78, 116);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-visual-card:hover,
+.lg-shell[data-appearance-theme="light"] .lg-ai-visual-card[data-selected="true"] {
+  color: rgb(8, 28, 68);
+  background: rgba(236, 252, 255, 0.92);
+  box-shadow:
+    inset 0 0 0 2px rgb(0, 174, 198),
+    0 12px 26px rgba(0, 174, 198, 0.16);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-visual-card > span {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(0, 174, 198, 0.30) 0 4px, transparent 5px),
+    linear-gradient(90deg, rgba(0, 174, 198, 0.20) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(0, 174, 198, 0.16) 1px, transparent 1px),
+    rgba(230, 251, 254, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(0, 174, 198, 0.18);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-system-row {
+  background: rgba(255, 255, 255, 0.54);
+  border-bottom-color: rgba(95, 178, 198, 0.22);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-port-input {
+  background: rgba(255, 255, 255, 0.72);
+  color: rgb(8, 28, 68);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-secondary-action {
+  background: rgba(255, 255, 255, 0.66);
+  color: rgb(76, 98, 136);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-primary-action {
+  color: white;
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-swatch {
+  background: rgba(255, 255, 255, 0.70);
+  box-shadow:
+    inset 0 0 0 1px rgba(87, 172, 196, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 6px 16px rgba(74, 130, 156, 0.10);
+}
+
+.lg-shell[data-appearance-theme="light"] .lg-ai-swatch[data-selected="true"] {
+  box-shadow:
+    inset 0 0 0 3px rgb(0, 174, 198),
+    inset 0 0 0 5px rgba(255, 255, 255, 0.90),
+    0 10px 22px rgba(0, 174, 198, 0.20);
 }
 
 .lg-ai-swatch[data-color="blue"] { --swatch-color: rgba(86, 136, 210, 0.92); }
