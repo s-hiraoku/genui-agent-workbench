@@ -29,11 +29,32 @@ export const componentCatalog: ComponentCatalogItem[] = [
     examplePrompt: "この調査結果の重要メタデータをkey-value形式で整理して。",
   },
   {
+    name: "InsightStack",
+    category: "Agent Explanation",
+    description: "High-signal takeaway stack with optional detail, confidence, source, and tone for AI reasoning and research summaries.",
+    useCases: ["AI takeaways", "research findings", "evidence highlights", "executive brief", "confidence notes"],
+    examplePrompt: "調査結果の要点を、根拠と信頼度つきのInsightStackで表示して。",
+  },
+  {
     name: "AlertList",
     category: "Agent Explanation",
     description: "Risk, blocker, warning, validation, incident, and confirmation list with severity and actions.",
     useCases: ["risks", "warnings", "blockers", "validation errors", "incident signals"],
     examplePrompt: "リスクと警告をseverity別に表示して。各項目に推奨アクションも付けて。",
+  },
+  {
+    name: "Gauge",
+    category: "Agent Explanation",
+    description: "Circular bounded-value gauge for one score, confidence, health, quota, SLA, or completion percentage.",
+    useCases: ["readiness score", "confidence", "health score", "quota usage", "SLA progress"],
+    examplePrompt: "リリース準備度をGaugeで大きく表示して。目標値も付けて。",
+  },
+  {
+    name: "ChecklistPanel",
+    category: "Agent Explanation",
+    description: "Scannable checklist for acceptance criteria, QA gates, launch readiness, requirements coverage, and review items.",
+    useCases: ["acceptance criteria", "QA gates", "launch checklist", "requirements coverage", "review items"],
+    examplePrompt: "リリース前チェック項目をChecklistPanelで表示して。完了・進行中・警告を分けて。",
   },
   {
     name: "ProgressStepper",

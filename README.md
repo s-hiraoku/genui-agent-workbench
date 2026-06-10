@@ -61,11 +61,19 @@ The `popup` command also attempts to start the broker when it is not reachable.
 Ask the CLI how an agent should use it:
 
 ```bash
+genui doctor --json
+genui agent-snippet
 genui agent-instructions
 genui prompt-spec
 genui components
 genui examples
 ```
+
+Use `genui doctor --json` when an agent needs a cheap availability check before
+deciding whether to open a popup. It reports whether the CLI is installed, whether
+the broker is reachable, when GenUI is useful, and the next commands to run.
+Use `genui agent-snippet` when you want a short block to paste into an agent's
+project instructions or `AGENTS.md`.
 
 Open a popup from OpenUI Lang:
 
@@ -168,10 +176,10 @@ a1 = { label: "Open popup", priority: "medium", owner: "agent", description: "Se
 The component library is the design boundary. Agents can compose listed components, but styling is owned by this repo.
 
 - Basics: `Card`, `CardHeader`, `Label`
-- Summaries: `MetricGrid`, `Stat`, `KeyValuePanel`
+- Summaries: `MetricGrid`, `Stat`, `Gauge`, `KeyValuePanel`, `InsightStack`
 - Risks and status: `AlertList`, `NotificationToast`, `DiagnosticsCard`
 - Decisions: `DecisionMatrix`, `CompareTable`, `ConfirmDialog`
-- Progress: `ProgressStepper`, `TimelinePanel`, `TaskBoard`, `WizardForm`
+- Progress: `ProgressStepper`, `TimelinePanel`, `TaskBoard`, `ChecklistPanel`, `WizardForm`
 - Data: `DataTable`, `DataPreview`, `TreeView`
 - Code and changes: `CodeDiff`, `CodeBlock`
 - Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`, `VideoPlaylist`

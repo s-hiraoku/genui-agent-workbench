@@ -10,7 +10,7 @@ import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
 import { OpenUILangValidationError, validateOpenUILang } from "../src/server/genui/render";
 import { BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
-import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli-guidance";
+import { buildAgentInstructions, buildAgentSnippet, buildPromptSpec } from "../src/server/genui/cli-guidance";
 
 type CliOptions = Record<string, string | boolean>;
 type BrokerConnection = {
@@ -440,10 +440,54 @@ function examples(options: CliOptions): unknown {
   };
 }
 
+async function doctor(options: CliOptions): Promise<unknown> {
+  let connection = await resolveBrokerConnection(options);
+  let brokerError: string | undefined;
+  let broker = await brokerStatus(connection);
+
+  if (!broker && options.start === true) {
+    try {
+      connection = await ensureBroker(options);
+      broker = await brokerStatus(connection);
+    } catch (error) {
+      brokerError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  return {
+    ok: true,
+    cli: "genui",
+    installed: true,
+    brokerReachable: Boolean(broker),
+    brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
+    controlUrl: connection.controlUrl,
+    canAutoStartBroker: true,
+    broker,
+    brokerError,
+    whenToUse: agentUsageGuide.whenToUse,
+    whenNotToUse: agentUsageGuide.whenNotToUse,
+    quickStart: agentUsageGuide.quickStart,
+    commands: agentUsageGuide.cli,
+    nextSteps: broker
+      ? [
+          "Run `genui prompt-spec` for syntax.",
+          "Generate OpenUI Lang and validate with `genui validate --openui-lang-file ui.openui`.",
+          "Open with `genui popup --openui-lang-file ui.openui --title \"Status\" --agent-id <agent>`.",
+        ]
+      : [
+          "The CLI is installed but the broker is not reachable yet.",
+          "Run `genui doctor --start --json` to try starting it, or run `genui popup ...` which also auto-starts the broker.",
+          "If startup fails, open the GenUI Popup Broker app manually and rerun `genui doctor --json`.",
+        ],
+  };
+}
+
 function printHelp(): void {
   console.log(`GenUI Popup Broker CLI
 
 Usage:
+  genui doctor --json
+  genui agent-snippet
   genui agent-instructions
   genui prompt-spec
   genui components
@@ -486,6 +530,7 @@ Options:
   --max-artifacts <count>   Keep newest N artifacts for prune
   --name <example>          Select an example for the examples command
   --json                    Return selected example as JSON
+  --start                   For doctor: try to start the broker before reporting
 `);
 }
 
@@ -503,6 +548,16 @@ async function main(): Promise<void> {
     if ((result as { valid?: unknown }).valid === false) {
       process.exitCode = 1;
     }
+    return;
+  }
+
+  if (command === "doctor") {
+    console.log(JSON.stringify(await doctor(options), null, 2));
+    return;
+  }
+
+  if (command === "agent-snippet") {
+    console.log(buildAgentSnippet());
     return;
   }
 

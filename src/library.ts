@@ -507,6 +507,36 @@ function accentedReadableGlassStyle(tone: { border: string }): React.CSSProperti
   };
 }
 
+const containedRegionStyle: React.CSSProperties = {
+  containIntrinsicSize: "auto 160px",
+  contentVisibility: "auto",
+};
+
+function cardSurfaceStyle(
+  tone: { background: string; border: string },
+  options: { minHeight?: number; padding?: number; accent?: boolean } = {},
+): React.CSSProperties {
+  return {
+    ...containedRegionStyle,
+    ...(options.accent ? accentedReadableGlassStyle(tone) : readableGlassStyle),
+    background: tone.background,
+    border: `1px solid ${tone.border}`,
+    borderRadius: 8,
+    minHeight: options.minHeight,
+    minWidth: 0,
+    overflow: "hidden",
+    padding: options.padding ?? 12,
+  };
+}
+
+function statusTone(value?: string): "positive" | "neutral" | "warning" | "danger" | "info" {
+  if (value === "done" || value === "pass" || value === "positive") return "positive";
+  if (value === "blocked" || value === "fail" || value === "danger" || value === "critical") return "danger";
+  if (value === "warning" || value === "warn") return "warning";
+  if (value === "active" || value === "running" || value === "info") return "info";
+  return "neutral";
+}
+
 function panelHeader(title?: string, description?: string): React.ReactNode {
   if (!title && !description) {
     return null;
@@ -537,6 +567,16 @@ function formatCellValue(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return JSON.stringify(value);
+}
+
+function clampPercent(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+}
+
+function formatCompactNumber(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  return Number.isInteger(value) ? value.toLocaleString() : value.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
 function lngToWorldX(lng: number, zoom: number): number {
@@ -1171,17 +1211,24 @@ const MetricGrid = defineComponent({
             "article",
             {
               key: `${metric.label}:${index}`,
-              style: {
-                background: tone.background,
-                border: `1px solid ${tone.border}`,
-                borderRadius: 8,
-                minHeight: 104,
-                padding: 12,
-                ...accentedReadableGlassStyle(tone),
-              },
+              style: cardSurfaceStyle(tone, { accent: true, minHeight: 112 }),
             },
             labelElement(metric.label, metric.tone ?? "neutral", "xs"),
-            React.createElement("div", { style: { color: tone.text, fontSize: 24, fontWeight: 800, lineHeight: 1.15, marginTop: 6 } }, metric.value),
+            React.createElement(
+              "div",
+              {
+                style: {
+                  color: tone.text,
+                  fontSize: 24,
+                  fontWeight: 800,
+                  lineHeight: 1.15,
+                  marginTop: 7,
+                  overflowWrap: "anywhere",
+                  textShadow: hudTextShadow,
+                },
+              },
+              metric.value,
+            ),
             metric.delta
               ? React.createElement("div", { style: { marginTop: 6 } }, labelElement(metric.delta, metric.tone ?? "neutral", "xs"))
               : null,
@@ -1227,13 +1274,7 @@ const ActionPanel = defineComponent({
             "article",
             {
               key: `${action.label}:${index}`,
-              style: {
-                background: tone.background,
-                border: `1px solid ${tone.border}`,
-                borderRadius: 8,
-                padding: 12,
-                ...accentedReadableGlassStyle(tone),
-              },
+              style: cardSurfaceStyle(tone, { accent: true }),
             },
             React.createElement(
               "div",
@@ -1395,15 +1436,7 @@ const DecisionMatrix = defineComponent({
             "article",
             {
               key: `${option.name}:${index}`,
-              style: {
-                background: tone.background,
-                border: `1px solid ${tone.border}`,
-                borderRadius: 8,
-                display: "grid",
-                gap: 8,
-                padding: 12,
-                ...readableGlassStyle,
-              },
+              style: { ...cardSurfaceStyle(tone), display: "grid", gap: 8 },
             },
             React.createElement(
               "div",
@@ -1494,7 +1527,7 @@ const DataTable = defineComponent({
             props.rows.map((row, rowIndex) =>
               React.createElement(
                 "tr",
-                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "rgba(2,18,32,0.08)" : "rgba(72,138,82,0.045)" } },
+                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "rgba(2,18,32,0.10)" : "rgba(72,138,82,0.06)" } },
                 props.columns.map((column) =>
                   React.createElement(
                     "td",
@@ -1567,14 +1600,7 @@ const TaskBoard = defineComponent({
             "section",
             {
               key: `${column.title}:${index}`,
-              style: {
-                background: tone.background,
-                border: `1px solid ${tone.border}`,
-                borderRadius: 8,
-                minHeight: 120,
-                padding: 10,
-                ...readableGlassStyle,
-              },
+              style: cardSurfaceStyle(tone, { minHeight: 128, padding: 10 }),
             },
             React.createElement(
               "div",
@@ -1816,13 +1842,7 @@ const AlertList = defineComponent({
             "article",
             {
               key: `${alert.title}:${index}`,
-              style: {
-                background: tone.background,
-                border: `1px solid ${tone.border}`,
-                borderRadius: 8,
-                padding: 12,
-                ...readableGlassStyle,
-              },
+              style: cardSurfaceStyle(tone),
             },
             React.createElement(
               "div",
@@ -1911,6 +1931,274 @@ const ProgressStepper = defineComponent({
                 ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.45, margin: "4px 0 0" } }, step.description)
                 : null,
             ),
+          );
+        }),
+      ),
+    ),
+});
+
+const Gauge = defineComponent({
+  name: "Gauge",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    label: z.string(),
+    value: z.number(),
+    max: z.number().positive().optional(),
+    unit: z.string().optional(),
+    target: z.number().optional(),
+    tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Single circular gauge for completion, confidence, health, quota, SLA, score, and percentage-style values. Use when one bounded number needs immediate visual weight.",
+  component: ({ props }) => {
+    const max = props.max ?? 100;
+    const percent = clampPercent((props.value / max) * 100);
+    const targetPercent = props.target === undefined ? null : clampPercent((props.target / max) * 100);
+    const tone = toneFor(props.tone ?? (percent >= 80 ? "positive" : percent >= 50 ? "info" : percent >= 30 ? "warning" : "danger"));
+    const unit = props.unit ?? "%";
+    const valueLabel = `${formatCompactNumber(props.value)}${unit}`;
+    const targetLabel = props.target === undefined ? null : `${formatCompactNumber(props.target)}${unit}`;
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        {
+          style: {
+            alignItems: "center",
+            display: "grid",
+            gap: 14,
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            padding: 14,
+          },
+        },
+        React.createElement(
+          "div",
+          {
+            "aria-label": `${props.label}: ${valueLabel} of ${formatCompactNumber(max)}${unit}`,
+            role: "img",
+            style: {
+              alignItems: "center",
+              aspectRatio: "1 / 1",
+              background: `conic-gradient(${tone.accent} 0 ${percent}%, rgba(255,255,255,0.10) ${percent}% 100%)`,
+              border: `1px solid ${tone.border}`,
+              borderRadius: "50%",
+              boxShadow: `inset 0 0 0 10px rgba(2,18,32,0.20), 0 18px 38px rgba(0,12,24,0.22), 0 0 32px ${tone.border}`,
+              display: "grid",
+              justifyItems: "center",
+              maxWidth: 190,
+              minWidth: 0,
+              padding: 14,
+              placeSelf: "center",
+              width: "100%",
+            },
+          },
+          React.createElement(
+            "div",
+            {
+              style: {
+                alignItems: "center",
+                background: "rgba(2,18,32,0.58)",
+                border: `1px solid ${hudEdge}`,
+                borderRadius: "50%",
+                display: "grid",
+                height: "76%",
+                justifyItems: "center",
+                minWidth: 0,
+                padding: 12,
+                textAlign: "center",
+                width: "76%",
+                ...readableGlassStyle,
+              },
+            },
+            React.createElement("strong", { style: { color: tone.text, fontSize: 28, lineHeight: 1, overflowWrap: "anywhere", textShadow: hudTextShadow } }, valueLabel),
+            React.createElement("span", { style: { color: hudTextMid, fontSize: 11, fontWeight: 800, letterSpacing: 0, textTransform: "uppercase" } }, `${Math.round(percent)}%`),
+          ),
+        ),
+        React.createElement(
+          "div",
+          { style: { display: "grid", gap: 9, minWidth: 0 } },
+          labelElement(props.label, props.tone ?? "info", "xs", { width: "fit-content" }),
+          React.createElement(
+            "div",
+            { style: { color: tone.text, fontSize: 18, fontWeight: 850, lineHeight: 1.25, overflowWrap: "anywhere", textShadow: hudTextShadow } },
+            valueLabel,
+          ),
+          React.createElement(
+            "div",
+            {
+              style: {
+                background: "rgba(2,18,32,0.24)",
+                border: `1px solid ${hudEdge}`,
+                borderRadius: 999,
+                height: 12,
+                overflow: "hidden",
+              },
+            },
+            React.createElement("span", {
+              style: {
+                background: `linear-gradient(90deg, ${tone.accent}, ${tone.text})`,
+                borderRadius: 999,
+                display: "block",
+                height: "100%",
+                width: `${percent}%`,
+              },
+            }),
+          ),
+          targetLabel
+            ? React.createElement(
+                "div",
+                { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 } },
+                labelElement(`Target: ${targetLabel}`, targetPercent !== null && percent >= targetPercent ? "positive" : "warning", "xs"),
+                labelElement(`Max: ${formatCompactNumber(max)}${unit}`, "neutral", "xs"),
+              )
+            : labelElement(`Max: ${formatCompactNumber(max)}${unit}`, "neutral", "xs", { width: "fit-content" }),
+        ),
+      ),
+    );
+  },
+});
+
+const ChecklistPanel = defineComponent({
+  name: "ChecklistPanel",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    items: z.array(
+      z.object({
+        label: z.string(),
+        status: z.enum(["done", "active", "pending", "blocked", "warning", "skipped"]).default("pending"),
+        description: z.string().optional(),
+        owner: z.string().optional(),
+      }),
+    ),
+    summary: z.string().optional(),
+    ...glassProps,
+  }),
+  description:
+    "Scannable checklist for acceptance criteria, QA gates, launch readiness, requirements coverage, and human review items. Use when the user needs item-by-item completion state rather than a timeline.",
+  component: ({ props }) => {
+    const done = props.items.filter((item) => item.status === "done").length;
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" } },
+          props.summary ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.45, margin: 0 } }, props.summary) : React.createElement("span"),
+          labelElement(`${done}/${props.items.length} done`, done === props.items.length ? "positive" : "info", "xs"),
+        ),
+        React.createElement(
+          "ol",
+          { style: { display: "grid", gap: 8, listStyle: "none", margin: 0, padding: 0 } },
+          props.items.map((item, index) => {
+            const toneKey = statusTone(item.status);
+            const tone = toneFor(toneKey);
+            const marker = item.status === "done" ? "OK" : item.status === "blocked" ? "!" : item.status === "warning" ? "!" : item.status === "active" ? ">" : "-";
+            return React.createElement(
+              "li",
+              {
+                key: `${item.label}:${index}`,
+                style: {
+                  ...cardSurfaceStyle(tone, { padding: 10 }),
+                  alignItems: "start",
+                  display: "grid",
+                  gap: 10,
+                  gridTemplateColumns: "34px minmax(0, 1fr)",
+                },
+              },
+              React.createElement(
+                "span",
+                {
+                  style: {
+                    alignItems: "center",
+                    background: tone.accent,
+                    border: `1px solid ${tone.border}`,
+                    borderRadius: 8,
+                    color: "rgba(2,18,32,0.92)",
+                    display: "inline-flex",
+                    fontSize: 11,
+                    fontWeight: 900,
+                    height: 28,
+                    justifyContent: "center",
+                    width: 28,
+                  },
+                },
+                marker,
+              ),
+              React.createElement(
+                "div",
+                { style: { minWidth: 0 } },
+                React.createElement(
+                  "div",
+                  { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8 } },
+                  React.createElement("strong", { style: { color: tone.text, fontSize: 14, lineHeight: 1.35, overflowWrap: "anywhere" } }, item.label),
+                  labelElement(item.status, toneKey, "xs"),
+                  item.owner ? labelElement(item.owner, "neutral", "xs") : null,
+                ),
+                item.description ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.45, margin: "5px 0 0" } }, item.description) : null,
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  },
+});
+
+const InsightStack = defineComponent({
+  name: "InsightStack",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    insights: z.array(
+      z.object({
+        title: z.string(),
+        detail: z.string().optional(),
+        confidence: z.string().optional(),
+        source: z.string().optional(),
+        tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+      }),
+    ),
+    ...glassProps,
+  }),
+  description:
+    "Stack of high-signal AI takeaways with optional detail, confidence, source, and tone. Use for research summaries, reasoning output, evidence highlights, and executive briefs.",
+  component: ({ props }) =>
+    React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 10, padding: 14 } },
+        props.insights.map((insight, index) => {
+          const tone = toneFor(insight.tone ?? (index === 0 ? "info" : "neutral"));
+          return React.createElement(
+            "article",
+            {
+              key: `${insight.title}:${index}`,
+              style: {
+                ...cardSurfaceStyle(tone, { accent: index === 0, padding: 12 }),
+                display: "grid",
+                gap: 8,
+              },
+            },
+            React.createElement(
+              "div",
+              { style: { alignItems: "start", display: "flex", gap: 10, justifyContent: "space-between" } },
+              React.createElement("strong", { style: { color: tone.text, fontSize: 15, lineHeight: 1.35, overflowWrap: "anywhere" } }, insight.title),
+              insight.confidence ? labelElement(insight.confidence, insight.tone ?? "info", "xs", { flexShrink: 0 }) : null,
+            ),
+            insight.detail ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: 0 } }, insight.detail) : null,
+            insight.source ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, fontWeight: 700, overflowWrap: "anywhere" } }, `Source: ${insight.source}`) : null,
           );
         }),
       ),
@@ -4393,7 +4681,10 @@ const componentGroups: ComponentGroup[] = [
       "MetricGrid",
       "Label",
       "KeyValuePanel",
+      "InsightStack",
       "AlertList",
+      "Gauge",
+      "ChecklistPanel",
       "ProgressStepper",
       "BarChart",
       "LineChart",
@@ -4410,7 +4701,10 @@ const componentGroups: ComponentGroup[] = [
     notes: [
       "- Use MetricGrid for KPI summaries, health snapshots, and status at-a-glance.",
       "- Use KeyValuePanel for metadata, environment details, customer facts, and compact evidence.",
+      "- Use InsightStack for high-signal takeaways with confidence/source annotations.",
       "- Use AlertList for risks, blockers, validation findings, incidents, and warnings.",
+      "- Use Gauge for one bounded score, confidence, health, SLA, quota, or completion value.",
+      "- Use ChecklistPanel for acceptance criteria, QA gates, launch checks, and requirement coverage.",
       "- Use ProgressStepper for workflows, approvals, onboarding, release steps, and investigations.",
       "- Use BarChart for category comparison, rankings, volumes, counts, and cost breakdowns.",
       "- Use LineChart for trend, forecast, time-series, backlog, and metric movement.",
@@ -4543,7 +4837,10 @@ const customComponents = [
   Label,
   MetricGrid,
   KeyValuePanel,
+  InsightStack,
   AlertList,
+  Gauge,
+  ChecklistPanel,
   ProgressStepper,
   BarChart,
   LineChart,
@@ -4590,7 +4887,10 @@ const customComponentNames = new Set([
   "Label",
   "MetricGrid",
   "KeyValuePanel",
+  "InsightStack",
   "AlertList",
+  "Gauge",
+  "ChecklistPanel",
   "ProgressStepper",
   "BarChart",
   "LineChart",
@@ -4649,7 +4949,10 @@ export const promptOptions: PromptOptions = {
     "Use Label(text, tone, size, inkPreset, glassPreset, glassColor, glassOpacity) for status, priority, count, tag, and compact text badges instead of ad-hoc inline spans. Prefer inkPreset values: green, slate, white, blue, amber, red.",
     'All custom Liquid Glass components accept glassPreset, glassColor, and glassOpacity. Prefer glassPreset first: "clear", "pane", "milky", "dense", "mint", "sky", "rose", or "amber". Use glassColor/glassOpacity only to override the preset; keep glassOpacity between 0 and 1.',
     "For metadata, facts, environment details, and compact evidence, prefer KeyValuePanel(title, description, items).",
+    "For high-signal AI takeaways, research findings, evidence highlights, and executive briefs, prefer InsightStack(title, description, insights). insights = [{ title, detail?, confidence?, source?, tone? }].",
     "For risks, blockers, warnings, validation findings, and incident signals, prefer AlertList(title, description, alerts).",
+    "For one bounded score, health, confidence, SLA, quota, or completion value, prefer Gauge(title, description, label, value, max, unit, target, tone). Use MetricGrid for several peer values.",
+    "For acceptance criteria, QA gates, launch checks, requirements coverage, and human review items, prefer ChecklistPanel(title, description, items, summary). Use ProgressStepper only when order/time matters.",
     "For staged progress, approvals, onboarding, investigations, and release steps, prefer ProgressStepper(title, description, steps).",
     "For rankings, counts, volumes, costs, and category comparison, prefer BarChart(title, description, unit, max, data).",
     "For trends, forecasts, time series, backlog movement, and metric changes, prefer LineChart(title, description, unit, data).",
@@ -4707,6 +5010,18 @@ e3 = { time: "Next", title: "Release decision", status: "planned", description: 
 actions = ActionPanel("Recommended next actions", "Use these to finish the workflow", [a1, a2])
 a1 = { label: "Review settings popup", priority: "high", owner: "user", due: "today", description: "Confirm UI is readable in light and dark themes" }
 a2 = { label: "Restart broker", priority: "medium", owner: "agent", description: "Load the latest protocol and component catalog" }`,
+    `Readiness score example:
+
+root = Card([header, gauge, checklist, insights])
+header = CardHeader("Release Readiness", "Score, gates, and agent takeaways")
+gauge = Gauge("Overall Score", "Bounded launch-readiness value", "Readiness", 82, 100, "%", 90, "info")
+checklist = ChecklistPanel("Required Gates", "Items that decide go/no-go", [c1, c2, c3], "2 of 3 gates are ready")
+c1 = { label: "Regression suite", status: "done", description: "Unit and integration checks pass" }
+c2 = { label: "Rollback note", status: "active", owner: "agent", description: "Draft exists; needs human confirmation" }
+c3 = { label: "Support staffing", status: "warning", owner: "support", description: "Coverage is not confirmed for the launch window" }
+insights = InsightStack("Agent Takeaways", "What matters most", [i1, i2])
+i1 = { title: "Ship is plausible after rollback confirmation", detail: "Technical gates are mostly green, but operational coverage remains the constraining factor.", confidence: "high", source: "CI + release checklist", tone: "info" }
+i2 = { title: "Do not skip support staffing", detail: "The remaining risk is user-facing, not build-related.", confidence: "medium", source: "launch plan", tone: "warning" }`,
     `Operational table example:
 
 root = Card([header, table, actions])
