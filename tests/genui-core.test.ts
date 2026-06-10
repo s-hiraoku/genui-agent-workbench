@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Renderer } from "@openuidev/react-lang";
 import packageJson from "../package.json";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
@@ -118,6 +121,15 @@ describe("renderGenUI", () => {
     ].join("\n");
 
     expect(() => validateOpenUILang(interactiveOpenUILang)).not.toThrow();
+  });
+
+  it("renders an empty WizardForm without crashing", () => {
+    const emptyWizardOpenUILang = 'root = WizardForm("Setup", "No steps yet", [])';
+
+    expect(() => validateOpenUILang(emptyWizardOpenUILang)).not.toThrow();
+    expect(() =>
+      renderToStaticMarkup(React.createElement(Renderer, { response: emptyWizardOpenUILang, library })),
+    ).not.toThrow();
   });
 
   it("validates interactive media OpenUI Lang", () => {

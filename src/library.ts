@@ -4256,6 +4256,19 @@ const WizardForm = defineComponent({
       return Object.fromEntries(entries);
     });
     const activeStep = props.steps[Math.min(activeIndex, props.steps.length - 1)];
+    if (!activeStep) {
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
+        React.createElement(
+          "div",
+          { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, padding: 14 } },
+          "No wizard steps configured.",
+        ),
+      );
+    }
+
     const setField = (key: string, value: string, reportEvent: PopupEventReporter | null) => {
       setValues((current) => ({ ...current, [key]: value }));
       emitPopupEvent(reportEvent, {
