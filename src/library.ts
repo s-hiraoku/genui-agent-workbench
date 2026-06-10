@@ -451,23 +451,64 @@ const markerColors: Record<NonNullable<MapMarker["color"]>, string> = {
   yellow: "rgba(190, 162, 72, 0.72)",
 };
 
-const hudText = "rgba(248, 253, 255, 0.98)";
-const hudTextMid = "rgba(228, 244, 251, 0.90)";
-const hudTextSoft = "rgba(206, 230, 240, 0.78)";
-const hudTextShadow = "0 1px 2px rgba(20, 28, 22, 0.46), 0 8px 24px rgba(20, 28, 22, 0.28)";
-const hudEdge = "rgba(130, 180, 118, 0.18)";
-const hudEdgeStrong = "rgba(168, 204, 146, 0.32)";
-const hudLine = "rgba(126, 174, 86, 0.42)";
-const hudPanelWash = "rgba(2, 18, 32, 0.18)";
-const hudCellWash = "rgba(72, 138, 82, 0.08)";
+const hudText = "var(--lg-component-text, rgba(248, 253, 255, 0.98))";
+const hudTextMid = "var(--lg-component-text-mid, rgba(228, 244, 251, 0.90))";
+const hudTextSoft = "var(--lg-component-text-soft, rgba(206, 230, 240, 0.78))";
+const hudTextShadow =
+  "var(--lg-component-text-shadow, 0 1px 2px rgba(20, 28, 22, 0.46), 0 8px 24px rgba(20, 28, 22, 0.28))";
+const hudEdge = "var(--lg-component-edge, rgba(130, 180, 118, 0.18))";
+const hudEdgeStrong = "var(--lg-component-edge-strong, rgba(168, 204, 146, 0.32))";
+const hudPanelWash = "var(--lg-component-panel-wash, rgba(2, 18, 32, 0.18))";
+const hudCellWash = "var(--lg-component-cell-wash, rgba(72, 138, 82, 0.08))";
+const hudRowWash = "var(--lg-component-row-wash, rgba(2,18,32,0.10))";
+const hudRowAltWash = "var(--lg-component-row-alt-wash, rgba(72,138,82,0.06))";
+const hudGaugeTrack = "var(--lg-component-gauge-track, rgba(255,255,255,0.10))";
+const hudGaugeCore = "var(--lg-component-gauge-core, rgba(2,18,32,0.58))";
+const hudGaugeInset = "var(--lg-component-gauge-inset, rgba(2,18,32,0.20))";
 
 const toneStyles: Record<string, { accent: string; background: string; border: string; text: string }> = {
-  critical: { accent: "rgba(255, 96, 126, 0.78)", background: "linear-gradient(90deg, rgba(255,96,126,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 96, 126, 0.32)", text: "rgba(255, 218, 226, 0.96)" },
-  danger: { accent: "rgba(255, 96, 126, 0.74)", background: "linear-gradient(90deg, rgba(255,96,126,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 96, 126, 0.30)", text: "rgba(255, 218, 226, 0.96)" },
-  warning: { accent: "rgba(255, 216, 112, 0.76)", background: "linear-gradient(90deg, rgba(255,216,112,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(255, 216, 112, 0.30)", text: "rgba(255, 240, 196, 0.96)" },
-  positive: { accent: "rgba(126, 174, 86, 0.78)", background: "linear-gradient(90deg, rgba(72,138,82,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(130, 180, 118, 0.28)", text: "rgba(226, 244, 210, 0.96)" },
-  neutral: { accent: "rgba(154, 170, 150, 0.58)", background: "linear-gradient(90deg, rgba(92,114,98,0.085), rgba(2,18,32,0.16) 48%, rgba(255,255,255,0.018))", border: "rgba(130, 150, 124, 0.18)", text: hudText },
-  info: { accent: "rgba(72, 114, 138, 0.76)", background: "linear-gradient(90deg, rgba(72,114,138,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018))", border: "rgba(100, 136, 150, 0.28)", text: "rgba(216, 232, 226, 0.96)" },
+  critical: {
+    accent: "var(--lg-tone-critical-accent, rgba(255, 96, 126, 0.78))",
+    background:
+      "var(--lg-tone-critical-bg, linear-gradient(90deg, rgba(255,96,126,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018)))",
+    border: "var(--lg-tone-critical-border, rgba(255, 96, 126, 0.32))",
+    text: "var(--lg-tone-critical-text, rgba(255, 218, 226, 0.96))",
+  },
+  danger: {
+    accent: "var(--lg-tone-danger-accent, rgba(255, 96, 126, 0.74))",
+    background:
+      "var(--lg-tone-danger-bg, linear-gradient(90deg, rgba(255,96,126,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018)))",
+    border: "var(--lg-tone-danger-border, rgba(255, 96, 126, 0.30))",
+    text: "var(--lg-tone-danger-text, rgba(255, 218, 226, 0.96))",
+  },
+  warning: {
+    accent: "var(--lg-tone-warning-accent, rgba(255, 216, 112, 0.76))",
+    background:
+      "var(--lg-tone-warning-bg, linear-gradient(90deg, rgba(255,216,112,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018)))",
+    border: "var(--lg-tone-warning-border, rgba(255, 216, 112, 0.30))",
+    text: "var(--lg-tone-warning-text, rgba(255, 240, 196, 0.96))",
+  },
+  positive: {
+    accent: "var(--lg-tone-positive-accent, rgba(126, 174, 86, 0.78))",
+    background:
+      "var(--lg-tone-positive-bg, linear-gradient(90deg, rgba(72,138,82,0.12), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018)))",
+    border: "var(--lg-tone-positive-border, rgba(130, 180, 118, 0.28))",
+    text: "var(--lg-tone-positive-text, rgba(226, 244, 210, 0.96))",
+  },
+  neutral: {
+    accent: "var(--lg-tone-neutral-accent, rgba(154, 170, 150, 0.58))",
+    background:
+      "var(--lg-tone-neutral-bg, linear-gradient(90deg, rgba(92,114,98,0.085), rgba(2,18,32,0.16) 48%, rgba(255,255,255,0.018)))",
+    border: "var(--lg-tone-neutral-border, rgba(130, 150, 124, 0.18))",
+    text: "var(--lg-tone-neutral-text, var(--lg-component-text, rgba(248, 253, 255, 0.98)))",
+  },
+  info: {
+    accent: "var(--lg-tone-info-accent, rgba(72, 114, 138, 0.76))",
+    background:
+      "var(--lg-tone-info-bg, linear-gradient(90deg, rgba(72,114,138,0.13), rgba(2,18,32,0.16) 46%, rgba(255,255,255,0.018)))",
+    border: "var(--lg-tone-info-border, rgba(100, 136, 150, 0.28))",
+    text: "var(--lg-tone-info-text, rgba(216, 232, 226, 0.96))",
+  },
 };
 
 function toneFor(value?: string) {
@@ -476,11 +517,12 @@ function toneFor(value?: string) {
 
 const panelBaseStyle: React.CSSProperties = {
   background:
-    "linear-gradient(145deg, var(--aether-card-tint), rgba(2,18,32,0.16) 58%, rgba(255,255,255,0.018)), linear-gradient(90deg, rgba(72,138,82,0.08), transparent 42%)",
+    "var(--lg-component-panel-bg, linear-gradient(145deg, var(--aether-card-tint), rgba(2,18,32,0.16) 58%, rgba(255,255,255,0.018)), linear-gradient(90deg, rgba(72,138,82,0.08), transparent 42%))",
   backdropFilter: "blur(var(--aether-card-blur)) saturate(var(--aether-card-saturate)) brightness(var(--aether-card-brightness))",
   border: `1px solid ${hudEdge}`,
   borderRadius: 10,
-  boxShadow: `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 20px rgba(72,138,82,0.05), 0 14px 36px rgba(0,12,24,0.20)`,
+  boxShadow:
+    "var(--lg-component-panel-shadow, inset 2px 0 0 var(--lg-component-line, rgba(126, 174, 86, 0.42)), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 20px rgba(72,138,82,0.05), 0 14px 36px rgba(0,12,24,0.20))",
   color: hudText,
   overflow: "hidden",
   WebkitBackdropFilter: "blur(var(--aether-card-blur)) saturate(var(--aether-card-saturate)) brightness(var(--aether-card-brightness))",
@@ -496,7 +538,7 @@ function panelStyleFor(props?: GlassProps): React.CSSProperties {
 const readableGlassStyle: React.CSSProperties = {
   backdropFilter: "blur(var(--aether-readable-blur)) saturate(1.12) brightness(1.02)",
   boxShadow:
-    `inset 2px 0 0 ${hudLine}, inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 16px rgba(72,138,82,0.045), 0 10px 24px rgba(0,12,24,0.14)`,
+    "var(--lg-component-readable-shadow, inset 2px 0 0 var(--lg-component-line, rgba(126, 174, 86, 0.42)), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,12,24,0.22), inset 0 0 16px rgba(72,138,82,0.045), 0 10px 24px rgba(0,12,24,0.14))",
   WebkitBackdropFilter: "blur(var(--aether-readable-blur)) saturate(1.12) brightness(1.02)",
 };
 
@@ -1107,7 +1149,7 @@ const VideoPlaylist = defineComponent({
                   {
                     key: `${video.src}:${index}`,
                     style: {
-                      background: selectedRow ? tone.background : index % 2 === 0 ? "rgba(2,18,32,0.08)" : "rgba(72,138,82,0.045)",
+                      background: selectedRow ? tone.background : index % 2 === 0 ? hudRowWash : hudRowAltWash,
                     },
                   },
                   React.createElement(
@@ -1527,7 +1569,7 @@ const DataTable = defineComponent({
             props.rows.map((row, rowIndex) =>
               React.createElement(
                 "tr",
-                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? "rgba(2,18,32,0.10)" : "rgba(72,138,82,0.06)" } },
+                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? hudRowWash : hudRowAltWash } },
                 props.columns.map((column) =>
                   React.createElement(
                     "td",
@@ -1983,10 +2025,10 @@ const Gauge = defineComponent({
             style: {
               alignItems: "center",
               aspectRatio: "1 / 1",
-              background: `conic-gradient(${tone.accent} 0 ${percent}%, rgba(255,255,255,0.10) ${percent}% 100%)`,
+              background: `conic-gradient(${tone.accent} 0 ${percent}%, ${hudGaugeTrack} ${percent}% 100%)`,
               border: `1px solid ${tone.border}`,
               borderRadius: "50%",
-              boxShadow: `inset 0 0 0 10px rgba(2,18,32,0.20), 0 18px 38px rgba(0,12,24,0.22), 0 0 32px ${tone.border}`,
+              boxShadow: `inset 0 0 0 10px ${hudGaugeInset}, 0 18px 38px rgba(0,12,24,0.22), 0 0 32px ${tone.border}`,
               display: "grid",
               justifyItems: "center",
               maxWidth: 190,
@@ -2001,7 +2043,7 @@ const Gauge = defineComponent({
             {
               style: {
                 alignItems: "center",
-                background: "rgba(2,18,32,0.58)",
+                background: hudGaugeCore,
                 border: `1px solid ${hudEdge}`,
                 borderRadius: "50%",
                 display: "grid",
@@ -2031,7 +2073,7 @@ const Gauge = defineComponent({
             "div",
             {
               style: {
-                background: "rgba(2,18,32,0.24)",
+                background: hudPanelWash,
                 border: `1px solid ${hudEdge}`,
                 borderRadius: 999,
                 height: 12,
