@@ -105,6 +105,9 @@ export type PopupRecord = {
   events?: PopupInteractionEvent[];
   completion?: PopupCompletion;
   generationMode: GenUIGenerationMode;
+  size?: GenUISizePreset;
+  width?: number;
+  height?: number;
 };
 
 export type PopupOpenResponse = {
@@ -120,5 +123,8 @@ export type PopupOpenResponse = {
   events?: PopupInteractionEvent[];
   completion?: PopupCompletion;
   generationMode: GenUIGenerationMode;
+  size?: GenUISizePreset;
+  width?: number;
+  height?: number;
   brokerProtocolVersion: string;
 };

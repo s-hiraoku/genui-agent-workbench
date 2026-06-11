@@ -128,18 +128,42 @@ server.registerTool(
       title: z.string().optional().describe("Popup title."),
       agentId: z.string().optional().describe("Calling agent id."),
       size: z.enum(["compact", "card", "panel", "default", "wide", "review", "tall", "stage", "cinema", "fullscreen"]).optional(),
+      width: z.number().int().positive().optional().describe("Custom popup width in pixels."),
+      height: z.number().int().positive().optional().describe("Custom popup height in pixels."),
       wait: z.boolean().optional().describe("Wait for popup completion and return completion payload."),
       waitTimeoutMs: z.number().int().positive().optional(),
     },
   },
-  async ({ openuiLang, title, agentId, size, wait, waitTimeoutMs }) => {
+  async ({ openuiLang, title, agentId, size, width, height, wait, waitTimeoutMs }) => {
     const args = ["popup", "--stdin-openui"];
     if (title) args.push("--title", title);
     if (agentId) args.push("--agent-id", agentId);
     if (size) args.push("--size", size);
+    if (width) args.push("--width", String(width));
+    if (height) args.push("--height", String(height));
     if (wait) args.push("--wait");
     if (waitTimeoutMs) args.push("--wait-timeout-ms", String(waitTimeoutMs));
     return jsonResult(JSON.parse(await runGenui(args, openuiLang)));
+  },
+);
+
+server.registerTool(
+  "genui_resize",
+  {
+    description: "Resize an existing open GenUI popup by preset or custom pixel dimensions.",
+    inputSchema: {
+      popupId: z.string(),
+      size: z.enum(["compact", "card", "panel", "default", "wide", "review", "tall", "stage", "cinema", "fullscreen"]).optional(),
+      width: z.number().int().positive().optional().describe("Custom popup width in pixels."),
+      height: z.number().int().positive().optional().describe("Custom popup height in pixels."),
+    },
+  },
+  async ({ popupId, size, width, height }) => {
+    const args = ["resize", "--popup-id", popupId];
+    if (size) args.push("--size", size);
+    if (width) args.push("--width", String(width));
+    if (height) args.push("--height", String(height));
+    return jsonResult(JSON.parse(await runGenui(args)));
   },
 );
 

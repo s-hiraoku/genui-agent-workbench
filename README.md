@@ -87,6 +87,13 @@ genui popup \
   --openui-lang-file ui.openui
 ```
 
+Use a preset or custom dimensions when opening a popup:
+
+```bash
+genui popup --openui-lang-file ui.openui --size review
+genui popup --openui-lang-file ui.openui --width 1200 --height 760
+```
+
 Open from stdin:
 
 ```bash
@@ -111,6 +118,7 @@ Close and inspect:
 ```bash
 genui close --popup-id "<popupId>"
 genui complete --popup-id "<popupId>" --outcome completed
+genui resize --popup-id "<popupId>" --size wide
 genui status
 genui popups
 genui artifacts --limit 20
@@ -147,6 +155,9 @@ Opened with `--wait`, this returns the clicked action in
   "status": "open",
   "createdAt": "2026-06-07T00:00:00.000Z",
   "generationMode": "provided",
+  "size": "panel",
+  "width": 806,
+  "height": 648,
   "brokerProtocolVersion": "0.3.0"
 }
 ```
@@ -198,8 +209,9 @@ npm run genui:mcp
 ```
 
 The stdio server exposes `genui_prompt_spec`, `genui_validate`, `genui_popup`,
-and `genui_wait`. Configure MCP clients to run the command from the repository
-root. The MCP server uses the same CLI and resident broker as normal usage.
+`genui_resize`, and `genui_wait`. Configure MCP clients to run the command from
+the repository root. The MCP server uses the same CLI and resident broker as
+normal usage.
 
 ## Liquid Glass Design
 
@@ -235,6 +247,7 @@ Available presets:
 - `GET /v1/popups`
 - `GET /v1/popups/:popupId`
 - `POST /v1/popups/:popupId/close`
+- `POST /v1/popups/:popupId/resize`
 - `POST /v1/popups/:popupId/event`
 - `POST /v1/popups/:popupId/complete`
 - `GET /v1/artifacts`
