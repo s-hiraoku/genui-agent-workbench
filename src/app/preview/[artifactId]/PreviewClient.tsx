@@ -4,7 +4,7 @@ import "@openuidev/react-ui/components.css";
 import "@openuidev/react-ui/styles/index.css";
 import "leaflet/dist/leaflet.css";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Renderer } from "@openuidev/react-lang";
 import { Check, X } from "lucide-react";
 import { library, PopupEventContext, type PopupEventInput, type PopupEventOptions } from "@/library";
@@ -23,7 +23,6 @@ type PreviewClientProps = {
   theme?: string;
   themeColor?: string;
   visualTheme?: string;
-  initialOpaque?: boolean;
 };
 
 export function PreviewClient({
@@ -36,9 +35,7 @@ export function PreviewClient({
   theme,
   themeColor,
   visualTheme,
-  initialOpaque = false,
 }: PreviewClientProps) {
-  const [opaque, setOpaque] = useState(initialOpaque);
   const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
 
   const closePopup = useCallback(async () => {
@@ -106,7 +103,6 @@ export function PreviewClient({
     <LiquidGlassSurface
       appearanceTheme={theme}
       animation={animation}
-      opaque={opaque}
       themeColor={themeColor}
       visualTheme={visualTheme}
     >
@@ -124,14 +120,6 @@ export function PreviewClient({
             >
               <Check size={16} strokeWidth={1.5} />
             </button>
-            <label className="lg-opacity-toggle">
-              <input
-                checked={opaque}
-                onChange={(event) => setOpaque(event.currentTarget.checked)}
-                type="checkbox"
-              />
-              <span>Opaque</span>
-            </label>
             <button
               className="lg-icon-button"
               onClick={closePopup}

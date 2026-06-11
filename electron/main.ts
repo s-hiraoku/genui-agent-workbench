@@ -769,7 +769,6 @@ async function openArtifactPopup(
     `&animation=${settings.design.windowAnimationPreset}` +
     `&visualTheme=${settings.design.visualThemePreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
-    `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&agent=${encodeURIComponent(input.agentId ?? artifact.agentId ?? "agent")}`;
 
   // The page renders the Aether-style glass material itself. The
@@ -1041,7 +1040,6 @@ function openSettingsWindow(): void {
     `&animation=${settings.design.windowAnimationPreset}` +
     `&visualTheme=${settings.design.visualThemePreset}` +
     `&themeColor=${settings.design.themeColorPreset}` +
-    `&opaque=${settings.design.opaque ? "1" : "0"}` +
     `&chrome=hud`;
   void settingsWindow.loadURL(settingsUrl);
 }
@@ -1062,7 +1060,7 @@ async function restartService(): Promise<void> {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     const theme = resolveTheme(settings.theme);
     settingsWindow.loadURL(
-      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&token=${encodeURIComponent(controlToken)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&visualTheme=${settings.design.visualThemePreset}&themeColor=${settings.design.themeColorPreset}&opaque=${settings.design.opaque ? "1" : "0"}&chrome=hud`,
+      `${nextUrl}/settings?controlUrl=${encodeURIComponent(controlUrl)}&token=${encodeURIComponent(controlToken)}&theme=${theme}&animation=${settings.design.windowAnimationPreset}&visualTheme=${settings.design.visualThemePreset}&themeColor=${settings.design.themeColorPreset}&chrome=hud`,
     );
   }
 }
