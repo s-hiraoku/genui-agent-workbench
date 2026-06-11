@@ -58,6 +58,17 @@ export function coerceSizePreset(value: unknown, fallback: GenUISizePreset = "de
     : fallback;
 }
 
+export function resolveResizePreset(
+  value: unknown,
+  currentPreset: GenUISizePreset = "default",
+  hasCustomDimension = false,
+): GenUISizePreset {
+  if (typeof value === "string") {
+    return coerceSizePreset(value, currentPreset);
+  }
+  return hasCustomDimension ? "default" : currentPreset;
+}
+
 export function resolveWindowGeometry(
   display: WindowDisplaySize,
   preset: GenUISizePreset,

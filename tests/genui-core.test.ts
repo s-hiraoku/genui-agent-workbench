@@ -15,7 +15,7 @@ import { genUIExamples } from "../src/server/genui/examples";
 import { library, promptOptions, resolveVideoEmbedSource } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 import { sanitizeSettings } from "../src/server/genui/settings";
-import { coerceSizePreset, resolveWindowGeometry, WINDOW_SIZE_PRESETS } from "../src/server/genui/window-size";
+import { coerceSizePreset, resolveResizePreset, resolveWindowGeometry, WINDOW_SIZE_PRESETS } from "../src/server/genui/window-size";
 
 const genuiTestRoot = path.join(process.cwd(), ".genui-test");
 let genuiDir = "";
@@ -256,6 +256,12 @@ describe("window sizing", () => {
   it("coerces invalid size presets to the requested fallback", () => {
     expect(coerceSizePreset("wide")).toBe("wide");
     expect(coerceSizePreset("unknown", "panel")).toBe("panel");
+  });
+
+  it("leaves fullscreen when custom resize dimensions are provided without a preset", () => {
+    expect(resolveResizePreset(undefined, "fullscreen", true)).toBe("default");
+    expect(resolveResizePreset(undefined, "fullscreen", false)).toBe("fullscreen");
+    expect(resolveResizePreset("wide", "fullscreen", true)).toBe("wide");
   });
 
   it("resolves preset geometry and clamps custom dimensions to the display", () => {

@@ -14,6 +14,7 @@ import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
 import { BROKER_APP_VERSION, BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import {
   coerceSizePreset,
+  resolveResizePreset,
   resolveWindowGeometry,
   SIZE_PRESET_MIN,
   SIZE_PRESET_RATIOS,
@@ -842,7 +843,12 @@ function resizePopup(popupId: string, body: Record<string, unknown>): PopupRunti
 
   const rawPreset = (body as { size?: unknown; preset?: unknown }).size ?? (body as { preset?: unknown }).preset;
   const hasPreset = typeof rawPreset === "string";
-  const preset = coerceSizePreset(rawPreset, popup.size ?? "default");
+  const explicitWidth = Number(body.width);
+  const explicitHeight = Number(body.height);
+  const hasCustomDimension =
+    (Number.isFinite(explicitWidth) && explicitWidth >= 240) ||
+    (Number.isFinite(explicitHeight) && explicitHeight >= 200);
+  const preset = resolveResizePreset(rawPreset, popup.size ?? "default", hasCustomDimension);
   const override = hasPreset
     ? { width: body.width, height: body.height }
     : {
