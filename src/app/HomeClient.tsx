@@ -56,7 +56,6 @@ type DesignSettings = {
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
   windowAnimationPreset: WindowAnimationPreset;
-  opaque: boolean;
 };
 type SettingsResponse = {
   settings: {
@@ -74,7 +73,6 @@ const DESIGN_DEFAULTS: DesignSettings = {
   labelInkPreset: "green",
   themeColorPreset: "mint",
   windowAnimationPreset: "center",
-  opaque: false,
 };
 
 const glassPresetOptions: Array<{ value: GlassPreset; label: string }> = [
@@ -296,7 +294,6 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
   return (
     <LiquidGlassSurface
       animation={design.windowAnimationPreset}
-      opaque={design.opaque}
       themeColor={design.themeColorPreset}
       visualTheme={design.visualThemePreset}
     >
@@ -420,19 +417,6 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
                       />
                     </label>
                   </div>
-                  <label className="lg-row" style={{ alignItems: "center", justifyContent: "space-between" }}>
-                    <span className="flex min-w-0 flex-col gap-1">
-                      <span className="lg-label">Default opacity</span>
-                      <span className="lg-meta-faint">Open new popups in opaque mode by default</span>
-                    </span>
-                    <button
-                      aria-pressed={design.opaque}
-                      className="lg-switch"
-                      data-on={design.opaque}
-                      onClick={() => saveDesign({ opaque: !design.opaque })}
-                      type="button"
-                    />
-                  </label>
                 </div>
               </div>
             </section>

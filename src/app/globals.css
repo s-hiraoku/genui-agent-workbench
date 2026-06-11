@@ -125,7 +125,7 @@ html[data-chrome] body {
   -webkit-app-region: drag;
   app-region: drag;
 }
-html[data-chrome] :where(button, a, input, select, textarea, [role="button"], .lg-no-drag, .lg-input, .lg-select, .lg-native-select, .lg-native-select-control, .lg-switch, .lg-icon-button, .lg-opacity-toggle, .lg-theme-swatch, .lg-row, .lg-scroll, .lg-preview, .lg-ai-settings-main) {
+html[data-chrome] :where(button, a, input, select, textarea, [role="button"], .lg-no-drag, .lg-input, .lg-select, .lg-native-select, .lg-native-select-control, .lg-switch, .lg-icon-button, .lg-theme-swatch, .lg-row, .lg-scroll, .lg-preview, .lg-ai-settings-main) {
   -webkit-app-region: no-drag;
   app-region: no-drag;
 }
@@ -980,23 +980,6 @@ body::before,
   opacity: 0.72;
 }
 
-.lg-shell[data-opaque="true"] .lg-glass-window::before {
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--theme-frame) 16%, rgb(20, 28, 34)), rgb(18, 24, 30) 48%, rgb(14, 20, 26)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow:
-    inset 0 0 0 2px var(--theme-frame),
-    inset 0 0 0 7px var(--theme-frame-soft),
-    inset 0 1px 0 rgba(235, 252, 255, 0.56),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.32);
-}
-
-.lg-shell[data-opaque="true"] .lg-glass-window::after {
-  opacity: 0.34;
-}
-
 .lg-glass-window > * {
   position: relative;
   z-index: 2;
@@ -1051,34 +1034,6 @@ body::before,
     inset 0 -1px 0 rgba(0, 12, 24, 0.12),
     inset 18px 14px 44px rgba(220, 255, 210, 0.08),
     inset -20px -24px 48px rgba(0, 12, 24, 0.03);
-}
-
-.lg-shell[data-opaque="true"] .lg-card-content::before {
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--theme-frame) 13%, rgb(28, 36, 42)), rgb(24, 32, 38) 54%, rgb(18, 24, 30)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-.lg-shell[data-opaque="true"] .lg-card-content::after {
-  opacity: 0.24;
-}
-
-.lg-shell:not([data-visual-theme="hud"])[data-opaque="true"] .lg-glass-window::before {
-  background:
-    linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 44%);
-  box-shadow:
-    inset 0 0 0 1px var(--edge),
-    inset 0 1px 0 var(--spec-soft);
-}
-
-.lg-shell:not([data-visual-theme="hud"])[data-opaque="true"] .lg-card-content::before {
-  background: linear-gradient(180deg, var(--aether-card-tint), var(--aether-card-tint-soft));
-  box-shadow:
-    inset 0 0 0 1px var(--edge-soft),
-    inset 0 1px 0 var(--spec-soft);
 }
 
 .lg-card-content > * {
@@ -1238,45 +1193,6 @@ body::before,
   outline-offset: 3px;
 }
 
-.lg-opacity-toggle {
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding-inline: 10px;
-  border-radius: var(--r-chip);
-  background: var(--tint-row);
-  color: var(--ink-mid);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: var(--ink-shadow);
-  box-shadow:
-    inset 0 0 0 1px var(--edge-soft),
-    inset 0 1px 0 var(--spec-soft);
-  transition: background 220ms ease, box-shadow 220ms ease;
-}
-
-.lg-opacity-toggle:hover {
-  background: var(--tint-chip);
-  box-shadow:
-    inset 0 0 0 1px var(--edge),
-    inset 0 1px 0 var(--spec-soft);
-}
-
-.lg-opacity-toggle input {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: var(--theme-frame);
-}
-
-.lg-opacity-toggle:has(input:focus-visible) {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 3px;
-}
-
 .lg-menu-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1422,29 +1338,6 @@ body::before,
   --ai-border: rgba(122, 210, 226, 0.24);
   --ai-border-strong: rgba(0, 235, 244, 0.76);
   --ai-text-muted: color-mix(in srgb, var(--ink-soft) 84%, transparent);
-}
-
-.lg-shell[data-appearance-theme="light"][data-opaque="true"] .lg-glass-window::before {
-  background:
-    radial-gradient(80% 58% at 18% 6%, rgba(255, 255, 255, 0.94), transparent 62%),
-    radial-gradient(72% 54% at 82% 94%, rgba(202, 247, 252, 0.64), transparent 68%),
-    linear-gradient(145deg, rgb(248, 253, 255), rgb(236, 249, 252) 48%, rgb(250, 254, 255));
-  box-shadow:
-    inset 0 0 0 2px rgba(0, 180, 204, 0.38),
-    inset 0 0 0 7px rgba(172, 238, 246, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.96),
-    inset 0 -1px 0 rgba(72, 130, 150, 0.16);
-}
-
-.lg-shell[data-appearance-theme="light"][data-opaque="true"] .lg-card-content::before {
-  background:
-    radial-gradient(110% 78% at 18% 0%, rgba(255, 255, 255, 0.84), transparent 52%),
-    radial-gradient(90% 78% at 100% 100%, rgba(198, 242, 248, 0.52), transparent 58%),
-    linear-gradient(145deg, rgba(252, 255, 255, 0.86), rgba(232, 248, 251, 0.74));
-  box-shadow:
-    inset 0 0 0 1px rgba(81, 188, 206, 0.30),
-    inset 0 1px 0 rgba(255, 255, 255, 0.94),
-    0 18px 48px rgba(64, 122, 150, 0.16);
 }
 
 .lg-shell[data-appearance-theme="light"] .lg-ai-settings {
@@ -2022,32 +1915,12 @@ body::before,
   outline-offset: 2px;
 }
 
-.lg-ai-setting-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  min-height: 64px;
-  padding: 12px 16px;
-  border-radius: 10px;
-  background: var(--ai-control);
-  box-shadow: inset 0 0 0 1px var(--ai-border);
-}
-
-.lg-ai-setting-row > span {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.lg-ai-setting-row strong,
 .lg-ai-system-row strong {
   color: var(--ink);
   font-size: 15px;
   font-weight: 680;
 }
 
-.lg-ai-setting-row small,
 .lg-ai-system-row small {
   color: var(--ink-soft);
   font-size: 14px;
@@ -2230,7 +2103,6 @@ body::before,
 
 .lg-shell[data-appearance-theme="light"] .lg-ai-visual-card,
 .lg-shell[data-appearance-theme="light"] .lg-ai-select-shell,
-.lg-shell[data-appearance-theme="light"] .lg-ai-setting-row,
 .lg-shell[data-appearance-theme="light"] .lg-ai-action-bar {
   background: rgba(255, 255, 255, 0.72);
   box-shadow:

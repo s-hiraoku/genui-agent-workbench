@@ -6,7 +6,6 @@ type LiquidGlassSurfaceProps = {
   appearanceTheme?: string;
   animation?: string;
   children: ReactNode;
-  opaque?: boolean;
   themeColor?: string;
   visualTheme?: string;
 };
@@ -48,7 +47,6 @@ export function LiquidGlassSurface({
   appearanceTheme,
   animation,
   children,
-  opaque,
   themeColor,
   visualTheme,
 }: LiquidGlassSurfaceProps) {
@@ -76,7 +74,6 @@ export function LiquidGlassSurface({
     <div
       className="lg-shell"
       data-appearance-theme={resolvedAppearanceTheme}
-      data-opaque={opaque ? "true" : "false"}
       data-theme-color={themeColorPreset}
       data-visual-theme={visualThemePreset}
     >

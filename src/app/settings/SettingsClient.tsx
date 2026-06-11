@@ -54,7 +54,6 @@ type DesignSettings = {
   labelInkPreset: LabelInkPreset;
   themeColorPreset: ThemeColorPreset;
   windowAnimationPreset: WindowAnimationPreset;
-  opaque: boolean;
 };
 type SettingsState = BrokerSettings & {
   design: DesignSettings;
@@ -70,7 +69,6 @@ const DESIGN_DEFAULTS: DesignSettings = {
   labelInkPreset: "green",
   themeColorPreset: "cyan",
   windowAnimationPreset: "center",
-  opaque: true,
 };
 
 const DEFAULTS: SettingsState = {
@@ -307,7 +305,6 @@ export function SettingsClient({
     <LiquidGlassSurface
       appearanceTheme={settings.theme}
       animation={settings.design.windowAnimationPreset}
-      opaque={settings.design.opaque}
       themeColor={settings.design.themeColorPreset}
       visualTheme={settings.design.visualThemePreset}
     >
@@ -403,9 +400,6 @@ export function SettingsClient({
                     <SelectField icon={<Droplets size={16} />} label="Label ink" options={labelInkOptions} value={settings.design.labelInkPreset} onChange={(value) => save({ design: { labelInkPreset: value as LabelInkPreset } })} />
                     <SelectField icon={<Radar size={16} />} label="Open animation" options={windowAnimationOptions} value={settings.design.windowAnimationPreset} onChange={(value) => save({ design: { windowAnimationPreset: value as WindowAnimationPreset } })} />
                   </div>
-                  <SettingRow label="Default opacity" hint="Open new popups in opaque mode">
-                    <Switch ariaLabel="Default opacity" checked={settings.design.opaque} onClick={() => save({ design: { opaque: !settings.design.opaque } })} />
-                  </SettingRow>
                 </Panel>
 
                 <Panel title="System">
@@ -513,18 +507,6 @@ function SelectField({
         <NativeSelect ariaLabel={label} options={options} value={value} onValueChange={onChange} />
       </span>
     </label>
-  );
-}
-
-function SettingRow({ children, hint, label }: { children: ReactNode; hint: string; label: string }) {
-  return (
-    <div className="lg-ai-setting-row">
-      <span>
-        <strong>{label}</strong>
-        <small>{hint}</small>
-      </span>
-      {children}
-    </div>
   );
 }
 
