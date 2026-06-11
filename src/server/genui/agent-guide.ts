@@ -32,6 +32,7 @@ export const agentUsageGuide = {
     "Use `--wait` when the workflow needs a completion, cancellation, close, or failure result. Components with `actionId` return events in `completion.payload`.",
     "Use `genui components` for a concise component catalog.",
     "Use `genui artifacts` to inspect saved UI and `genui replay --artifact-id <artifactId>` to reopen it.",
+    "Resize an open popup with `genui resize --popup-id <popupId> --size wide` or custom `--width`/`--height`.",
     "Close the popup with `genui close --popup-id <popupId>` when it is no longer useful.",
   ],
   cli: {
@@ -53,6 +54,7 @@ export const agentUsageGuide = {
     artifact: "genui artifact --artifact-id <artifactId>",
     replay: "genui replay --artifact-id <artifactId>",
     prune: "genui prune --max-artifacts 50",
+    resize: "genui resize --popup-id <popupId> --size wide",
     close: "genui close --popup-id <popupId>",
     status: "genui status",
   },
@@ -103,6 +105,7 @@ export const agentUsageGuide = {
     "Always define `root = ...`.",
     "Use only components listed by `prompt-spec` or `components`.",
     "Prefer explicit size presets before custom width/height.",
+    "Use `genui resize` for an already-open popup instead of reopening it when only the window size is wrong.",
     "For approvals or form collection, use ConfirmDialog/FormPanel/WizardForm with actionId and open with --wait.",
     "Use the CLI for private control API calls; it attaches the per-run broker token automatically.",
     "Keep data concrete. Do not claim live external data was used unless the agent actually supplied it.",

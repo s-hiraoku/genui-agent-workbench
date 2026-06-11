@@ -39,7 +39,7 @@ Component selection:
 - Use DataTable/DataPreview/CodeDiff/CodeBlock for records, raw data, and code review.
 - Use MapWithList/MapView, ImageGallery, VideoPlayer/VideoPlaylist, or AudioPlayer when spatial or media context matters.
 
-Use \`--size review\` for code review, diffs, and approval forms; \`--size wide\` for tables/matrices; \`--size tall\` for timelines/checklists; \`--size stage\` for maps. Development checkouts can expose MCP with \`npm run genui:mcp\` (\`genui_prompt_spec\`, \`genui_validate\`, \`genui_popup\`, \`genui_wait\`).
+Use \`--size review\` for code review, diffs, and approval forms; \`--size wide\` for tables/matrices; \`--size tall\` for timelines/checklists; \`--size stage\` for maps. Resize an open popup with \`genui resize --popup-id <popupId> --size wide\` or custom \`--width\`/\`--height\`. Development checkouts can expose MCP with \`npm run genui:mcp\` (\`genui_prompt_spec\`, \`genui_validate\`, \`genui_popup\`, \`genui_resize\`, \`genui_wait\`).
 
 Do not send natural-language prompts to GenUI. The CLI/broker is an OpenUI Lang popup runtime, not a UI-planning LLM.
 Never include secrets in OpenUI Lang or context.`;

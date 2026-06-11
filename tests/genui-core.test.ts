@@ -15,6 +15,7 @@ import { genUIExamples } from "../src/server/genui/examples";
 import { library, promptOptions, resolveVideoEmbedSource } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 import { sanitizeSettings } from "../src/server/genui/settings";
+import { coerceSizePreset, resolveWindowGeometry, WINDOW_SIZE_PRESETS } from "../src/server/genui/window-size";
 
 const genuiTestRoot = path.join(process.cwd(), ".genui-test");
 let genuiDir = "";
@@ -187,6 +188,7 @@ describe("agent interface scaffold", () => {
     expect(agentUsageGuide.cli.open).toContain("genui popup");
     expect(agentUsageGuide.cli.artifacts).toContain("artifacts");
     expect(agentUsageGuide.cli.replay).toContain("replay");
+    expect(agentUsageGuide.cli.resize).toContain("resize");
     expect(agentUsageGuide.purpose).toContain("The agent generates OpenUI Lang");
   });
 
@@ -240,6 +242,33 @@ describe("agent interface scaffold", () => {
     expect(resolveVideoEmbedSource("https://example.com/demo.mp4")).toEqual({
       kind: "native",
       src: "https://example.com/demo.mp4",
+    });
+  });
+});
+
+describe("window sizing", () => {
+  it("publishes the expected popup size presets", () => {
+    expect(WINDOW_SIZE_PRESETS).toEqual(
+      expect.arrayContaining(["compact", "card", "panel", "default", "wide", "review", "tall", "stage", "cinema", "fullscreen"]),
+    );
+  });
+
+  it("coerces invalid size presets to the requested fallback", () => {
+    expect(coerceSizePreset("wide")).toBe("wide");
+    expect(coerceSizePreset("unknown", "panel")).toBe("panel");
+  });
+
+  it("resolves preset geometry and clamps custom dimensions to the display", () => {
+    const geometry = resolveWindowGeometry({ width: 1440, height: 900 }, "review", {
+      width: 2000,
+      height: 300,
+    });
+
+    expect(geometry).toMatchObject({
+      width: 1440,
+      height: 300,
+      minWidth: 960,
+      minHeight: 300,
     });
   });
 });

@@ -13,6 +13,14 @@ import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
 import { BROKER_APP_VERSION, BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import {
+  coerceSizePreset,
+  resolveWindowGeometry,
+  SIZE_PRESET_MIN,
+  SIZE_PRESET_RATIOS,
+  type WindowGeometry,
+  WINDOW_SIZE_PRESETS,
+} from "../src/server/genui/window-size";
+import {
   type BrokerSettings,
   readSettings,
   sanitizeSettings,
@@ -20,6 +28,7 @@ import {
 } from "../src/server/genui/settings";
 import type {
   GenUIArtifact,
+  GenUISizePreset,
   PopupInteractionEvent,
   PopupInteractionEventKind,
   PopupOpenResponse,
@@ -89,26 +98,6 @@ class ControlHttpError extends Error {
     this.name = "ControlHttpError";
   }
 }
-
-type SizePreset =
-  | "compact"
-  | "card"
-  | "panel"
-  | "default"
-  | "wide"
-  | "review"
-  | "tall"
-  | "stage"
-  | "cinema"
-  | "fullscreen";
-
-type WindowGeometry = {
-  width: number;
-  height: number;
-  minWidth: number;
-  minHeight: number;
-  fullScreen?: boolean;
-};
 
 function createId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
@@ -381,6 +370,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   const popupMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)$/);
   const popupEventMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/event$/);
   const popupCloseMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/close$/);
+  const popupResizeMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/resize$/);
   const popupCompleteMatch = url.pathname.match(/^\/v1\/popups\/([^/]+)\/complete$/);
   const artifactReplayMatch = url.pathname.match(/^\/v1\/artifacts\/([^/]+)\/replay$/);
   const artifactMatch = url.pathname.match(/^\/v1\/artifacts\/([^/]+)$/);
@@ -459,13 +449,13 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
     sendJson(res, 200, {
       brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
       workArea: display,
-      presets: (Object.keys(PRESET_RATIOS) as SizePreset[]).map((p) => ({
+      presets: WINDOW_SIZE_PRESETS.map((p) => ({
         id: p,
-        ratio: PRESET_RATIOS[p],
-        min: PRESET_MIN[p],
+        ratio: SIZE_PRESET_RATIOS[p],
+        min: SIZE_PRESET_MIN[p],
         approxPx: {
-          width: Math.max(PRESET_MIN[p].w, Math.floor(display.width * PRESET_RATIOS[p].w)),
-          height: Math.max(PRESET_MIN[p].h, Math.floor(display.height * PRESET_RATIOS[p].h)),
+          width: Math.max(SIZE_PRESET_MIN[p].w, Math.floor(display.width * SIZE_PRESET_RATIOS[p].w)),
+          height: Math.max(SIZE_PRESET_MIN[p].h, Math.floor(display.height * SIZE_PRESET_RATIOS[p].h)),
         },
       })),
     });
@@ -553,6 +543,19 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
   if (req.method === "POST" && popupCloseMatch) {
     requireControlToken(req);
     const popup = closePopup(popupCloseMatch[1], "closed");
+    if (!popup) {
+      sendJson(res, 404, { error: "Popup not found" });
+      return;
+    }
+
+    sendJson(res, 200, serializePopup(popup));
+    return;
+  }
+
+  if (req.method === "POST" && popupResizeMatch) {
+    requireControlToken(req);
+    const body = await readRequestJson(req);
+    const popup = resizePopup(popupResizeMatch[1], body);
     if (!popup) {
       sendJson(res, 404, { error: "Popup not found" });
       return;
@@ -673,59 +676,9 @@ async function applySettings(next: BrokerSettings): Promise<void> {
   nativeTheme.themeSource = next.theme === "auto" ? "system" : next.theme;
 }
 
-const PRESET_RATIOS: Record<SizePreset, { w: number; h: number }> = {
-  compact:    { w: 0.22, h: 0.30 },
-  card:       { w: 0.32, h: 0.46 },
-  panel:      { w: 0.42, h: 0.58 },
-  default:    { w: 0.56, h: 0.66 },
-  wide:       { w: 0.72, h: 0.58 },
-  review:     { w: 0.78, h: 0.72 },
-  tall:       { w: 0.40, h: 0.86 },
-  stage:      { w: 0.78, h: 0.78 },
-  cinema:     { w: 0.92, h: 0.82 },
-  fullscreen: { w: 1.00, h: 1.00 },
-};
-
-const PRESET_MIN: Record<SizePreset, { w: number; h: number }> = {
-  compact:    { w: 320, h: 280 },
-  card:       { w: 380, h: 420 },
-  panel:      { w: 520, h: 480 },
-  default:    { w: 640, h: 520 },
-  wide:       { w: 760, h: 480 },
-  review:     { w: 960, h: 620 },
-  tall:       { w: 440, h: 640 },
-  stage:      { w: 880, h: 640 },
-  cinema:     { w: 1024, h: 640 },
-  fullscreen: { w: 800, h: 600 },
-};
-
-function pickPreset(input: Partial<RenderGenUIInput>): SizePreset {
+function pickPreset(input: Partial<RenderGenUIInput>, fallback: GenUISizePreset = "default"): GenUISizePreset {
   const raw = (input as { size?: unknown; preset?: unknown }).size ?? (input as { preset?: unknown }).preset;
-  if (typeof raw === "string" && raw in PRESET_RATIOS) {
-    return raw as SizePreset;
-  }
-  return "default";
-}
-
-function geometryForPreset(preset: SizePreset, override?: { width?: unknown; height?: unknown }): WindowGeometry {
-  const display = screen.getPrimaryDisplay().workAreaSize;
-  const ratio = PRESET_RATIOS[preset];
-  const min = PRESET_MIN[preset];
-  const w = Math.max(min.w, Math.floor(display.width * ratio.w));
-  const h = Math.max(min.h, Math.floor(display.height * ratio.h));
-
-  const explicitW = Number(override?.width);
-  const explicitH = Number(override?.height);
-  const width = Number.isFinite(explicitW) && explicitW >= 240 ? Math.min(display.width, Math.floor(explicitW)) : w;
-  const height = Number.isFinite(explicitH) && explicitH >= 200 ? Math.min(display.height, Math.floor(explicitH)) : h;
-
-  return {
-    width,
-    height,
-    minWidth: min.w,
-    minHeight: min.h,
-    fullScreen: preset === "fullscreen",
-  };
+  return coerceSizePreset(raw, fallback);
 }
 
 const popupOffset = { x: 24, y: 24 };
@@ -755,7 +708,7 @@ async function openArtifactPopup(
   const title = input.title ?? artifact.title ?? `${input.agentId ?? artifact.agentId ?? "Agent"} GenUI`;
   const theme = resolveTheme(settings.theme);
   const preset = pickPreset(input);
-  const geometry = geometryForPreset(preset, input as { width?: unknown; height?: unknown });
+  const geometry = resolveWindowGeometry(screen.getPrimaryDisplay().workAreaSize, preset, input as { width?: unknown; height?: unknown });
   const pos = nextWindowPosition(geometry);
 
   const previewUrl =
@@ -786,6 +739,7 @@ async function openArtifactPopup(
     show: false,
     frame: false,
     movable: true,
+    resizable: true,
     transparent: true,
     hasShadow: true,
     backgroundColor: "#00000000",
@@ -812,15 +766,21 @@ async function openArtifactPopup(
     previewUrl,
     createdAt: new Date().toISOString(),
     generationMode: artifact.generationMode,
+    size: preset,
+    width: geometry.width,
+    height: geometry.height,
     window,
   };
 
   popupRegistry.set(popupId, popup);
 
+  window.on("resize", () => updatePopupBounds(popup));
+
   window.on("closed", () => {
     if (popup.status === "opening" || popup.status === "open") {
       popup.status = "closed";
     }
+    updatePopupBounds(popup);
     popup.closedAt = popup.closedAt ?? new Date().toISOString();
     popup.window = undefined;
   });
@@ -847,6 +807,13 @@ async function openArtifactPopup(
   return serializePopup(popup);
 }
 
+function updatePopupBounds(popup: PopupRuntime): void {
+  if (!popup.window || popup.window.isDestroyed()) return;
+  const bounds = popup.window.getBounds();
+  popup.width = bounds.width;
+  popup.height = bounds.height;
+}
+
 function closePopup(popupId: string, status: PopupStatus): PopupRuntime | undefined {
   const popup = popupRegistry.get(popupId);
   if (!popup) {
@@ -861,6 +828,42 @@ function closePopup(popupId: string, status: PopupStatus): PopupRuntime | undefi
   }
 
   popup.window = undefined;
+  return popup;
+}
+
+function resizePopup(popupId: string, body: Record<string, unknown>): PopupRuntime | undefined {
+  const popup = popupRegistry.get(popupId);
+  if (!popup) {
+    return undefined;
+  }
+  if (!popup.window || popup.window.isDestroyed()) {
+    throw new ControlHttpError(409, "Popup window is not open");
+  }
+
+  const rawPreset = (body as { size?: unknown; preset?: unknown }).size ?? (body as { preset?: unknown }).preset;
+  const hasPreset = typeof rawPreset === "string";
+  const preset = coerceSizePreset(rawPreset, popup.size ?? "default");
+  const override = hasPreset
+    ? { width: body.width, height: body.height }
+    : {
+        width: Object.prototype.hasOwnProperty.call(body, "width") ? body.width : popup.width,
+        height: Object.prototype.hasOwnProperty.call(body, "height") ? body.height : popup.height,
+      };
+  const geometry = resolveWindowGeometry(screen.getPrimaryDisplay().workAreaSize, preset, override);
+
+  popup.size = preset;
+  popup.window.setMinimumSize(geometry.minWidth, geometry.minHeight);
+  if (geometry.fullScreen) {
+    popup.window.setFullScreen(true);
+  } else {
+    if (popup.window.isFullScreen()) {
+      popup.window.setFullScreen(false);
+    }
+    popup.window.setSize(geometry.width, geometry.height, true);
+    popup.window.center();
+  }
+  popup.window.focus();
+  updatePopupBounds(popup);
   return popup;
 }
 
@@ -943,6 +946,9 @@ function serializePopup(popup: PopupRuntime): PopupOpenResponse {
     events: popup.events,
     completion: popup.completion,
     generationMode: popup.generationMode,
+    size: popup.size,
+    width: popup.width,
+    height: popup.height,
     brokerProtocolVersion: BROKER_PROTOCOL_VERSION,
   };
 }

@@ -32,8 +32,15 @@ genui popup --agent-id codex --title "Decision Review" --size review --openui-la
 ```
 
 9. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
-10. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
-11. Inspect and replay saved UI when the user wants to revisit a prior artifact:
+10. Resize an open popup if the content needs more or less space:
+
+```bash
+genui resize --popup-id "<popupId>" --size wide
+genui resize --popup-id "<popupId>" --width 1100 --height 720
+```
+
+11. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
+12. Inspect and replay saved UI when the user wants to revisit a prior artifact:
 
 ```bash
 genui artifacts --limit 20
@@ -41,7 +48,7 @@ genui artifact --artifact-id "<artifactId>"
 genui replay --artifact-id "<artifactId>"
 ```
 
-12. Close when done:
+13. Close when done:
 
 ```bash
 genui close --popup-id "<popupId>"
@@ -115,6 +122,7 @@ genui validate --openui-lang-file ui.openui
 genui popup --openui-lang-file ui.openui --title "Status" --agent-id codex
 genui popup --openui-lang-file ui.openui --title "Status" --agent-id codex --wait
 genui complete --popup-id "<popupId>" --outcome completed
+genui resize --popup-id "<popupId>" --size wide
 genui status
 genui popups
 genui artifacts --limit 20
@@ -152,6 +160,7 @@ broker to infer or regenerate UI.
 - `fullscreen`: large review sessions.
 
 Prefer presets before custom `width` and `height`.
+Use `genui resize` to change the size of a popup that is already open.
 
 ## MCP Server
 
@@ -166,6 +175,7 @@ It provides:
 - `genui_prompt_spec`: return the OpenUI Lang authoring guide.
 - `genui_validate`: validate OpenUI Lang.
 - `genui_popup`: open a popup and optionally wait for completion.
+- `genui_resize`: resize an existing open popup.
 - `genui_wait`: wait for an existing popup id.
 
 Configure MCP clients to run the command from the repository root. The server wraps the same CLI and broker state as normal agent usage.

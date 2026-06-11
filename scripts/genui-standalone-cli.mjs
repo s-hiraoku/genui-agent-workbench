@@ -31,6 +31,7 @@ const AGENT_COMMANDS = {
   components: "genui components",
   open: 'genui popup --agent-id <agent> --title <title> --size review --openui-lang-file ui.openui',
   openAndWait: 'genui popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait',
+  resize: "genui resize --popup-id <popupId> --size wide",
 };
 
 function agentSnippet() {
@@ -394,6 +395,30 @@ async function close(options) {
   );
 }
 
+async function resize(options) {
+  if (typeof options["popup-id"] !== "string" || options["popup-id"].trim().length === 0) {
+    throw new Error("--popup-id is required");
+  }
+
+  const connection = await findReachableConnection(options);
+  if (!connection) throw new Error("GenUI broker is not reachable.");
+  const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
+  const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
+  return requestJson(
+    `${connection.controlUrl}/v1/popups/${encodeURIComponent(options["popup-id"])}/resize`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        size: typeof options.size === "string" ? options.size : undefined,
+        width: Number.isFinite(widthOption) ? widthOption : undefined,
+        height: Number.isFinite(heightOption) ? heightOption : undefined,
+      }),
+    },
+    connection.controlToken,
+  );
+}
+
 async function complete(options) {
   if (typeof options["popup-id"] !== "string" || options["popup-id"].trim().length === 0) {
     throw new Error("--popup-id is required");
@@ -537,6 +562,7 @@ Usage:
   genui popup --openui-lang-file ui.openui --wait
   genui complete --popup-id "<popupId>" --outcome completed
   genui close --popup-id "<popupId>"
+  genui resize --popup-id "<popupId>" --size wide
   genui status
 
 Options:
@@ -551,7 +577,7 @@ Options:
   --payload-file <path>     Complete popup with payload from a JSON file
   --title <title>           Popup window title
   --locale <locale>         auto | ja | en
-  --size <preset>           compact | card | panel | default | wide | tall | stage | cinema | fullscreen
+  --size <preset>           compact | card | panel | default | wide | review | tall | stage | cinema | fullscreen
   --width <px>              Override window width (>= 240)
   --height <px>             Override window height (>= 200)
   --no-start                Do not auto-start the broker for popup, validate, or guide commands
@@ -600,6 +626,11 @@ async function main() {
 
   if (command === "close") {
     console.log(JSON.stringify(await close(options), null, 2));
+    return;
+  }
+
+  if (command === "resize") {
+    console.log(JSON.stringify(await resize(options), null, 2));
     return;
   }
 

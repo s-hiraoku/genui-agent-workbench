@@ -265,6 +265,30 @@ async function close(options: CliOptions): Promise<unknown> {
   return requestJson(`${connection.controlUrl}/v1/popups/${encodeURIComponent(popupId)}/close`, { method: "POST" }, connection.controlToken);
 }
 
+async function resize(options: CliOptions): Promise<unknown> {
+  const popupId = requireStringOption(options, "popup-id");
+  const connection = await resolveBrokerConnection(options);
+  const status = await brokerStatus(connection);
+  if (!status) throw new Error("GenUI broker is not reachable.");
+  assertCompatibleBroker(status);
+
+  const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
+  const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
+  return requestJson(
+    `${connection.controlUrl}/v1/popups/${encodeURIComponent(popupId)}/resize`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        size: typeof options.size === "string" ? options.size : undefined,
+        width: Number.isFinite(widthOption) ? widthOption : undefined,
+        height: Number.isFinite(heightOption) ? heightOption : undefined,
+      }),
+    },
+    connection.controlToken,
+  );
+}
+
 async function complete(options: CliOptions): Promise<unknown> {
   const popupId = requireStringOption(options, "popup-id");
 
@@ -498,6 +522,7 @@ Usage:
   genui popup --openui-lang-file ui.openui --wait
   genui complete --popup-id "<popupId>" --outcome completed
   genui close --popup-id "<popupId>"
+  genui resize --popup-id "<popupId>" --size wide
   genui status
   genui popups
   genui artifacts --limit 20
@@ -517,7 +542,7 @@ Options:
   --payload-file <path>     Complete popup with payload from a JSON file
   --title <title>           Popup window title
   --locale <locale>         auto | ja | en
-  --size <preset>           compact | card | panel | default | wide | tall | stage | cinema | fullscreen
+  --size <preset>           compact | card | panel | default | wide | review | tall | stage | cinema | fullscreen
   --width <px>              Override window width (>= 240)
   --height <px>             Override window height (>= 200)
   --no-start                Do not auto-start the broker for popup
@@ -563,6 +588,11 @@ async function main(): Promise<void> {
 
   if (command === "close") {
     console.log(JSON.stringify(await close(options), null, 2));
+    return;
+  }
+
+  if (command === "resize") {
+    console.log(JSON.stringify(await resize(options), null, 2));
     return;
   }
 
