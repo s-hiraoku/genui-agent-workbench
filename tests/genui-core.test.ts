@@ -12,7 +12,7 @@ import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-st
 import { buildAgentInstructions, buildAgentSnippet, buildPromptSpec } from "../src/server/genui/cli-guidance";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
-import { library, promptOptions, resolveVideoEmbedSource } from "../src/library";
+import { GenUIRuntimeDataContext, chartTooltipStyle, library, promptOptions, resolveVideoEmbedSource } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
 import { sanitizeSettings } from "../src/server/genui/settings";
 import { coerceSizePreset, resolveResizePreset, resolveWindowGeometry, WINDOW_SIZE_PRESETS } from "../src/server/genui/window-size";
@@ -122,6 +122,45 @@ describe("renderGenUI", () => {
     expect(() => validateOpenUILang(readinessOpenUILang)).not.toThrow();
   });
 
+  it("validates context-backed chart and table components", () => {
+    const chartOpenUILang = [
+      "root = Card([header, line, bars, combo, table, preview])",
+      'header = CardHeader("Traffic", "Rows loaded from context")',
+      'line = LineChart("Daily Traffic", "Reads context.daily", " views", [], "daily", "date", "pv")',
+      'bars = BarChart("Top Pages", "Reads context.pages", " views", 2000, [], "pages", "path", "views", "tone")',
+      'combo = ComboChart("Traffic + CVR", "Reads context.daily", [], " views", "%", "PV", "CVR", "info", "daily", "date", "pv", "cvr")',
+      'table = DataTable("Pages", "Columns inferred from context.pages", [], [], "Top landing pages", "pages")',
+      'preview = DataPreview("Raw Rows", "Schema inferred from context.pages", "pages", [], [], false, 0, "pages")',
+    ].join("\n");
+
+    expect(() => validateOpenUILang(chartOpenUILang)).not.toThrow();
+    expect(() =>
+      renderToStaticMarkup(
+        React.createElement(
+          GenUIRuntimeDataContext.Provider,
+          {
+            value: {
+              daily: [{ date: "Jun 1", pv: 1200, cvr: 2.4 }],
+              pages: [{ path: "/docs", views: 1800, tone: "positive" }],
+            },
+          },
+          React.createElement(Renderer, { response: chartOpenUILang, library }),
+        ),
+      ),
+    ).not.toThrow();
+  });
+
+  it("keeps chart tooltip text readable on any visual theme", () => {
+    expect(chartTooltipStyle.contentStyle).toMatchObject({
+      backgroundColor: "#07110d",
+      color: "#f8fdff",
+      colorScheme: "dark",
+    });
+    expect(chartTooltipStyle.labelStyle.color).toBe("rgba(232, 245, 236, 0.84)");
+    expect(chartTooltipStyle.itemStyle.color).toBe("#f8fdff");
+    expect(chartTooltipStyle.wrapperStyle.color).toBe("#f8fdff");
+  });
+
   it("validates bidirectional interaction components", () => {
     const interactiveOpenUILang = [
       "root = Card([approval, form, wizard, thread, code])",
@@ -164,10 +203,29 @@ describe("renderGenUI", () => {
     expect(() => validateOpenUILang(mediaOpenUILang)).not.toThrow();
   });
 
+  it("validates long text and translation components", () => {
+    const translationOpenUILang = [
+      "root = Card([long, panel, compare])",
+      'long = LongText("Policy Draft", "Readable long-form text", "", [s1, s2], "en", "draft.md", 360)',
+      's1 = { heading: "Purpose", body: "This policy explains the review process.\\n\\nRead each section before approval." }',
+      's2 = { heading: "Scope", body: "The policy applies to agent-authored UI artifacts." }',
+      'panel = TranslationPanel("Translation", "Single translated result", "ja", "en", "原文です。", "This is the source text.", ["Keep product names unchanged."], [term1], 320)',
+      'term1 = { source: "常駐ブローカー", target: "resident broker", note: "Keep consistent with docs." }',
+      'compare = TranslationCompare("Bilingual Review", "Compare by segment", "ja", "en", [seg1, seg2], 420)',
+      'seg1 = { id: "1", source: "最初の段落です。", translation: "This is the first paragraph.", status: "ok" }',
+      'seg2 = { id: "2", source: "確認が必要です。", translation: "This needs review.", status: "review", note: "Check tone." }',
+    ].join("\n");
+
+    expect(() => validateOpenUILang(translationOpenUILang)).not.toThrow();
+    expect(() =>
+      renderToStaticMarkup(React.createElement(Renderer, { response: translationOpenUILang, library })),
+    ).not.toThrow();
+  });
+
   it("keeps all shipped examples parser-valid", () => {
     expect(genUIExamples.length).toBeGreaterThan(0);
     expect(genUIExamples.map((example) => example.name)).toEqual(
-      expect.arrayContaining(["code-review", "research-brief", "support-triage", "data-quality"]),
+      expect.arrayContaining(["code-review", "context-timeseries", "research-brief", "support-triage", "data-quality"]),
     );
     for (const example of genUIExamples) {
       expect(() => validateOpenUILang(example.openuiLang)).not.toThrow();
@@ -207,7 +265,10 @@ describe("agent interface scaffold", () => {
     const instructions = buildAgentInstructions();
     const snippet = buildAgentSnippet();
     expect(buildPromptSpec()).toContain("MetricGrid");
+    expect(buildPromptSpec()).toContain("contextPath");
+    expect(buildPromptSpec()).toContain("TranslationCompare");
     expect(snippet).toContain("genui doctor --json");
+    expect(snippet).toContain("--context-file");
     expect(snippet).toContain("AGENTS.md");
     expect(instructions).toContain("genui prompt-spec");
     expect(instructions).toContain("genui doctor --json");
@@ -219,7 +280,7 @@ describe("agent interface scaffold", () => {
   it("exposes a component catalog without duplicate names", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
-    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable", "VideoPlaylist", "Gauge", "ChecklistPanel", "InsightStack"]));
+    expect(names).toEqual(expect.arrayContaining(["MetricGrid", "ActionPanel", "DataTable", "VideoPlaylist", "Gauge", "ChecklistPanel", "InsightStack", "LongText", "TranslationPanel", "TranslationCompare"]));
   });
 
   it("publishes MCP and interaction guidance", () => {

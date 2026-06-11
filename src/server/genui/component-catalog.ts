@@ -66,22 +66,24 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "BarChart",
     category: "Charts",
-    description: "Horizontal bar chart for rankings, category comparison, counts, volume, cost, and risk.",
+    description:
+      "Horizontal bar chart for rankings, category comparison, counts, volume, cost, and risk. Can read bulky rows from --context-file by passing an empty data array and contextPath, with optional labelKey/valueKey/toneKey.",
     useCases: ["ranking", "category comparison", "counts", "cost breakdown", "risk scoring"],
-    examplePrompt: "カテゴリ別の件数を棒グラフで比較して。",
+    examplePrompt: "カテゴリ別の件数を棒グラフで比較して。大量データなら --context-file の pages を参照して。",
   },
   {
     name: "LineChart",
     category: "Charts",
-    description: "Compact trend chart for time series, forecasts, backlog movement, and metric changes.",
+    description:
+      "Compact trend chart for time series, forecasts, backlog movement, and metric changes. Can read bulky rows from --context-file by passing an empty data array and contextPath, with optional labelKey/valueKey.",
     useCases: ["trend", "forecast", "time series", "backlog movement", "metric history"],
-    examplePrompt: "直近7日の推移を折れ線グラフで表示して。",
+    examplePrompt: "直近7日の推移を折れ線グラフで表示して。大量データなら --context-file の daily を参照して。",
   },
   {
     name: "ComboChart",
     category: "Charts",
     description:
-      "Combo chart with bars (left axis) and a line (right axis) sharing the X axis. Use when two related series live in different units, like PV vs. conversion rate, revenue vs. growth rate, or requests vs. latency.",
+      "Combo chart with bars (left axis) and a line (right axis) sharing the X axis. Use when two related series live in different units, like PV vs. conversion rate, revenue vs. growth rate, or requests vs. latency. Can read rows from --context-file with contextPath plus labelKey/barValueKey/lineValueKey.",
     useCases: ["PV + CVR", "revenue + growth rate", "requests + latency", "calls + answered rate", "traffic + bounce rate"],
     examplePrompt: "日次PVと当日CVRを 1 枚のグラフで重ねて表示して。",
   },
@@ -123,9 +125,10 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "DataTable",
     category: "Agent Explanation",
-    description: "Responsive table for operational rows, tickets, file lists, research results, rankings, and evidence.",
+    description:
+      "Responsive table for operational rows, tickets, file lists, research results, rankings, and evidence. Can read records from --context-file with contextPath and infer columns when columns is empty.",
     useCases: ["ticket list", "search results", "file inventory", "ranked options", "structured evidence"],
-    examplePrompt: "このJSON rowsを表で表示して。重要な行と次のアクションも示して。",
+    examplePrompt: "このJSON rowsを表で表示して。大量データなら --context-file の rows を参照して。",
   },
   {
     name: "TaskBoard",
@@ -224,9 +227,34 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "DataPreview",
     category: "Code & Data",
-    description: "Developer preview of raw structured data: column types and the first N rows. Use for SQL results, CSV head, JSON samples.",
+    description:
+      "Developer preview of raw structured data: column types and the first N rows. Use for SQL results, CSV head, JSON samples. Can read records from --context-file with contextPath and infer schema.",
     useCases: ["SQL result", "CSV head", "JSON sample", "API response preview", "schema check"],
     examplePrompt: "このSQLクエリ結果のスキーマと先頭5行をDataPreviewで表示して。",
+  },
+  {
+    name: "LongText",
+    category: "Text & Translation",
+    description:
+      "Readable long-form text viewer for articles, specs, policies, transcripts, legal copy, and generated drafts. Supports sections, source/language labels, and bounded scrolling.",
+    useCases: ["long article", "policy text", "spec review", "transcript", "generated draft"],
+    examplePrompt: "この長文ドラフトを見出しごとに読みやすく表示して。出典と言語も付けて。",
+  },
+  {
+    name: "TranslationPanel",
+    category: "Text & Translation",
+    description:
+      "Focused translation review panel with source/target language labels, translated text, optional source excerpt, notes, and glossary terms.",
+    useCases: ["translation result", "glossary review", "localization note", "single translated text", "source excerpt"],
+    examplePrompt: "この日本語文の英訳を表示して。用語集と翻訳メモも付けて。",
+  },
+  {
+    name: "TranslationCompare",
+    category: "Text & Translation",
+    description:
+      "Side-by-side translation comparison by segment. Use for bilingual QA, localization review, wording checks, and before/after translation edits.",
+    useCases: ["bilingual comparison", "translation QA", "localization review", "wording check", "before/after translation"],
+    examplePrompt: "原文と翻訳を左右で段落ごとに比較して。要確認箇所にreviewを付けて。",
   },
   {
     name: "TreeView",

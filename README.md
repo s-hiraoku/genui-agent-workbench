@@ -192,6 +192,7 @@ The component library is the design boundary. Agents can compose listed componen
 - Decisions: `DecisionMatrix`, `CompareTable`, `ConfirmDialog`
 - Progress: `ProgressStepper`, `TimelinePanel`, `TaskBoard`, `ChecklistPanel`, `WizardForm`
 - Data: `DataTable`, `DataPreview`, `TreeView`
+- Text and translation: `LongText`, `TranslationPanel`, `TranslationCompare`
 - Code and changes: `CodeDiff`, `CodeBlock`
 - Media and visuals: `ImageGallery`, `InlineSvg`, `AnimationCard`, `AudioPlayer`, `VideoPlayer`, `VideoPlaylist`
 - Geography: `MapView`, `MapWithList`, `GeoHeatmap`, `WeatherCard`
@@ -317,6 +318,26 @@ npm run electron:dmg
 ```
 
 Public distribution should add Developer ID signing and notarization before publishing.
+
+Unsigned developer-preview builds need one manual macOS first launch before
+CLI auto-start is reliable: move `GenUI Popup Broker.app` to `/Applications`,
+right-click it in Finder, choose `Open`, and then rerun `genui doctor --json`.
+If `genui doctor --start` or `genui popup` times out on first use, repeat that
+Finder `Open` step.
+
+For large chart and table data, keep rows in JSON and pass them with
+`--context-file` instead of expanding every point or cell in OpenUI Lang.
+Charts can read rows from context paths with explicit source keys:
+
+```openui
+chart = LineChart("Daily Traffic", "Rows loaded from context.daily", " views", [], "daily", "date", "pv")
+combo = ComboChart("PV + CVR", "Two series from context.daily", [], " views", "%", "PV", "CVR", "info", "daily", "date", "pv", "cvr")
+table = DataTable("Top Pages", "Columns inferred from context.pages", [], [], "Landing pages", "pages")
+```
+
+```bash
+genui popup --openui-lang-file ui.openui --context-file metrics.json --agent-id codex
+```
 
 ## Download Site
 

@@ -30,6 +30,7 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
     <PreviewClient
       artifactId={artifact.artifactId}
       artifactTitle={artifact.title}
+      artifactContext={artifact.context}
       agentLabel={agent ?? artifact.agentId}
       animation={animation}
       controlUrl={controlUrl}

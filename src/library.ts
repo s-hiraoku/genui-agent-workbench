@@ -21,9 +21,14 @@ export type PopupEventOptions = {
 export type PopupEventReporter = (event: PopupEventInput, options?: PopupEventOptions) => void | Promise<void>;
 
 export const PopupEventContext = React.createContext<PopupEventReporter | null>(null);
+export const GenUIRuntimeDataContext = React.createContext<Record<string, unknown> | null>(null);
 
 function popupEventConsumer(render: (reporter: PopupEventReporter | null) => React.ReactNode): React.ReactElement {
   return React.createElement(PopupEventContext.Consumer, null, render as unknown as React.ReactNode);
+}
+
+function runtimeDataConsumer(render: (data: Record<string, unknown> | null) => React.ReactNode): React.ReactElement {
+  return React.createElement(GenUIRuntimeDataContext.Consumer, null, render as unknown as React.ReactNode);
 }
 
 function emitPopupEvent(reporter: PopupEventReporter | null, event: PopupEventInput, options?: PopupEventOptions): void {
@@ -33,6 +38,128 @@ function emitPopupEvent(reporter: PopupEventReporter | null, event: PopupEventIn
 
 function actionIdFor(component: string, actionId: string | undefined, fallback: string): string {
   return actionId?.trim() || `${component}.${fallback}`;
+}
+
+function getContextPathValue(source: Record<string, unknown> | null, contextPath?: string): unknown {
+  if (!source || !contextPath?.trim()) return undefined;
+
+  return contextPath.split(".").reduce<unknown>((current, rawSegment) => {
+    if (current === undefined || current === null) return undefined;
+    const segment = rawSegment.trim();
+    if (!segment) return undefined;
+
+    if (Array.isArray(current)) {
+      const index = Number(segment);
+      return Number.isInteger(index) ? current[index] : undefined;
+    }
+
+    if (typeof current === "object" && Object.prototype.hasOwnProperty.call(current, segment)) {
+      return (current as Record<string, unknown>)[segment];
+    }
+
+    return undefined;
+  }, source);
+}
+
+function numericValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function contextRowValue(row: Record<string, unknown>, key: string | undefined, fallbackKeys: string[]): unknown {
+  const keys = key ? [key] : fallbackKeys;
+
+  for (const candidate of keys) {
+    const value = getContextPathValue(row, candidate);
+    if (value !== undefined) return value;
+  }
+
+  return undefined;
+}
+
+function normalizeSingleSeriesData(
+  value: unknown,
+  options: {
+    labelKey?: string;
+    valueKey?: string;
+    toneKey?: string;
+  } = {},
+): Array<{ label: string; value: number; tone?: "positive" | "neutral" | "warning" | "danger" | "info" }> {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const row = item as Record<string, unknown>;
+    const label = contextRowValue(row, options.labelKey, ["label", "date", "day", "period", "name", "key"]) ?? `#${index + 1}`;
+    const rawValue = contextRowValue(row, options.valueKey, ["value", "count", "views", "pv", "sessions", "users", "total"]);
+    const valueNumber = numericValue(rawValue);
+    if (valueNumber === undefined) return [];
+    const tone = contextRowValue(row, options.toneKey, ["tone"]);
+    const normalizedTone =
+      tone === "positive" || tone === "neutral" || tone === "warning" || tone === "danger" || tone === "info"
+        ? tone
+        : undefined;
+
+    return [{ label: String(label), value: valueNumber, tone: normalizedTone }];
+  });
+}
+
+function normalizeComboSeriesData(
+  value: unknown,
+  options: {
+    labelKey?: string;
+    barValueKey?: string;
+    lineValueKey?: string;
+  } = {},
+): Array<{ label: string; barValue: number; lineValue: number }> {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const row = item as Record<string, unknown>;
+    const label = contextRowValue(row, options.labelKey, ["label", "date", "day", "period", "name", "key"]) ?? `#${index + 1}`;
+    const rawBarValue = contextRowValue(row, options.barValueKey, ["barValue", "bar", "value", "count", "views", "pv", "sessions"]);
+    const rawLineValue = contextRowValue(row, options.lineValueKey, ["lineValue", "line", "rate", "cvr", "conversionRate", "ratio"]);
+    const barValue = numericValue(rawBarValue);
+    const lineValue = numericValue(rawLineValue);
+    if (barValue === undefined || lineValue === undefined) return [];
+
+    return [{ label: String(label), barValue, lineValue }];
+  });
+}
+
+function normalizeRecordRows(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    return [item as Record<string, unknown>];
+  });
+}
+
+function inferColumnsFromRows(rows: Array<Record<string, unknown>>): Array<{ key: string; label: string }> {
+  return Array.from(new Set(rows.flatMap((row) => Object.keys(row)))).map((key) => ({ key, label: key }));
+}
+
+function inferSchemaFromRows(rows: Array<Record<string, unknown>>): Array<{ name: string; type?: string; nullable?: boolean }> {
+  return inferColumnsFromRows(rows).map(({ key }) => {
+    const values = rows.map((row) => row[key]);
+    const firstPresent = values.find((value) => value !== null && value !== undefined);
+    const type =
+      Array.isArray(firstPresent)
+        ? "array"
+        : firstPresent === undefined
+        ? "unknown"
+        : typeof firstPresent;
+    return {
+      name: key,
+      type,
+      nullable: values.some((value) => value === null || value === undefined) || undefined,
+    };
+  });
 }
 
 type MapWithListProps = {
@@ -227,8 +354,10 @@ const chartPalette = {
   grid: "rgba(138, 166, 126, 0.18)",
   axis: "rgba(204, 222, 184, 0.70)",
   axisLabel: "rgba(224, 236, 206, 0.86)",
-  tooltipBg: "rgba(10, 22, 14, 0.94)",
-  tooltipBorder: "rgba(130, 180, 118, 0.34)",
+  tooltipBg: "#07110d",
+  tooltipBorder: "rgba(210, 238, 204, 0.42)",
+  tooltipText: "#f8fdff",
+  tooltipMuted: "rgba(232, 245, 236, 0.84)",
   bar: "rgba(126, 174, 86, 0.78)",
   area: "rgba(126, 174, 86, 0.28)",
 };
@@ -245,6 +374,39 @@ const donutColors = [
 ];
 
 const chartAxisTickStyle = { fill: chartPalette.axisLabel, fontSize: 11 } as const;
+
+export const chartTooltipStyle = {
+  contentStyle: {
+    background: chartPalette.tooltipBg,
+    backgroundColor: chartPalette.tooltipBg,
+    border: `1px solid ${chartPalette.tooltipBorder}`,
+    borderRadius: 8,
+    boxShadow: "0 14px 34px rgba(0, 0, 0, 0.38)",
+    color: chartPalette.tooltipText,
+    colorScheme: "dark",
+    fontSize: 12,
+  },
+  itemStyle: {
+    color: chartPalette.tooltipText,
+    fontSize: 12,
+    fontWeight: 760,
+  },
+  labelStyle: {
+    color: chartPalette.tooltipMuted,
+    fontSize: 11,
+    fontWeight: 800,
+  },
+  wrapperStyle: {
+    color: chartPalette.tooltipText,
+    outline: "none",
+    zIndex: 20,
+  },
+} satisfies {
+  contentStyle: React.CSSProperties;
+  itemStyle: React.CSSProperties;
+  labelStyle: React.CSSProperties;
+  wrapperStyle: React.CSSProperties;
+};
 
 type MapMarker = {
   lat: number;
@@ -609,6 +771,69 @@ function formatCellValue(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return JSON.stringify(value);
+}
+
+function textBlockNodes(text: string, keyPrefix: string, style?: React.CSSProperties): React.ReactNode[] {
+  const blocks = text
+    .trim()
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  if (blocks.length === 0) {
+    return [];
+  }
+
+  return blocks.map((block, blockIndex) =>
+    React.createElement(
+      "p",
+      {
+        key: `${keyPrefix}:${blockIndex}`,
+        style: {
+          color: hudText,
+          fontSize: 14,
+          lineHeight: 1.72,
+          margin: 0,
+          overflowWrap: "anywhere",
+          textWrap: "pretty",
+          whiteSpace: "pre-wrap",
+          ...style,
+        },
+      },
+      block,
+    ),
+  );
+}
+
+function textPanel(
+  text: string,
+  keyPrefix: string,
+  options: {
+    emptyLabel?: string;
+    maxHeight?: number;
+    style?: React.CSSProperties;
+  } = {},
+): React.ReactElement {
+  const nodes = textBlockNodes(text, keyPrefix, options.style);
+  return React.createElement(
+    "div",
+    {
+      style: {
+        display: "grid",
+        gap: 12,
+        maxHeight: options.maxHeight,
+        overflow: options.maxHeight ? "auto" : undefined,
+        paddingRight: options.maxHeight ? 4 : undefined,
+      },
+    },
+    nodes.length > 0
+      ? nodes
+      : React.createElement(
+          "p",
+          { style: { color: hudTextSoft, fontSize: 13, lineHeight: 1.6, margin: 0 } },
+          options.emptyLabel ?? "No text provided.",
+        ),
+  );
 }
 
 function clampPercent(value: number): number {
@@ -1521,81 +1746,88 @@ const DataTable = defineComponent({
     ),
     rows: z.array(z.record(z.string(), z.unknown())),
     caption: z.string().optional(),
+    contextPath: z.string().optional(),
     ...glassProps,
   }),
   description:
-    "Responsive data table for operational rows, ticket lists, file inventories, research results, rankings, and structured evidence. Use when users need to scan or compare records.",
+    "Responsive data table for operational rows, ticket lists, file inventories, research results, rankings, and structured evidence. Use when users need to scan or compare records. For large row sets, pass empty rows and set contextPath to read records from --context-file.",
   component: ({ props }) =>
-    React.createElement(
-      "section",
-      { style: panelStyleFor(props) },
-      panelHeader(props.title, props.description),
-      React.createElement(
-        "div",
-        { style: { overflowX: "auto", overscrollBehaviorX: "contain", scrollbarGutter: "stable", width: "100%" } },
+    runtimeDataConsumer((runtimeData) => {
+      const contextRows = normalizeRecordRows(getContextPathValue(runtimeData, props.contextPath));
+      const rows = contextRows.length > 0 ? contextRows : props.rows;
+      const columns: Array<{ key: string; label: string; align?: "left" | "right" | "center" }> =
+        props.columns.length > 0 ? props.columns : inferColumnsFromRows(rows);
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
         React.createElement(
-          "table",
-          { style: { borderCollapse: "collapse", minWidth: Math.max(520, props.columns.length * 140), width: "100%" } },
-          props.caption ? React.createElement("caption", { style: { color: hudTextMid, fontSize: 12, padding: 10, textAlign: "left" } }, props.caption) : null,
+          "div",
+          { style: { overflowX: "auto", overscrollBehaviorX: "contain", scrollbarGutter: "stable", width: "100%" } },
           React.createElement(
-            "thead",
-            { style: { background: hudCellWash } },
+            "table",
+            { style: { borderCollapse: "collapse", minWidth: Math.max(520, columns.length * 140), width: "100%" } },
+            props.caption ? React.createElement("caption", { style: { color: hudTextMid, fontSize: 12, padding: 10, textAlign: "left" } }, props.caption) : null,
             React.createElement(
-              "tr",
-              null,
-              props.columns.map((column) =>
-                React.createElement(
-                  "th",
-                  {
-                    key: column.key,
-                    style: {
-                      borderBottom: `1px solid ${hudEdge}`,
-                      color: hudTextMid,
-                      fontSize: 12,
-                      fontWeight: 800,
-                      padding: "9px 10px",
-                      textAlign: column.align ?? "left",
-                      whiteSpace: "nowrap",
+              "thead",
+              { style: { background: hudCellWash } },
+              React.createElement(
+                "tr",
+                null,
+                columns.map((column) =>
+                  React.createElement(
+                    "th",
+                    {
+                      key: column.key,
+                      style: {
+                        borderBottom: `1px solid ${hudEdge}`,
+                        color: hudTextMid,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        padding: "9px 10px",
+                        textAlign: column.align ?? "left",
+                        whiteSpace: "nowrap",
+                      },
                     },
-                  },
-                  labelElement(column.label, "neutral", "xs"),
+                    labelElement(column.label, "neutral", "xs"),
+                  ),
                 ),
               ),
             ),
-          ),
-          React.createElement(
-            "tbody",
-            null,
-            props.rows.map((row, rowIndex) =>
-              React.createElement(
-                "tr",
-                { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? hudRowWash : hudRowAltWash } },
-                props.columns.map((column) =>
-                  React.createElement(
-                    "td",
-                    {
-                      key: `${rowIndex}:${column.key}`,
-                      style: {
-                        borderBottom: `1px solid ${hudEdge}`,
-                        color: hudText,
-                        fontSize: 13,
-                        lineHeight: 1.45,
-                        maxWidth: 260,
-                        padding: "9px 10px",
-                        textAlign: column.align ?? "left",
-                        verticalAlign: "top",
-                        wordBreak: "break-word",
+            React.createElement(
+              "tbody",
+              null,
+              rows.map((row, rowIndex) =>
+                React.createElement(
+                  "tr",
+                  { key: `row:${rowIndex}`, style: { background: rowIndex % 2 === 0 ? hudRowWash : hudRowAltWash } },
+                  columns.map((column) =>
+                    React.createElement(
+                      "td",
+                      {
+                        key: `${rowIndex}:${column.key}`,
+                        style: {
+                          borderBottom: `1px solid ${hudEdge}`,
+                          color: hudText,
+                          fontSize: 13,
+                          lineHeight: 1.45,
+                          maxWidth: 260,
+                          padding: "9px 10px",
+                          textAlign: column.align ?? "left",
+                          verticalAlign: "top",
+                          wordBreak: "break-word",
+                        },
                       },
-                    },
-                    formatCellValue(row[column.key]),
+                      formatCellValue(row[column.key]),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    ),
+      );
+    }),
 });
 
 const TaskBoard = defineComponent({
@@ -2261,10 +2493,14 @@ const BarChart = defineComponent({
         tone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
       }),
     ),
+    contextPath: z.string().optional(),
+    labelKey: z.string().optional(),
+    valueKey: z.string().optional(),
+    toneKey: z.string().optional(),
     ...glassProps,
   }),
   description:
-    "Simple responsive bar chart for rankings, category comparison, volume, cost, risk, and operational counts.",
+    "Simple responsive bar chart for rankings, category comparison, volume, cost, risk, and operational counts. For large datasets, pass an empty data array and set contextPath to read rows from --context-file. Use labelKey/valueKey/toneKey when context rows use custom field names.",
   component: ({ props }) => {
     const unit = props.unit ?? "";
     const toneColor: Record<string, string> = {
@@ -2276,71 +2512,94 @@ const BarChart = defineComponent({
     };
     const tooltipFormatter = (value: unknown) =>
       `${typeof value === "number" ? value.toLocaleString() : String(value)}${unit}`;
-    return React.createElement(
-      "section",
-      { style: panelStyleFor(props) },
-      panelHeader(props.title, props.description),
-      React.createElement(
-        "div",
-        { style: { height: 220, padding: 14 } },
+    return runtimeDataConsumer((runtimeData) => {
+      const contextData = normalizeSingleSeriesData(getContextPathValue(runtimeData, props.contextPath), {
+        labelKey: props.labelKey,
+        valueKey: props.valueKey,
+        toneKey: props.toneKey,
+      });
+      const chartData = contextData.length > 0 ? contextData : props.data;
+      const emptyMessage = props.contextPath
+        ? `No chart data found at context path "${props.contextPath}".`
+        : "No chart data.";
+
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
         React.createElement(
-          RcResponsiveContainer as React.ElementType,
-          { width: "100%", height: "100%" },
-          React.createElement(
-            RcBarChart,
-            {
-              data: props.data,
-              margin: { top: 8, right: 16, left: 4, bottom: 0 },
-              barCategoryGap: "22%",
-            },
-            React.createElement(RcCartesianGrid, {
-              stroke: chartPalette.grid,
-              strokeDasharray: "2 4",
-              vertical: false,
-            }),
-            React.createElement(RcXAxis, {
-              dataKey: "label",
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              minTickGap: 12,
-            }),
-            React.createElement(RcYAxis, {
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              width: 44,
-              tickFormatter: (value: number) => `${value}${unit}`,
-              domain: props.max ? [0, props.max] : undefined,
-            }),
-            React.createElement(RcTooltip, {
-              contentStyle: {
-                background: chartPalette.tooltipBg,
-                border: `1px solid ${chartPalette.tooltipBorder}`,
-                borderRadius: 8,
-                color: "rgba(248, 253, 255, 0.98)",
-                fontSize: 12,
-              },
-              labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
-              cursor: { fill: "rgba(72, 138, 82, 0.08)" },
-              formatter: tooltipFormatter,
-            }),
-            React.createElement(
-              RcBar,
-              { dataKey: "value", radius: [3, 3, 0, 0], isAnimationActive: false },
-              props.data.map((item, index) =>
-                React.createElement(RcCell, {
-                  key: `${item.label}:${index}`,
-                  fill: toneColor[item.tone ?? "neutral"] ?? toneColor.neutral,
-                }),
+          "div",
+          { style: { height: 220, padding: 14 } },
+          chartData.length === 0
+            ? React.createElement(
+                "div",
+                {
+                  style: {
+                    alignItems: "center",
+                    border: `1px dashed ${hudEdge}`,
+                    borderRadius: 10,
+                    color: hudTextSoft,
+                    display: "flex",
+                    fontSize: 13,
+                    height: "100%",
+                    justifyContent: "center",
+                    textAlign: "center",
+                  },
+                },
+                emptyMessage,
+              )
+            : React.createElement(
+                RcResponsiveContainer as React.ElementType,
+                { width: "100%", height: "100%", minWidth: 0 },
+                React.createElement(
+                  RcBarChart,
+                  {
+                    data: chartData,
+                    margin: { top: 8, right: 16, left: 4, bottom: 0 },
+                    barCategoryGap: "22%",
+                  },
+                  React.createElement(RcCartesianGrid, {
+                    stroke: chartPalette.grid,
+                    strokeDasharray: "2 4",
+                    vertical: false,
+                  }),
+                  React.createElement(RcXAxis, {
+                    dataKey: "label",
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    minTickGap: 12,
+                  }),
+                  React.createElement(RcYAxis, {
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    width: 44,
+                    tickFormatter: (value: number) => `${value}${unit}`,
+                    domain: props.max ? [0, props.max] : undefined,
+                  }),
+                  React.createElement(RcTooltip, {
+                    ...chartTooltipStyle,
+                    cursor: { fill: "rgba(72, 138, 82, 0.08)" },
+                    formatter: tooltipFormatter,
+                  }),
+                  React.createElement(
+                    RcBar,
+                    { dataKey: "value", radius: [3, 3, 0, 0], isAnimationActive: false },
+                    chartData.map((item, index) =>
+                      React.createElement(RcCell, {
+                        key: `${item.label}:${index}`,
+                        fill: toneColor[item.tone ?? "neutral"] ?? toneColor.neutral,
+                      }),
+                    ),
+                  ),
+                ),
               ),
-            ),
         ),
-      ),
-      ),
-    );
+      );
+    });
   },
 });
 
@@ -2356,73 +2615,98 @@ const LineChart = defineComponent({
         value: z.number(),
       }),
     ),
+    contextPath: z.string().optional(),
+    labelKey: z.string().optional(),
+    valueKey: z.string().optional(),
     ...glassProps,
   }),
   description:
-    "Compact line chart for trends, time series, forecasts, health signals, backlog movement, and metric changes over time.",
+    "Compact line chart for trends, time series, forecasts, health signals, backlog movement, and metric changes over time. For large datasets, pass an empty data array and set contextPath to read rows from --context-file. Use labelKey/valueKey when context rows use custom field names.",
   component: ({ props }) => {
     const unit = props.unit ?? "";
     const tooltipFormatter = (value: unknown) =>
       `${typeof value === "number" ? value.toLocaleString() : String(value)}${unit}`;
-    return React.createElement(
-      "section",
-      { style: panelStyleFor(props) },
-      panelHeader(props.title, props.description),
-      React.createElement(
-        "div",
-        { style: { height: 220, padding: 14 } },
+    return runtimeDataConsumer((runtimeData) => {
+      const contextData = normalizeSingleSeriesData(getContextPathValue(runtimeData, props.contextPath), {
+        labelKey: props.labelKey,
+        valueKey: props.valueKey,
+      });
+      const chartData = contextData.length > 0 ? contextData : props.data;
+      const emptyMessage = props.contextPath
+        ? `No chart data found at context path "${props.contextPath}".`
+        : "No chart data.";
+
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
         React.createElement(
-          RcResponsiveContainer as React.ElementType,
-          { width: "100%", height: "100%" },
-          React.createElement(
-            RcLineChart,
-            { data: props.data, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
-            React.createElement(RcCartesianGrid, {
-              stroke: chartPalette.grid,
-              strokeDasharray: "2 4",
-              vertical: false,
-            }),
-            React.createElement(RcXAxis, {
-              dataKey: "label",
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              minTickGap: 16,
-            }),
-            React.createElement(RcYAxis, {
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              width: 44,
-              tickFormatter: (value: number) => `${value}${unit}`,
-            }),
-            React.createElement(RcTooltip, {
-              contentStyle: {
-                background: chartPalette.tooltipBg,
-                border: `1px solid ${chartPalette.tooltipBorder}`,
-                borderRadius: 8,
-                color: "rgba(248, 253, 255, 0.98)",
-                fontSize: 12,
-              },
-              labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
-              cursor: { stroke: chartPalette.grid, strokeDasharray: "2 4" },
-              formatter: tooltipFormatter,
-            }),
-            React.createElement(RcLine, {
-              type: "monotone",
-              dataKey: "value",
-              stroke: chartPalette.line,
-              strokeWidth: 1.5,
-              dot: { r: 2.5, stroke: chartPalette.line, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
-              activeDot: { r: 3.5, stroke: chartPalette.line, strokeWidth: 1.5, fill: chartPalette.line },
-              isAnimationActive: false,
-            }),
-          ),
+          "div",
+          { style: { height: 220, padding: 14 } },
+          chartData.length === 0
+            ? React.createElement(
+                "div",
+                {
+                  style: {
+                    alignItems: "center",
+                    border: `1px dashed ${hudEdge}`,
+                    borderRadius: 10,
+                    color: hudTextSoft,
+                    display: "flex",
+                    fontSize: 13,
+                    height: "100%",
+                    justifyContent: "center",
+                    textAlign: "center",
+                  },
+                },
+                emptyMessage,
+              )
+            : React.createElement(
+                RcResponsiveContainer as React.ElementType,
+                { width: "100%", height: "100%", minWidth: 0 },
+                React.createElement(
+                  RcLineChart,
+                  { data: chartData, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
+                  React.createElement(RcCartesianGrid, {
+                    stroke: chartPalette.grid,
+                    strokeDasharray: "2 4",
+                    vertical: false,
+                  }),
+                  React.createElement(RcXAxis, {
+                    dataKey: "label",
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    minTickGap: 16,
+                  }),
+                  React.createElement(RcYAxis, {
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    width: 44,
+                    tickFormatter: (value: number) => `${value}${unit}`,
+                  }),
+                  React.createElement(RcTooltip, {
+                    ...chartTooltipStyle,
+                    cursor: { stroke: chartPalette.grid, strokeDasharray: "2 4" },
+                    formatter: tooltipFormatter,
+                  }),
+                  React.createElement(RcLine, {
+                    type: "monotone",
+                    dataKey: "value",
+                    stroke: chartPalette.line,
+                    strokeWidth: 1.5,
+                    dot: { r: 2.5, stroke: chartPalette.line, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
+                    activeDot: { r: 3.5, stroke: chartPalette.line, strokeWidth: 1.5, fill: chartPalette.line },
+                    isAnimationActive: false,
+                  }),
+                ),
+              ),
         ),
-      ),
-    );
+      );
+    });
   },
 });
 
@@ -2443,10 +2727,14 @@ const ComboChart = defineComponent({
     barLabel: z.string().optional(),
     lineLabel: z.string().optional(),
     barTone: z.enum(["positive", "neutral", "warning", "danger", "info"]).optional(),
+    contextPath: z.string().optional(),
+    labelKey: z.string().optional(),
+    barValueKey: z.string().optional(),
+    lineValueKey: z.string().optional(),
     ...glassProps,
   }),
   description:
-    "Combo chart with bars and a line sharing the X axis but using two independent Y axes. Use when a single popup needs two series in different units — e.g. PV (absolute) + CVR (%), revenue + growth-rate, requests/sec + latency. Pick LineChart or BarChart instead if all series use the same unit.",
+    "Combo chart with bars and a line sharing the X axis but using two independent Y axes. Use when a single popup needs two series in different units — e.g. PV (absolute) + CVR (%), revenue + growth-rate, requests/sec + latency. Pick LineChart or BarChart instead if all series use the same unit. For large datasets, pass an empty data array and set contextPath plus labelKey/barValueKey/lineValueKey.",
   component: ({ props }) => {
     const barUnit = props.barUnit ?? "";
     const lineUnit = props.lineUnit ?? "";
@@ -2466,90 +2754,113 @@ const ComboChart = defineComponent({
       const isLine = name === lineLabel;
       return `${v}${isLine ? lineUnit : barUnit}`;
     };
-    return React.createElement(
-      "section",
-      { style: panelStyleFor(props) },
-      panelHeader(props.title, props.description),
-      React.createElement(
-        "div",
-        { style: { height: 260, padding: 14 } },
+    return runtimeDataConsumer((runtimeData) => {
+      const contextData = normalizeComboSeriesData(getContextPathValue(runtimeData, props.contextPath), {
+        labelKey: props.labelKey,
+        barValueKey: props.barValueKey,
+        lineValueKey: props.lineValueKey,
+      });
+      const chartData = contextData.length > 0 ? contextData : props.data;
+      const emptyMessage = props.contextPath
+        ? `No chart data found at context path "${props.contextPath}".`
+        : "No chart data.";
+
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
         React.createElement(
-          RcResponsiveContainer as React.ElementType,
-          { width: "100%", height: "100%" },
-          React.createElement(
-            RcComposedChart,
-            { data: props.data, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
-            React.createElement(RcCartesianGrid, {
-              stroke: chartPalette.grid,
-              strokeDasharray: "2 4",
-              vertical: false,
-            }),
-            React.createElement(RcXAxis, {
-              dataKey: "label",
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              minTickGap: 12,
-            }),
-            React.createElement(RcYAxis, {
-              yAxisId: "left",
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              width: 52,
-              tickFormatter: (value: number) => `${value}${barUnit}`,
-            }),
-            React.createElement(RcYAxis, {
-              yAxisId: "right",
-              orientation: "right",
-              stroke: chartPalette.axis,
-              tick: chartAxisTickStyle,
-              tickLine: false,
-              axisLine: { stroke: chartPalette.grid },
-              width: 44,
-              tickFormatter: (value: number) => `${value}${lineUnit}`,
-            }),
-            React.createElement(RcTooltip, {
-              contentStyle: {
-                background: chartPalette.tooltipBg,
-                border: `1px solid ${chartPalette.tooltipBorder}`,
-                borderRadius: 8,
-                color: "rgba(248, 253, 255, 0.98)",
-                fontSize: 12,
-              },
-              labelStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 11 },
-              cursor: { fill: "rgba(120, 220, 255, 0.06)" },
-              formatter: tooltipFormatter,
-            }),
-            React.createElement(RcLegend, {
-              wrapperStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 12, paddingTop: 4 },
-              iconType: "circle",
-            }),
-            React.createElement(RcBar, {
-              yAxisId: "left",
-              dataKey: "barValue",
-              name: barLabel,
-              fill: barColor,
-              radius: [3, 3, 0, 0],
-              isAnimationActive: false,
-            }),
-            React.createElement(RcLine, {
-              yAxisId: "right",
-              type: "monotone",
-              dataKey: "lineValue",
-              name: lineLabel,
-              stroke: lineColor,
-              strokeWidth: 1.6,
-              dot: { r: 2.5, stroke: lineColor, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
-              activeDot: { r: 3.5, stroke: lineColor, strokeWidth: 1.5, fill: lineColor },
-              isAnimationActive: false,
-            }),
-          ),
+          "div",
+          { style: { height: 260, padding: 14 } },
+          chartData.length === 0
+            ? React.createElement(
+                "div",
+                {
+                  style: {
+                    alignItems: "center",
+                    border: `1px dashed ${hudEdge}`,
+                    borderRadius: 10,
+                    color: hudTextSoft,
+                    display: "flex",
+                    fontSize: 13,
+                    height: "100%",
+                    justifyContent: "center",
+                    textAlign: "center",
+                  },
+                },
+                emptyMessage,
+              )
+            : React.createElement(
+                RcResponsiveContainer as React.ElementType,
+                { width: "100%", height: "100%", minWidth: 0 },
+                React.createElement(
+                  RcComposedChart,
+                  { data: chartData, margin: { top: 8, right: 16, left: 4, bottom: 0 } },
+                  React.createElement(RcCartesianGrid, {
+                    stroke: chartPalette.grid,
+                    strokeDasharray: "2 4",
+                    vertical: false,
+                  }),
+                  React.createElement(RcXAxis, {
+                    dataKey: "label",
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    minTickGap: 12,
+                  }),
+                  React.createElement(RcYAxis, {
+                    yAxisId: "left",
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    width: 52,
+                    tickFormatter: (value: number) => `${value}${barUnit}`,
+                  }),
+                  React.createElement(RcYAxis, {
+                    yAxisId: "right",
+                    orientation: "right",
+                    stroke: chartPalette.axis,
+                    tick: chartAxisTickStyle,
+                    tickLine: false,
+                    axisLine: { stroke: chartPalette.grid },
+                    width: 44,
+                    tickFormatter: (value: number) => `${value}${lineUnit}`,
+                  }),
+                  React.createElement(RcTooltip, {
+                    ...chartTooltipStyle,
+                    cursor: { fill: "rgba(120, 220, 255, 0.06)" },
+                    formatter: tooltipFormatter,
+                  }),
+                  React.createElement(RcLegend, {
+                    wrapperStyle: { color: "rgba(228, 244, 251, 0.86)", fontSize: 12, paddingTop: 4 },
+                    iconType: "circle",
+                  }),
+                  React.createElement(RcBar, {
+                    yAxisId: "left",
+                    dataKey: "barValue",
+                    name: barLabel,
+                    fill: barColor,
+                    radius: [3, 3, 0, 0],
+                    isAnimationActive: false,
+                  }),
+                  React.createElement(RcLine, {
+                    yAxisId: "right",
+                    type: "monotone",
+                    dataKey: "lineValue",
+                    name: lineLabel,
+                    stroke: lineColor,
+                    strokeWidth: 1.6,
+                    dot: { r: 2.5, stroke: lineColor, strokeWidth: 1, fill: "rgba(8, 24, 38, 0.92)" },
+                    activeDot: { r: 3.5, stroke: lineColor, strokeWidth: 1.5, fill: lineColor },
+                    isAnimationActive: false,
+                  }),
+                ),
+              ),
         ),
-      ),
-    );
+      );
+    });
   },
 });
 
@@ -3797,73 +4108,349 @@ const DataPreview = defineComponent({
     sampleRows: z.array(z.record(z.string(), z.unknown())),
     truncated: z.boolean().optional(),
     rowCount: z.number().int().nonnegative().optional(),
+    contextPath: z.string().optional(),
     ...glassProps,
   }),
   description:
-    "Developer-facing preview of raw structured data (SQL result, CSV head, JSON sample). Shows column types and the first N rows. Use when DataTable is too formal.",
+    "Developer-facing preview of raw structured data (SQL result, CSV head, JSON sample). Shows column types and the first N rows. Use when DataTable is too formal. For large row sets, pass empty sampleRows and set contextPath to read records from --context-file.",
   component: ({ props }) => {
-    const keys = props.schema?.map((c) => c.name) ?? Array.from(new Set(props.sampleRows.flatMap((r) => Object.keys(r))));
-    return React.createElement(
-      "section",
-      { style: panelStyleFor(props) },
-      panelHeader(props.title, props.description),
-      React.createElement(
-        "div",
-        { style: { display: "grid", gap: 8, padding: 14 } },
+    return runtimeDataConsumer((runtimeData) => {
+      const contextRows = normalizeRecordRows(getContextPathValue(runtimeData, props.contextPath));
+      const sampleRows = contextRows.length > 0 ? contextRows : props.sampleRows;
+      const schema = props.schema ?? inferSchemaFromRows(sampleRows);
+      const keys = schema.map((c) => c.name);
+      const rowCount =
+        contextRows.length > 0 && (props.rowCount === undefined || props.rowCount === 0)
+          ? contextRows.length
+          : props.rowCount;
+
+      return React.createElement(
+        "section",
+        { style: panelStyleFor(props) },
+        panelHeader(props.title, props.description),
         React.createElement(
           "div",
-          { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 6 } },
-          props.source ? labelElement(props.source, "info", "xs") : null,
-          props.rowCount !== undefined ? labelElement(`${props.rowCount} rows`, "neutral", "xs") : null,
-          props.truncated ? labelElement("truncated", "warning", "xs") : null,
-        ),
-        React.createElement(
-          "div",
-          { style: { maxHeight: 360, overflow: "auto" } },
+          { style: { display: "grid", gap: 8, padding: 14 } },
           React.createElement(
-            "table",
-            { style: { borderCollapse: "collapse", color: hudText, fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 12, minWidth: "100%" } },
+            "div",
+            { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 6 } },
+            props.source ? labelElement(props.source, "info", "xs") : null,
+            rowCount !== undefined ? labelElement(`${rowCount} rows`, "neutral", "xs") : null,
+            props.truncated ? labelElement("truncated", "warning", "xs") : null,
+          ),
+          React.createElement(
+            "div",
+            { style: { maxHeight: 360, overflow: "auto" } },
             React.createElement(
-              "thead",
-              null,
+              "table",
+              { style: { borderCollapse: "collapse", color: hudText, fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: 12, minWidth: "100%" } },
               React.createElement(
-                "tr",
+                "thead",
                 null,
-                keys.map((k) => {
-                  const schemaCol = props.schema?.find((c) => c.name === k);
-                  return React.createElement(
-                    "th",
-                    {
-                      key: k,
-                      style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, fontWeight: 700, padding: "6px 8px", textAlign: "left", whiteSpace: "nowrap" },
-                    },
-                    k,
-                    schemaCol?.type ? React.createElement("span", { style: { color: hudTextSoft, fontWeight: 400, marginLeft: 6 } }, `:${schemaCol.type}`) : null,
-                  );
-                }),
-              ),
-            ),
-            React.createElement(
-              "tbody",
-              null,
-              props.sampleRows.slice(0, 50).map((row, i) =>
                 React.createElement(
                   "tr",
-                  { key: i },
-                  keys.map((k) =>
-                    React.createElement(
-                      "td",
+                  null,
+                  keys.map((k) => {
+                    const schemaCol = schema.find((c) => c.name === k);
+                    return React.createElement(
+                      "th",
                       {
                         key: k,
-                        style: { borderBottom: `1px solid ${hudEdge}`, color: hudText, padding: "6px 8px", whiteSpace: "nowrap" },
+                        style: { borderBottom: `1px solid ${hudEdge}`, color: hudTextMid, fontWeight: 700, padding: "6px 8px", textAlign: "left", whiteSpace: "nowrap" },
                       },
-                      formatCellValue(row[k]),
+                      k,
+                      schemaCol?.type ? React.createElement("span", { style: { color: hudTextSoft, fontWeight: 400, marginLeft: 6 } }, `:${schemaCol.type}`) : null,
+                    );
+                  }),
+                ),
+              ),
+              React.createElement(
+                "tbody",
+                null,
+                sampleRows.slice(0, 50).map((row, i) =>
+                  React.createElement(
+                    "tr",
+                    { key: i },
+                    keys.map((k) =>
+                      React.createElement(
+                        "td",
+                        {
+                          key: k,
+                          style: { borderBottom: `1px solid ${hudEdge}`, color: hudText, padding: "6px 8px", whiteSpace: "nowrap" },
+                        },
+                        formatCellValue(row[k]),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
+        ),
+      );
+    });
+  },
+});
+
+const LongText = defineComponent({
+  name: "LongText",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    content: z.string().optional(),
+    sections: z
+      .array(
+        z.object({
+          heading: z.string().optional(),
+          body: z.string(),
+        }),
+      )
+      .optional(),
+    language: z.string().optional(),
+    source: z.string().optional(),
+    maxHeight: z.number().int().min(180).max(900).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Readable long-form text viewer for articles, specs, policies, transcripts, legal copy, and generated drafts. Preserves paragraphs and line breaks, supports optional sections, source/language labels, and a bounded scroll area.",
+  component: ({ props }) => {
+    const maxHeight = props.maxHeight ?? 520;
+    const sections = props.sections?.length
+      ? props.sections
+      : props.content
+        ? [{ body: props.content }]
+        : [];
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        props.language || props.source
+          ? React.createElement(
+              "div",
+              { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 6 } },
+              props.language ? labelElement(props.language, "info", "xs") : null,
+              props.source ? labelElement(props.source, "neutral", "xs") : null,
+            )
+          : null,
+        React.createElement(
+          "div",
+          {
+            style: {
+              display: "grid",
+              gap: 18,
+              maxHeight,
+              overflow: "auto",
+              paddingRight: 4,
+            },
+          },
+          sections.length > 0
+            ? sections.map((section, index) =>
+                React.createElement(
+                  "article",
+                  { key: `${section.heading ?? "section"}:${index}`, style: { display: "grid", gap: 8 } },
+                  section.heading
+                    ? React.createElement(
+                        "h4",
+                        {
+                          style: {
+                            color: hudText,
+                            fontSize: 15,
+                            fontWeight: 820,
+                            letterSpacing: 0,
+                            lineHeight: 1.35,
+                            margin: 0,
+                            textWrap: "balance",
+                          },
+                        },
+                        section.heading,
+                      )
+                    : null,
+                  textPanel(section.body, `long:${index}`),
+                ),
+              )
+            : React.createElement("p", { style: { color: hudTextSoft, fontSize: 13, margin: 0 } }, "No text provided."),
+        ),
+      ),
+    );
+  },
+});
+
+const TranslationPanel = defineComponent({
+  name: "TranslationPanel",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    sourceLanguage: z.string(),
+    targetLanguage: z.string(),
+    sourceText: z.string().optional(),
+    translatedText: z.string(),
+    notes: z.array(z.string()).optional(),
+    terms: z
+      .array(
+        z.object({
+          source: z.string(),
+          target: z.string(),
+          note: z.string().optional(),
+        }),
+      )
+      .optional(),
+    maxHeight: z.number().int().min(180).max(900).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Focused translation review panel with source/target language labels, translated text, optional source excerpt, translator notes, and glossary terms.",
+  component: ({ props }) => {
+    const maxHeight = props.maxHeight ?? 440;
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "div",
+          { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 6 } },
+          labelElement(props.sourceLanguage, "neutral", "xs"),
+          labelElement("to", "info", "xs"),
+          labelElement(props.targetLanguage, "positive", "xs"),
+        ),
+        props.sourceText
+          ? React.createElement(
+              "details",
+              { style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 8, padding: 10 } },
+              React.createElement("summary", { style: { color: hudTextMid, cursor: "pointer", fontSize: 12, fontWeight: 800 } }, "Source text"),
+              React.createElement("div", { style: { marginTop: 10 } }, textPanel(props.sourceText, "translation-source", { maxHeight: Math.min(220, maxHeight) })),
+            )
+          : null,
+        React.createElement(
+          "article",
+          { style: { ...cardSurfaceStyle(toneFor("positive"), { padding: 12 }), display: "grid", gap: 10 } },
+          React.createElement("h4", { style: { color: hudText, fontSize: 15, margin: 0 } }, "Translation"),
+          textPanel(props.translatedText, "translation-target", { maxHeight }),
+        ),
+        props.notes?.length
+          ? React.createElement(
+              "ul",
+              { style: { color: hudTextMid, display: "grid", fontSize: 12, gap: 6, lineHeight: 1.5, margin: 0, paddingLeft: 18 } },
+              props.notes.map((note, index) => React.createElement("li", { key: `${note}:${index}`, style: { textWrap: "pretty" } }, note)),
+            )
+          : null,
+        props.terms?.length
+          ? React.createElement(
+              "div",
+              { style: { display: "grid", gap: 6 } },
+              props.terms.map((term, index) =>
+                React.createElement(
+                  "div",
+                  {
+                    key: `${term.source}:${index}`,
+                    style: {
+                      alignItems: "baseline",
+                      borderTop: index === 0 ? undefined : `1px solid ${hudEdge}`,
+                      display: "grid",
+                      gap: 4,
+                      gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                      paddingTop: index === 0 ? 0 : 8,
+                    },
+                  },
+                  labelElement(term.source, "neutral", "xs"),
+                  React.createElement("span", { style: { color: hudText, fontSize: 13, fontWeight: 760, overflowWrap: "anywhere" } }, term.target),
+                  term.note ? React.createElement("span", { style: { color: hudTextSoft, fontSize: 12, gridColumn: "1 / -1", lineHeight: 1.4 } }, term.note) : null,
+                ),
+              ),
+            )
+          : null,
+      ),
+    );
+  },
+});
+
+const TranslationCompare = defineComponent({
+  name: "TranslationCompare",
+  props: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    sourceLanguage: z.string(),
+    targetLanguage: z.string(),
+    segments: z.array(
+      z.object({
+        id: z.string().optional(),
+        source: z.string(),
+        translation: z.string(),
+        note: z.string().optional(),
+        status: z.enum(["ok", "review", "changed", "missing"]).optional(),
+      }),
+    ),
+    maxHeight: z.number().int().min(220).max(900).optional(),
+    ...glassProps,
+  }),
+  description:
+    "Side-by-side translation comparison for reviewing original and translated text by segment. Use for bilingual QA, localization review, wording checks, and before/after translation edits.",
+  component: ({ props }) => {
+    const maxHeight = props.maxHeight ?? 560;
+    return React.createElement(
+      "section",
+      { style: panelStyleFor(props) },
+      panelHeader(props.title, props.description),
+      React.createElement(
+        "div",
+        { style: { display: "grid", gap: 12, padding: 14 } },
+        React.createElement(
+          "div",
+          {
+            style: {
+              color: hudTextMid,
+              display: "grid",
+              fontSize: 12,
+              fontWeight: 840,
+              gap: 10,
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+            },
+          },
+          labelElement(props.sourceLanguage, "neutral", "xs"),
+          labelElement(props.targetLanguage, "positive", "xs"),
+        ),
+        React.createElement(
+          "div",
+          { style: { display: "grid", gap: 10, maxHeight, overflow: "auto", paddingRight: 4 } },
+          props.segments.map((segment, index) => {
+            const toneKey = segment.status === "missing" ? "danger" : segment.status === "review" ? "warning" : segment.status === "changed" ? "info" : "neutral";
+            const tone = toneFor(toneKey);
+            return React.createElement(
+              "article",
+              {
+                key: segment.id ?? index,
+                style: {
+                  ...cardSurfaceStyle(tone, { padding: 10 }),
+                  display: "grid",
+                  gap: 8,
+                },
+              },
+              React.createElement(
+                "div",
+                { style: { alignItems: "center", display: "flex", gap: 8, justifyContent: "space-between" } },
+                labelElement(segment.id ?? `#${index + 1}`, "neutral", "xs"),
+                segment.status ? labelElement(segment.status, toneKey, "xs") : null,
+              ),
+              React.createElement(
+                "div",
+                {
+                  style: {
+                    display: "grid",
+                    gap: 10,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+                  },
+                },
+                React.createElement("div", { style: { minWidth: 0 } }, textPanel(segment.source, `compare-source:${index}`)),
+                React.createElement("div", { style: { minWidth: 0 } }, textPanel(segment.translation, `compare-target:${index}`)),
+              ),
+              segment.note ? React.createElement("p", { style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, margin: 0, textWrap: "pretty" } }, segment.note) : null,
+            );
+          }),
         ),
       ),
     );
@@ -4317,13 +4904,7 @@ const DonutChart = defineComponent({
               RcPieChart,
               null,
               React.createElement(RcTooltip, {
-                contentStyle: {
-                  background: chartPalette.tooltipBg,
-                  border: `1px solid ${chartPalette.tooltipBorder}`,
-                  borderRadius: 8,
-                  color: "rgba(248, 253, 255, 0.98)",
-                  fontSize: 12,
-                },
+                ...chartTooltipStyle,
                 formatter: (value: unknown, _name: unknown, entry: unknown) => {
                   const e = entry as { payload?: { label?: string; value?: number } };
                   const v = typeof value === "number" ? value : Number(value);
@@ -4748,15 +5329,15 @@ const componentGroups: ComponentGroup[] = [
       "- Use Gauge for one bounded score, confidence, health, SLA, quota, or completion value.",
       "- Use ChecklistPanel for acceptance criteria, QA gates, launch checks, and requirement coverage.",
       "- Use ProgressStepper for workflows, approvals, onboarding, release steps, and investigations.",
-      "- Use BarChart for category comparison, rankings, volumes, counts, and cost breakdowns.",
-      "- Use LineChart for trend, forecast, time-series, backlog, and metric movement.",
-      "- Use ComboChart when two series with different units belong together (PV + CVR, revenue + growth-rate, requests + latency). Bars take the left axis, line takes the right axis.",
+      "- Use BarChart for category comparison, rankings, volumes, counts, and cost breakdowns. For bulky --context-file data, pass [] as data and set contextPath plus labelKey/valueKey if needed.",
+      "- Use LineChart for trend, forecast, time-series, backlog, and metric movement. For bulky --context-file data, pass [] as data and set contextPath plus labelKey/valueKey if needed.",
+      "- Use ComboChart when two series with different units belong together (PV + CVR, revenue + growth-rate, requests + latency). For bulky --context-file data, pass [] as data and set contextPath plus labelKey/barValueKey/lineValueKey.",
       "- Use ResourceList for files, URLs, docs, generated outputs, and references.",
       "- Use FormPanel for input review, missing fields, intake summaries, and approval requests.",
       "- Use ActionPanel whenever the UI should tell the user what to do next.",
       "- Use TimelinePanel for chronological explanations, incident flow, launches, and multi-step progress.",
       "- Use DecisionMatrix when comparing options or making a recommendation.",
-      "- Use DataTable when the user needs to inspect structured rows or compare records.",
+      "- Use DataTable when the user needs to inspect structured rows or compare records. For bulky --context-file rows, pass [] for columns and rows and set contextPath to infer columns.",
       "- Use TaskBoard when explaining work status, queues, triage lanes, or multi-agent handoffs.",
       "- Use CodeDiff for code, config, prompt, or document change review.",
     ],
@@ -4799,6 +5380,15 @@ const componentGroups: ComponentGroup[] = [
       "- Use CodeBlock for a single snippet of code or a command. CodeDiff is for changes; CodeBlock is for new code to paste or run.",
       "- Use DataPreview for raw structured data inspection (SQL result, CSV head, JSON sample) with column types — devs read it, not stakeholders.",
       "- Use TreeView for any hierarchy: file tree, JSON shape, org chart, dependency tree, nested config.",
+    ],
+  },
+  {
+    name: "Text & Translation",
+    components: ["LongText", "TranslationPanel", "TranslationCompare"],
+    notes: [
+      "- Use LongText for articles, policy text, long drafts, specs, transcripts, and any text where scrolling and paragraph readability matter.",
+      "- Use TranslationPanel for one focused translation with optional source excerpt, notes, and glossary terms.",
+      "- Use TranslationCompare when the user needs to compare original and translated text side by side by segment.",
     ],
   },
   {
@@ -4905,6 +5495,9 @@ const customComponents = [
   CompareTable,
   CodeBlock,
   DataPreview,
+  LongText,
+  TranslationPanel,
+  TranslationCompare,
   WeatherCard,
   EventList,
   PersonCard,
@@ -4955,6 +5548,9 @@ const customComponentNames = new Set([
   "CompareTable",
   "CodeBlock",
   "DataPreview",
+  "LongText",
+  "TranslationPanel",
+  "TranslationCompare",
   "WeatherCard",
   "EventList",
   "PersonCard",
@@ -4996,15 +5592,15 @@ export const promptOptions: PromptOptions = {
     "For one bounded score, health, confidence, SLA, quota, or completion value, prefer Gauge(title, description, label, value, max, unit, target, tone). Use MetricGrid for several peer values.",
     "For acceptance criteria, QA gates, launch checks, requirements coverage, and human review items, prefer ChecklistPanel(title, description, items, summary). Use ProgressStepper only when order/time matters.",
     "For staged progress, approvals, onboarding, investigations, and release steps, prefer ProgressStepper(title, description, steps).",
-    "For rankings, counts, volumes, costs, and category comparison, prefer BarChart(title, description, unit, max, data).",
-    "For trends, forecasts, time series, backlog movement, and metric changes, prefer LineChart(title, description, unit, data).",
-    "For two series with different units shown together (e.g. PV + CVR, revenue + growth-rate, requests + latency), prefer ComboChart(title, description, data=[{label, barValue, lineValue}], barUnit, lineUnit, barLabel, lineLabel, barTone). Bars use the left axis, the line uses the right axis. If all series use the same unit, use LineChart or BarChart instead.",
+    "For rankings, counts, volumes, costs, and category comparison, prefer BarChart(title, description, unit, max, data). For large data passed with --context-file, use BarChart(title, description, unit, max, [], contextPath, labelKey?, valueKey?, toneKey?).",
+    "For trends, forecasts, time series, backlog movement, and metric changes, prefer LineChart(title, description, unit, data). For large time series passed with --context-file, use LineChart(title, description, unit, [], contextPath, labelKey?, valueKey?), where contextPath points to rows in the artifact context.",
+    "For two series with different units shown together (e.g. PV + CVR, revenue + growth-rate, requests + latency), prefer ComboChart(title, description, data=[{label, barValue, lineValue}], barUnit, lineUnit, barLabel, lineLabel, barTone). For large data passed with --context-file, use ComboChart(title, description, [], barUnit, lineUnit, barLabel, lineLabel, barTone, contextPath, labelKey?, barValueKey?, lineValueKey?). Bars use the left axis, the line uses the right axis. If all series use the same unit, use LineChart or BarChart instead.",
     "For files, URLs, docs, generated artifacts, and references, prefer ResourceList(title, description, resources).",
     "For required inputs, intake review, confirmation, and missing fields, prefer FormPanel(title, description, fields).",
     "For recommended next steps, approvals, handoffs, and follow-up work, prefer ActionPanel(title, description, actions). actions can include href when an action should open a URL.",
     "For chronological explanations, incidents, launches, or multi-step progress, prefer TimelinePanel(title, description, events).",
     "For alternatives, tradeoffs, or recommendations, prefer DecisionMatrix(title, description, options).",
-    "For structured rows, evidence, tickets, files, search results, or ranked lists, prefer DataTable(title, description, columns, rows, caption).",
+    "For structured rows, evidence, tickets, files, search results, or ranked lists, prefer DataTable(title, description, columns, rows, caption). For --context-file rows, use DataTable(title, description, [], [], caption, contextPath) to infer columns.",
     "For task queues, implementation plans, QA status, triage lanes, or multi-agent handoffs, prefer TaskBoard(title, description, columns).",
     "For code, config, prompt, or document changes, prefer CodeDiff(title, description, files).",
     "For map requests, use MapView(title, description, center, zoom, height, markers) as part of the UI. Include useful marker labels and colors.",
@@ -5016,7 +5612,10 @@ export const promptOptions: PromptOptions = {
     "For single high-stakes confirmation (delete, approve, deploy, autonomous-run gate), prefer ConfirmDialog(title, description, question, detail, risk, confirmLabel, cancelLabel, consequences).",
     "For side-by-side option comparison with shared specs, prefer CompareTable(title, description, options, specOrder). Each option has { name, tagline, recommended, specs }.",
     "For a single code or command snippet to paste or run, prefer CodeBlock(title, description, language, code, runnable, filename). Use CodeDiff only for changes.",
-    "For raw structured data inspection (SQL result, CSV head, JSON sample), prefer DataPreview(title, description, source, schema, sampleRows, truncated, rowCount).",
+    "For raw structured data inspection (SQL result, CSV head, JSON sample), prefer DataPreview(title, description, source, schema, sampleRows, truncated, rowCount). For --context-file rows, use DataPreview(title, description, source, [], [], truncated, rowCount, contextPath) to infer schema.",
+    "For long-form prose such as articles, specs, policies, transcripts, or generated drafts, prefer LongText(title, description, content, sections, language, source, maxHeight). Use sections=[{heading, body}] for structured long text.",
+    "For one focused translation, prefer TranslationPanel(title, description, sourceLanguage, targetLanguage, sourceText, translatedText, notes, terms, maxHeight). Use terms=[{source,target,note?}] for glossary choices.",
+    "For side-by-side bilingual review, prefer TranslationCompare(title, description, sourceLanguage, targetLanguage, segments, maxHeight). segments=[{id?, source, translation, note?, status?: ok|review|changed|missing}].",
     "For weather forecasts and atmosphere conditions, prefer WeatherCard(title, description, location, summary, temperature, feelsLike, highLow, icon, forecast).",
     "For schedules, agendas, today/upcoming events, prefer EventList(title, description, events). Each event has { title, start, end, location, category, attendees, notes }.",
     "For team intros, reviewer lists, owner handoffs, prefer PersonCard(title, description, people). Each person has { name, role, avatar, email, phone, status, bio }.",

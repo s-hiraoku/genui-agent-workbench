@@ -7,7 +7,13 @@ import "leaflet/dist/leaflet.css";
 import { useCallback, useEffect, useMemo } from "react";
 import { Renderer } from "@openuidev/react-lang";
 import { Check, X } from "lucide-react";
-import { library, PopupEventContext, type PopupEventInput, type PopupEventOptions } from "@/library";
+import {
+  GenUIRuntimeDataContext,
+  library,
+  PopupEventContext,
+  type PopupEventInput,
+  type PopupEventOptions,
+} from "@/library";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
 
 type PreviewClientProps = {
@@ -19,6 +25,7 @@ type PreviewClientProps = {
   popupId?: string;
   controlUrl?: string;
   controlToken?: string;
+  artifactContext?: Record<string, unknown>;
   size?: string;
   theme?: string;
   themeColor?: string;
@@ -32,6 +39,7 @@ export function PreviewClient({
   popupId,
   controlUrl,
   controlToken,
+  artifactContext,
   theme,
   themeColor,
   visualTheme,
@@ -132,9 +140,11 @@ export function PreviewClient({
         </header>
 
         <main className="lg-scroll lg-preview flex-1 overflow-auto">
-          <PopupEventContext.Provider value={reportPopupEvent}>
-            <Renderer response={openuiLang} library={library} />
-          </PopupEventContext.Provider>
+          <GenUIRuntimeDataContext.Provider value={artifactContext ?? null}>
+            <PopupEventContext.Provider value={reportPopupEvent}>
+              <Renderer response={openuiLang} library={library} />
+            </PopupEventContext.Provider>
+          </GenUIRuntimeDataContext.Provider>
         </main>
       </div>
     </LiquidGlassSurface>

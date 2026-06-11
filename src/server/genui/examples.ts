@@ -81,6 +81,22 @@ export const genUIExamples: GenUIExample[] = [
     ].join("\n"),
   },
   {
+    name: "context-timeseries",
+    title: "Context Time Series",
+    description: "Charts and tables backed by rows passed with --context-file.",
+    size: "wide",
+    openuiLang: [
+      "root = Card([header, chart, combo, table, note])",
+      'header = CardHeader("Context Dashboard", "Charts and rows loaded from attached JSON context")',
+      'chart = LineChart("Daily Traffic", "Reads context.daily without embedding each point", " views", [], "daily", "date", "pv")',
+      'combo = ComboChart("PV + CVR", "Reads two series from context.daily", [], " views", "%", "PV", "CVR", "info", "daily", "date", "pv", "cvr")',
+      'table = DataTable("Top Pages", "Rows inferred from context.pages", [], [], "Attach with --context-file metrics.json", "pages")',
+      'note = KeyValuePanel("Context contract", "Use genui popup ... --context-file metrics.json", [f1, f2])',
+      'f1 = { label: "Daily path", value: "daily", tone: "info", description: "Rows like { date: \\"Jun 1\\", pv: 1200, cvr: 2.4 }" }',
+      'f2 = { label: "Page path", value: "pages", tone: "neutral", description: "Rows can be rendered as tables without defining every cell in OpenUI Lang." }',
+    ].join("\n"),
+  },
+  {
     name: "code-review",
     title: "Code Review",
     description: "Review summary with changed files, risks, and follow-up tasks.",
