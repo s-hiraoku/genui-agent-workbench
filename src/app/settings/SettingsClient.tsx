@@ -85,11 +85,11 @@ const appearanceOptions: Array<{ value: AppearanceTheme; label: string; icon: Re
   { value: "light", label: "Light", icon: <Sun size={17} strokeWidth={1.7} /> },
 ];
 
-const visualThemeOptions: Array<{ value: VisualThemePreset; label: string }> = [
-  { value: "hud", label: "HUD" },
-  { value: "workbench", label: "Workbench" },
-  { value: "studio", label: "Studio" },
-  { value: "briefing", label: "Briefing" },
+const visualThemeOptions: Array<{ value: VisualThemePreset; label: string; description: string }> = [
+  { value: "hud", label: "HUD", description: "Live signal overlay" },
+  { value: "workbench", label: "Workbench", description: "Queues and tables" },
+  { value: "studio", label: "Studio", description: "Editor console" },
+  { value: "briefing", label: "Briefing", description: "Report document" },
 ];
 
 const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [
@@ -370,6 +370,7 @@ export function SettingsClient({
                       >
                         <span aria-hidden="true" />
                         <strong>{option.label}</strong>
+                        <small>{option.description}</small>
                       </button>
                     ))}
                   </div>
