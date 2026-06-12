@@ -1107,7 +1107,7 @@ const AudioPlayer = defineComponent({
 
     return React.createElement(
       "section",
-      { style: panelStyleFor(props) },
+      { "data-lg-widget": "audio-player", style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -1115,6 +1115,7 @@ const AudioPlayer = defineComponent({
         React.createElement(
           "article",
           {
+            "data-lg-audio-current": "true",
             style: {
               alignItems: "center",
               background: hudCellWash,
@@ -1126,28 +1127,28 @@ const AudioPlayer = defineComponent({
               padding: 12,
             },
           },
-          selected.coverUrl
-            ? React.createElement("img", {
-                alt: "",
-                src: selected.coverUrl,
-                style: { borderRadius: 8, height: 88, objectFit: "cover", width: 88 },
-              })
-            : null,
+          React.createElement("img", {
+            alt: "",
+            "data-lg-audio-cover": "true",
+            hidden: !selected.coverUrl,
+            src: selected.coverUrl,
+            style: { borderRadius: 8, height: 88, objectFit: "cover", width: 88 },
+          }),
           React.createElement(
             "div",
             null,
             React.createElement(
               "div",
               { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" } },
-              React.createElement("strong", { style: { color: hudText, fontSize: 16 } }, selected.title),
+              React.createElement("strong", { "data-lg-audio-title": "true", style: { color: hudText, fontSize: 16 } }, selected.title),
               labelElement(`Track ${selectedIndex + 1}/${props.tracks.length}`, selectedIndex === 0 ? "positive" : "info", "xs"),
             ),
-            selected.artist
-              ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 3 } }, selected.artist)
-              : null,
-            selected.description
-              ? React.createElement("p", { style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: "6px 0" } }, selected.description)
-              : null,
+            React.createElement("div", { "data-lg-audio-artist": "true", hidden: !selected.artist, style: { color: hudTextSoft, fontSize: 12, marginTop: 3 } }, selected.artist),
+            React.createElement(
+              "p",
+              { "data-lg-audio-description": "true", hidden: !selected.description, style: { color: hudTextMid, fontSize: 12, lineHeight: 1.5, margin: "6px 0" } },
+              selected.description,
+            ),
             React.createElement("audio", {
               controls: true,
               key: `${selected.src}:${selectedIndex}`,
@@ -1168,6 +1169,12 @@ const AudioPlayer = defineComponent({
                   "button",
                   {
                     "aria-current": selectedTrack ? "true" : undefined,
+                    "data-lg-artist": track.artist,
+                    "data-lg-audio-track": "true",
+                    "data-lg-cover": track.coverUrl,
+                    "data-lg-description": track.description,
+                    "data-lg-src": track.src,
+                    "data-lg-title": track.title,
                     key: `${track.src}:${index}`,
                     onClick: () => setSelectedIndex(index),
                     style: {
@@ -1297,14 +1304,14 @@ const VideoPlaylist = defineComponent({
 
     return React.createElement(
       "section",
-      { style: panelStyleFor(props) },
+      { "data-lg-widget": "video-playlist", style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
         { style: { display: "grid", gap: 12, padding: 14 } },
         React.createElement(
           "div",
-          { key: `${selected.src}:${selectedIndex}` },
+          { "data-lg-video-surface": "true", key: `${selected.src}:${selectedIndex}` },
           renderVideoSurface({
             autoplay: shouldAutoplay,
             posterUrl: selected.posterUrl,
@@ -1318,18 +1325,20 @@ const VideoPlaylist = defineComponent({
           React.createElement(
             "div",
             { style: { alignItems: "center", display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between" } },
-            React.createElement("h3", { style: { color: hudText, fontSize: 16, fontWeight: 760, margin: 0 } }, selected.title),
+            React.createElement("h3", { "data-lg-video-title": "true", style: { color: hudText, fontSize: 16, fontWeight: 760, margin: 0 } }, selected.title),
             labelElement(`候補 ${selectedIndex + 1}/${props.videos.length}`, selectedIndex === 0 ? "positive" : "info", "xs"),
           ),
-          selected.channel
-            ? React.createElement("div", { style: { color: hudTextSoft, fontSize: 12, marginTop: 3 } }, selected.channel)
-            : null,
-          selected.description
-            ? React.createElement("p", { style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } }, selected.description)
-            : null,
-          selected.reason
-            ? React.createElement("p", { style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, margin: "5px 0 0" } }, selected.reason)
-            : null,
+          React.createElement("div", { "data-lg-video-channel": "true", hidden: !selected.channel, style: { color: hudTextSoft, fontSize: 12, marginTop: 3 } }, selected.channel),
+          React.createElement(
+            "p",
+            { "data-lg-video-description": "true", hidden: !selected.description, style: { color: hudTextMid, fontSize: 13, lineHeight: 1.5, margin: "6px 0 0" } },
+            selected.description,
+          ),
+          React.createElement(
+            "p",
+            { "data-lg-video-reason": "true", hidden: !selected.reason, style: { color: hudTextSoft, fontSize: 12, lineHeight: 1.45, margin: "5px 0 0" } },
+            selected.reason,
+          ),
         ),
         React.createElement(
           "div",
@@ -1369,6 +1378,7 @@ const VideoPlaylist = defineComponent({
               props.videos.map((video, index) => {
                 const selectedRow = index === selectedIndex;
                 const tone = selectedRow ? toneFor("positive") : toneFor("neutral");
+                const embedSource = resolveVideoEmbedSource(video.src, { autoplay: shouldAutoplay });
                 return React.createElement(
                   "tr",
                   {
@@ -1389,6 +1399,14 @@ const VideoPlaylist = defineComponent({
                       "button",
                       {
                         "aria-current": selectedRow ? "true" : undefined,
+                        "data-lg-channel": video.channel,
+                        "data-lg-description": video.description,
+                        "data-lg-embed-kind": embedSource.kind,
+                        "data-lg-embed-src": embedSource.src,
+                        "data-lg-poster": video.posterUrl,
+                        "data-lg-reason": video.reason,
+                        "data-lg-title": video.title,
+                        "data-lg-video-item": "true",
                         onClick: () => setSelectedIndex(index),
                         style: {
                           background: "transparent",
@@ -3697,7 +3715,7 @@ const ImageGallery = defineComponent({
 
     return React.createElement(
       "section",
-      { style: panelStyleFor(props) },
+      { "data-lg-widget": "image-gallery", style: panelStyleFor(props) },
       panelHeader(props.title, props.description),
       React.createElement(
         "div",
@@ -3707,6 +3725,7 @@ const ImageGallery = defineComponent({
           { style: { background: hudPanelWash, border: `1px solid ${hudEdge}`, borderRadius: 10, margin: 0, overflow: "hidden" } },
           React.createElement("img", {
             alt: selected.alt ?? selected.caption ?? `image ${selectedIndex + 1}`,
+            "data-lg-gallery-image": "true",
             src: selected.src,
             style: { aspectRatio: "16 / 9", display: "block", height: "auto", objectFit: "contain", width: "100%" },
           }),
@@ -3724,7 +3743,7 @@ const ImageGallery = defineComponent({
                 padding: "8px 10px",
               },
             },
-            React.createElement("span", null, selected.caption ?? selected.alt ?? `Image ${selectedIndex + 1}`),
+            React.createElement("span", { "data-lg-gallery-caption": "true" }, selected.caption ?? selected.alt ?? `Image ${selectedIndex + 1}`),
             labelElement(`${selectedIndex + 1}/${props.images.length}`, "info", "xs"),
           ),
         ),
@@ -3744,6 +3763,10 @@ const ImageGallery = defineComponent({
                   "button",
                   {
                     "aria-current": selectedImage ? "true" : undefined,
+                    "data-lg-alt": img.alt,
+                    "data-lg-caption": img.caption,
+                    "data-lg-gallery-item": "true",
+                    "data-lg-src": img.src,
                     key: `${img.src}:${index}`,
                     onClick: () => setSelectedIndex(index),
                     style: {

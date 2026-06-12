@@ -196,13 +196,22 @@ describe("renderGenUI", () => {
       'v2 = { title: "Next", src: "https://youtu.be/aqz-KE-bpKQ?t=42", channel: "YouTube", reason: "next candidate" }',
       'audio = AudioPlayer("音声候補", "選択式キュー", [track1, track2])',
       'track1 = { title: "Track 1", src: "https://example.com/a.mp3", artist: "demo" }',
-      'track2 = { title: "Track 2", src: "https://example.com/b.mp3", artist: "demo" }',
+      'track2 = { title: "Track 2", src: "https://example.com/b.mp3", artist: "demo", coverUrl: "https://example.com/b.png" }',
       'gallery = ImageGallery("画像候補", "選択式プレビュー", [img1, img2], 2)',
       'img1 = { src: "https://example.com/a.png", caption: "A" }',
       'img2 = { src: "https://example.com/b.png", caption: "B" }',
     ].join("\n");
 
     expect(() => validateOpenUILang(mediaOpenUILang)).not.toThrow();
+    const markup = renderToStaticMarkup(React.createElement(Renderer, { response: mediaOpenUILang, library }));
+    expect(markup).toContain('data-lg-widget="video-playlist"');
+    expect(markup).toContain('data-lg-widget="audio-player"');
+    expect(markup).toContain('data-lg-widget="image-gallery"');
+    expect(markup).toContain("data-lg-embed-src");
+    expect(markup).toContain("data-lg-audio-track");
+    expect(markup).toContain("data-lg-audio-cover");
+    expect(markup).toContain("data-lg-cover");
+    expect(markup).toContain("data-lg-gallery-item");
   });
 
   it("validates long text and translation components", () => {
@@ -432,6 +441,36 @@ describe("theme CSS", () => {
     for (const visualTheme of ["workbench", "studio", "briefing"]) {
       expect(extractVisualThemeBlock(css, visualTheme)).not.toMatch(/--theme-frame(?:-soft|-glow)?:/);
     }
+  });
+
+  it("keeps Studio readable when the resolved appearance is light", async () => {
+    const css = await fs.readFile(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\]\s*\{/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--ink:\s*rgb\(26,\s*30,\s*36\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--aether-window-tint:\s*rgba\(250,\s*251,\s*252,\s*0\.98\);/);
+  });
+
+  it("ships standalone HTML interaction recovery for downloaded previews", async () => {
+    const source = await fs.readFile(path.join(process.cwd(), "src/app/preview/[artifactId]/PreviewClient.tsx"), "utf8");
+
+    expect(source).toContain("standaloneInteractionScript");
+    expect(source).toContain('[role="tablist"]');
+    expect(source).toContain('[data-lg-widget="audio-player"]');
+    expect(source).toContain('[data-lg-widget="video-playlist"]');
+    expect(source).toContain('[data-lg-widget="image-gallery"]');
+    expect(source).toContain('current.style.gridTemplateColumns = coverUrl ? "88px 1fr" : "1fr"');
+    expect(source).toContain('cover.removeAttribute("src")');
+    expect(source).toContain('<meta name="color-scheme" content="light dark">');
+  });
+
+  it("does not keep the popup frame running ambient animations while idle", async () => {
+    const css = await fs.readFile(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).not.toMatch(/lg-frame-spin\s+[\d.]+s\s+linear\s+infinite/);
+    expect(css).not.toMatch(/lg-frame-ring-pulse\s+[\d.]+s\s+ease-in-out\s+infinite/);
+    expect(css).not.toMatch(/lg-window-frame-glow-pulse\s+[\d.]+s\s+ease-in-out\s+infinite/);
+    expect(css).not.toMatch(/will-change:\s*--frame-spin/);
   });
 });
 
