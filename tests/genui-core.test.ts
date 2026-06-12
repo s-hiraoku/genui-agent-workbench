@@ -202,6 +202,13 @@ describe("renderGenUI", () => {
     ].join("\n");
 
     expect(() => validateOpenUILang(mediaOpenUILang)).not.toThrow();
+    const markup = renderToStaticMarkup(React.createElement(Renderer, { response: mediaOpenUILang, library }));
+    expect(markup).toContain('data-lg-widget="video-playlist"');
+    expect(markup).toContain('data-lg-widget="audio-player"');
+    expect(markup).toContain('data-lg-widget="image-gallery"');
+    expect(markup).toContain("data-lg-embed-src");
+    expect(markup).toContain("data-lg-audio-track");
+    expect(markup).toContain("data-lg-gallery-item");
   });
 
   it("validates long text and translation components", () => {
@@ -411,6 +418,25 @@ describe("theme CSS", () => {
     for (const visualTheme of ["workbench", "studio", "briefing"]) {
       expect(extractVisualThemeBlock(css, visualTheme)).not.toMatch(/--theme-frame(?:-soft|-glow)?:/);
     }
+  });
+
+  it("keeps Studio readable when the resolved appearance is light", async () => {
+    const css = await fs.readFile(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\]\s*\{/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--ink:\s*rgb\(26,\s*30,\s*36\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--aether-window-tint:\s*rgba\(250,\s*251,\s*252,\s*0\.98\);/);
+  });
+
+  it("ships standalone HTML interaction recovery for downloaded previews", async () => {
+    const source = await fs.readFile(path.join(process.cwd(), "src/app/preview/[artifactId]/PreviewClient.tsx"), "utf8");
+
+    expect(source).toContain("standaloneInteractionScript");
+    expect(source).toContain('[role="tablist"]');
+    expect(source).toContain('[data-lg-widget="audio-player"]');
+    expect(source).toContain('[data-lg-widget="video-playlist"]');
+    expect(source).toContain('[data-lg-widget="image-gallery"]');
+    expect(source).toContain('<meta name="color-scheme" content="light dark">');
   });
 });
 
