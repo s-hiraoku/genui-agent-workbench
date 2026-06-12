@@ -544,9 +544,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --scrollbar-track: rgba(222, 242, 244, 0.82);
 }
 
-/* Non-HUD visual themes must win after the resolved appearance theme has
-   applied. Otherwise combinations such as Light + Studio can inherit dark
-   surfaces with light-theme text, making content unreadable. */
+/* Visual themes are an information-architecture layer, not a light/dark
+   substitute. Appearance decides brightness; these presets decide whether the
+   popup reads as operations grid, editor console, or briefing document. */
 .lg-shell[data-visual-theme="workbench"] {
   color-scheme: light;
   --ink: rgb(28, 36, 48);
@@ -579,6 +579,25 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --danger: rgb(172, 50, 70);
   --scrollbar-thumb: rgba(88, 108, 132, 0.38);
   --scrollbar-track: rgba(226, 232, 240, 0.82);
+  --visual-frame-radius: 12px;
+  --visual-frame-mask-radius: 14px;
+  --visual-card-radius: 6px;
+  --visual-control-radius: 6px;
+  --visual-component-radius: 6px;
+  --visual-frame-border: linear-gradient(180deg, var(--edge-strong), var(--edge-soft));
+  --visual-frame-halo-opacity: 0.10;
+  --workbench-grid-line: rgba(92, 110, 132, 0.18);
+  --workbench-rail: rgba(222, 232, 244, 0.92);
+  --workbench-rail-soft: rgba(78, 96, 120, 0.18);
+  --visual-window-pattern:
+    linear-gradient(90deg, var(--workbench-rail) 0 48px, transparent 48px),
+    repeating-linear-gradient(0deg, transparent 0 31px, var(--workbench-grid-line) 31px 32px),
+    repeating-linear-gradient(90deg, transparent 0 47px, var(--workbench-grid-line) 47px 48px),
+    linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft));
+  --visual-card-pattern:
+    linear-gradient(90deg, var(--workbench-rail-soft) 0 4px, transparent 4px),
+    repeating-linear-gradient(0deg, transparent 0 35px, var(--workbench-grid-line) 35px 36px),
+    linear-gradient(180deg, var(--aether-card-tint), var(--aether-card-tint-soft));
 }
 
 .lg-shell[data-visual-theme="studio"] {
@@ -613,6 +632,26 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --danger: rgb(232, 104, 126);
   --scrollbar-thumb: rgba(158, 174, 190, 0.42);
   --scrollbar-track: rgba(24, 30, 38, 0.86);
+  --visual-frame-radius: 16px;
+  --visual-frame-mask-radius: 18px;
+  --visual-card-radius: 8px;
+  --visual-control-radius: 7px;
+  --visual-component-radius: 8px;
+  --visual-frame-border:
+    linear-gradient(135deg, rgba(118, 136, 152, 0.64), rgba(34, 42, 52, 0.88) 42%, var(--theme-frame-soft));
+  --visual-frame-halo-opacity: 0.18;
+  --studio-rail: rgba(8, 12, 16, 0.46);
+  --studio-ruler: rgba(118, 136, 152, 0.22);
+  --studio-ruler-strong: rgba(74, 172, 208, 0.36);
+  --visual-window-pattern:
+    linear-gradient(90deg, var(--studio-rail) 0 10px, transparent 10px),
+    linear-gradient(180deg, var(--studio-ruler) 0 4px, transparent 4px),
+    radial-gradient(80% 80% at 100% 0%, rgba(74, 172, 208, 0.10), transparent 58%),
+    linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft));
+  --visual-card-pattern:
+    linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--studio-ruler) 0 3px, transparent 3px),
+    linear-gradient(145deg, var(--aether-card-tint), var(--aether-card-tint-soft));
 }
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="studio"] {
@@ -642,6 +681,36 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --tint-solid: rgba(255, 255, 255, 0.94);
   --scrollbar-thumb: rgba(88, 100, 118, 0.40);
   --scrollbar-track: rgba(226, 230, 236, 0.86);
+  --studio-rail: rgba(42, 50, 60, 0.16);
+  --studio-ruler: rgba(54, 62, 74, 0.16);
+  --studio-ruler-strong: rgba(44, 118, 164, 0.42);
+}
+
+.lg-shell[data-appearance-theme="dark"][data-visual-theme="workbench"] {
+  color-scheme: dark;
+  --ink: rgb(232, 238, 244);
+  --ink-mid: rgb(198, 210, 224);
+  --ink-soft: rgb(146, 164, 184);
+  --theme-frame-cast-shadow: rgba(0, 0, 0, 0.34);
+  --aether-window-tint: rgba(18, 24, 32, 0.98);
+  --aether-window-tint-soft: rgba(24, 32, 42, 0.94);
+  --aether-card-tint: rgba(28, 38, 50, 0.88);
+  --aether-card-tint-soft: rgba(22, 30, 40, 0.82);
+  --aether-readable-tint: rgba(34, 44, 56, 0.94);
+  --aether-readable-tint-soft: rgba(24, 32, 42, 0.88);
+  --glass-label-wash: rgba(50, 64, 82, 0.92);
+  --glass-label-wash-soft: rgba(36, 48, 62, 0.78);
+  --glass-label-ink: rgb(224, 234, 244);
+  --edge: rgba(116, 134, 154, 0.36);
+  --edge-strong: rgba(148, 166, 186, 0.44);
+  --edge-soft: rgba(86, 104, 124, 0.24);
+  --spec-soft: rgba(255, 255, 255, 0.12);
+  --tint-row: rgba(38, 50, 64, 0.74);
+  --tint-chip: rgba(50, 66, 84, 0.88);
+  --tint-solid: rgba(24, 32, 42, 0.94);
+  --workbench-grid-line: rgba(160, 180, 202, 0.12);
+  --workbench-rail: rgba(30, 40, 54, 0.96);
+  --workbench-rail-soft: rgba(150, 172, 196, 0.16);
 }
 
 .lg-shell[data-visual-theme="briefing"] {
@@ -676,16 +745,61 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --danger: rgb(176, 48, 70);
   --scrollbar-thumb: rgba(76, 112, 148, 0.40);
   --scrollbar-track: rgba(222, 232, 242, 0.84);
+  --visual-frame-radius: 8px;
+  --visual-frame-mask-radius: 10px;
+  --visual-card-radius: 4px;
+  --visual-control-radius: 4px;
+  --visual-component-radius: 4px;
+  --visual-frame-border: linear-gradient(180deg, rgba(154, 176, 202, 0.74), rgba(206, 218, 232, 0.82));
+  --visual-frame-halo-opacity: 0.06;
+  --briefing-spine: rgba(44, 108, 164, 0.52);
+  --briefing-rule: rgba(86, 126, 164, 0.18);
+  --briefing-paper-shadow: rgba(48, 78, 112, 0.12);
+  --visual-window-pattern:
+    linear-gradient(90deg, transparent 0 22px, var(--briefing-spine) 22px 26px, transparent 26px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0 58px, transparent 58px),
+    linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft));
+  --visual-card-pattern:
+    linear-gradient(90deg, var(--briefing-spine) 0 5px, transparent 5px),
+    repeating-linear-gradient(180deg, transparent 0 43px, var(--briefing-rule) 43px 44px),
+    linear-gradient(180deg, var(--aether-card-tint), var(--aether-card-tint-soft));
+}
+
+.lg-shell[data-appearance-theme="dark"][data-visual-theme="briefing"] {
+  color-scheme: dark;
+  --ink: rgb(232, 238, 246);
+  --ink-mid: rgb(196, 210, 226);
+  --ink-soft: rgb(146, 166, 188);
+  --theme-frame-cast-shadow: rgba(0, 0, 0, 0.32);
+  --aether-window-tint: rgba(18, 28, 40, 0.98);
+  --aether-window-tint-soft: rgba(24, 36, 50, 0.94);
+  --aether-card-tint: rgba(28, 42, 58, 0.90);
+  --aether-card-tint-soft: rgba(22, 34, 48, 0.84);
+  --aether-readable-tint: rgba(34, 48, 64, 0.95);
+  --aether-readable-tint-soft: rgba(26, 38, 52, 0.88);
+  --glass-label-wash: rgba(48, 70, 94, 0.92);
+  --glass-label-wash-soft: rgba(36, 54, 76, 0.78);
+  --glass-label-ink: rgb(224, 236, 248);
+  --edge: rgba(104, 136, 170, 0.36);
+  --edge-strong: rgba(134, 164, 196, 0.44);
+  --edge-soft: rgba(78, 108, 140, 0.24);
+  --spec-soft: rgba(255, 255, 255, 0.12);
+  --tint-row: rgba(38, 56, 76, 0.74);
+  --tint-chip: rgba(48, 70, 94, 0.88);
+  --tint-solid: rgba(24, 36, 50, 0.94);
+  --briefing-spine: rgba(92, 152, 210, 0.50);
+  --briefing-rule: rgba(154, 184, 214, 0.14);
+  --briefing-paper-shadow: rgba(0, 0, 0, 0.24);
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-window-frame {
-  border-radius: 18px;
+  border-radius: var(--visual-frame-radius, 18px);
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-window-frame::before {
   inset: -2px;
-  border-radius: 20px;
-  background: conic-gradient(
+  border-radius: var(--visual-frame-mask-radius, 20px);
+  background: var(--visual-frame-border, conic-gradient(
     from var(--frame-spin, 0deg),
     var(--theme-frame),
     var(--theme-frame-glow) 25%,
@@ -694,7 +808,7 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
     var(--theme-frame-soft) 65%,
     var(--edge-strong) 75%,
     var(--theme-frame) 100%
-  );
+  ));
   padding: 1px;
   filter:
     drop-shadow(0 0 5px var(--theme-frame))
@@ -704,16 +818,16 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-window-frame::after {
   inset: -1px;
-  border-radius: 19px;
-  background: linear-gradient(180deg, var(--theme-frame-glow), transparent 60%);
+  border-radius: calc(var(--visual-frame-radius, 18px) + 1px);
+  background: var(--visual-frame-halo, linear-gradient(180deg, var(--theme-frame-glow), transparent 60%));
   filter: blur(10px);
-  opacity: 0.42;
+  opacity: var(--visual-frame-halo-opacity, 0.42);
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-glass-window::before {
-  background:
+  background: var(--visual-window-pattern,
     linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 44%);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 44%));
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow:
@@ -727,16 +841,16 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-card-content {
-  border-radius: 8px;
+  border-radius: var(--visual-card-radius, 8px);
   text-shadow: none;
   box-shadow:
-    0 12px 28px rgba(18, 28, 42, 0.10),
+    0 12px 28px var(--briefing-paper-shadow, rgba(18, 28, 42, 0.10)),
     inset 0 0 0 1px var(--edge-soft),
     inset 0 1px 0 var(--spec-soft);
 }
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-card-content::before {
-  background: linear-gradient(180deg, var(--aether-card-tint), var(--aether-card-tint-soft));
+  background: var(--visual-card-pattern, linear-gradient(180deg, var(--aether-card-tint), var(--aether-card-tint-soft)));
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow:
@@ -747,6 +861,75 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
 .lg-shell:not([data-visual-theme="hud"]) .lg-card-content,
 .lg-shell:not([data-visual-theme="hud"]) .lg-card-content :where(p, span, div, li, h1, h2, h3, h4, h5, h6, button, a) {
   text-shadow: none;
+}
+
+.lg-shell:not([data-visual-theme="hud"]) :where(.lg-row, .lg-icon-button, .lg-input, .lg-native-select-control) {
+  border-radius: var(--visual-control-radius, var(--r-chip));
+  text-shadow: none;
+}
+
+.lg-shell:not([data-visual-theme="hud"]) :where(.lg-ai-panel, .lg-ai-visual-card, .lg-visual-theme-card, .lg-theme-swatch) {
+  border-radius: var(--visual-control-radius, 8px);
+}
+
+.lg-shell[data-visual-theme="workbench"] .lg-row {
+  background:
+    linear-gradient(90deg, var(--workbench-rail-soft) 0 4px, transparent 4px),
+    repeating-linear-gradient(0deg, transparent 0 27px, var(--workbench-grid-line) 27px 28px),
+    color-mix(in srgb, var(--tint-row) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+}
+
+.lg-shell[data-visual-theme="workbench"] :where(.lg-icon-button, .lg-input, .lg-native-select-control) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tint-solid) 86%, transparent), color-mix(in srgb, var(--tint-row) 76%, transparent)),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--workbench-grid-line) 23px 24px);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+}
+
+.lg-shell[data-visual-theme="studio"] .lg-row {
+  background:
+    linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--studio-ruler) 0 2px, transparent 2px),
+    color-mix(in srgb, var(--tint-row) 78%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft),
+    0 8px 18px color-mix(in srgb, var(--theme-frame-cast-shadow) 62%, transparent);
+}
+
+.lg-shell[data-visual-theme="studio"] :where(.lg-icon-button, .lg-input, .lg-native-select-control) {
+  background:
+    linear-gradient(180deg, var(--studio-ruler) 0 2px, transparent 2px),
+    color-mix(in srgb, var(--tint-solid) 82%, transparent);
+  box-shadow:
+    inset 2px 0 0 var(--studio-ruler-strong),
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+}
+
+.lg-shell[data-visual-theme="briefing"] .lg-row {
+  background:
+    linear-gradient(90deg, var(--briefing-spine) 0 4px, transparent 4px),
+    repeating-linear-gradient(180deg, transparent 0 33px, var(--briefing-rule) 33px 34px),
+    color-mix(in srgb, var(--aether-readable-tint) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft),
+    0 10px 18px var(--briefing-paper-shadow);
+}
+
+.lg-shell[data-visual-theme="briefing"] :where(.lg-icon-button, .lg-input, .lg-native-select-control) {
+  background:
+    linear-gradient(90deg, var(--briefing-spine) 0 3px, transparent 3px),
+    color-mix(in srgb, var(--aether-readable-tint) 88%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
 }
 
 /* Wallpaper — what the material refracts. Keep it visible; the glass
@@ -1737,7 +1920,7 @@ body::before,
   display: grid;
   gap: 10px;
   min-width: 0;
-  min-height: 118px;
+  min-height: 132px;
   border: 0;
   border-radius: 10px;
   background: var(--ai-control);
@@ -1791,6 +1974,8 @@ body::before,
 .lg-ai-visual-card[data-style="workbench"] > span {
   background:
     linear-gradient(90deg, rgba(74, 92, 116, 0.24) 0 22%, transparent 22% 100%),
+    repeating-linear-gradient(90deg, transparent 0 15px, rgba(92, 108, 130, 0.16) 15px 16px),
+    repeating-linear-gradient(180deg, transparent 0 11px, rgba(92, 108, 130, 0.16) 11px 12px),
     linear-gradient(180deg, rgb(250, 252, 255), rgb(226, 232, 240));
   box-shadow: inset 0 0 0 1px rgba(122, 138, 158, 0.32);
 }
@@ -1869,6 +2054,13 @@ body::before,
   font-weight: 720;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.lg-ai-visual-card small {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
 }
 
 .lg-ai-visual-card:hover,
@@ -2124,6 +2316,56 @@ body::before,
   filter: drop-shadow(0 0 5px rgba(0, 190, 210, 0.30));
 }
 
+.lg-shell:not([data-visual-theme="hud"]) .lg-ai-settings::before {
+  background: var(--visual-card-pattern, linear-gradient(180deg, var(--aether-card-tint), var(--aether-card-tint-soft)));
+  background-size: auto;
+}
+
+.lg-shell:not([data-visual-theme="hud"]) .lg-ai-sidebar {
+  border-right-color: var(--edge-soft);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tint-row) 86%, transparent), transparent 72%),
+    var(--aether-card-tint-soft);
+  box-shadow:
+    inset -1px 0 0 var(--spec-soft),
+    inset 1px 0 0 var(--edge-soft);
+}
+
+.lg-shell:not([data-visual-theme="hud"]) .lg-ai-sidebar::before {
+  opacity: 0.18;
+  filter: none;
+}
+
+.lg-shell[data-visual-theme="workbench"] .lg-ai-sidebar::before {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 23px, var(--workbench-grid-line) 23px 24px),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--workbench-grid-line) 23px 24px);
+}
+
+.lg-shell[data-visual-theme="studio"] .lg-ai-sidebar {
+  background:
+    linear-gradient(90deg, var(--studio-rail) 0 10px, transparent 10px),
+    linear-gradient(180deg, color-mix(in srgb, var(--tint-row) 86%, transparent), transparent 72%),
+    var(--aether-card-tint-soft);
+}
+
+.lg-shell[data-visual-theme="studio"] .lg-ai-sidebar::before {
+  background:
+    linear-gradient(180deg, var(--studio-ruler-strong) 0 4px, transparent 4px),
+    repeating-linear-gradient(180deg, var(--studio-ruler) 0 1px, transparent 1px 18px);
+}
+
+.lg-shell[data-visual-theme="briefing"] .lg-ai-sidebar {
+  background:
+    linear-gradient(90deg, var(--briefing-spine) 0 5px, transparent 5px),
+    linear-gradient(180deg, color-mix(in srgb, var(--tint-row) 86%, transparent), transparent 72%),
+    var(--aether-card-tint-soft);
+}
+
+.lg-shell[data-visual-theme="briefing"] .lg-ai-sidebar::before {
+  background: repeating-linear-gradient(180deg, transparent 0 29px, var(--briefing-rule) 29px 30px);
+}
+
 .lg-shell[data-appearance-theme="light"] .lg-ai-brand-mark {
   color: rgb(0, 126, 154);
   background: rgba(255, 255, 255, 0.66);
@@ -2216,15 +2458,18 @@ body::before,
 .lg-shell[data-appearance-theme="light"] .lg-ai-visual-card[data-style="workbench"] > span {
   background:
     linear-gradient(90deg, rgba(74, 92, 116, 0.24) 0 22%, transparent 22% 100%),
+    repeating-linear-gradient(90deg, transparent 0 15px, rgba(92, 108, 130, 0.16) 15px 16px),
+    repeating-linear-gradient(180deg, transparent 0 11px, rgba(92, 108, 130, 0.16) 11px 12px),
     linear-gradient(180deg, rgb(250, 252, 255), rgb(226, 232, 240));
   box-shadow: inset 0 0 0 1px rgba(122, 138, 158, 0.32);
 }
 
 .lg-shell[data-appearance-theme="light"] .lg-ai-visual-card[data-style="studio"] > span {
   background:
-    linear-gradient(90deg, rgb(28, 34, 42) 0 28%, transparent 28% 100%),
-    linear-gradient(180deg, rgb(50, 58, 70), rgb(18, 24, 30));
-  box-shadow: inset 0 0 0 1px rgba(150, 170, 186, 0.28);
+    linear-gradient(90deg, rgba(42, 50, 60, 0.24) 0 12%, transparent 12% 100%),
+    linear-gradient(180deg, rgba(54, 62, 74, 0.18) 0 4px, transparent 4px),
+    linear-gradient(180deg, rgb(252, 253, 255), rgb(232, 236, 242));
+  box-shadow: inset 0 0 0 1px rgba(116, 128, 144, 0.32);
 }
 
 .lg-shell[data-appearance-theme="light"] .lg-ai-visual-card[data-style="briefing"] > span {
@@ -2397,15 +2642,17 @@ body::before,
 .lg-visual-theme-card[data-visual-theme-option="workbench"] .lg-visual-theme-preview {
   background:
     linear-gradient(90deg, rgba(74, 92, 116, 0.32) 0 24%, transparent 24%),
+    repeating-linear-gradient(90deg, transparent 0 8px, rgba(80, 96, 118, 0.18) 8px 9px),
     repeating-linear-gradient(180deg, rgba(80, 96, 118, 0.34) 0 2px, transparent 2px 8px),
     linear-gradient(180deg, rgb(250, 252, 255), rgb(228, 234, 242));
 }
 
 .lg-visual-theme-card[data-visual-theme-option="studio"] .lg-visual-theme-preview {
   background:
-    radial-gradient(circle at 72% 32%, rgba(74, 172, 208, 0.45), transparent 26%),
-    linear-gradient(90deg, rgb(28, 34, 42) 0 30%, transparent 30%),
-    linear-gradient(180deg, rgb(54, 62, 74), rgb(18, 24, 30));
+    linear-gradient(90deg, rgba(42, 50, 60, 0.84) 0 13%, transparent 13%),
+    linear-gradient(180deg, rgba(74, 172, 208, 0.42) 0 4px, transparent 4px),
+    radial-gradient(circle at 76% 32%, rgba(74, 172, 208, 0.34), transparent 24%),
+    linear-gradient(180deg, rgb(252, 253, 255), rgb(226, 232, 240));
 }
 
 .lg-visual-theme-card[data-visual-theme-option="briefing"] .lg-visual-theme-preview {
@@ -2891,6 +3138,40 @@ body::before,
   color: var(--ink);
 }
 
+.lg-shell[data-visual-theme="workbench"] .lg-preview {
+  --lg-component-panel-bg:
+    linear-gradient(90deg, color-mix(in srgb, var(--theme-frame) 18%, transparent) 0 3px, transparent 3px),
+    repeating-linear-gradient(90deg, transparent 0 47px, color-mix(in srgb, var(--edge-soft) 48%, transparent) 47px 48px),
+    repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in srgb, var(--edge-soft) 58%, transparent) 31px 32px),
+    linear-gradient(180deg, var(--aether-readable-tint), var(--aether-readable-tint-soft));
+  --lg-component-panel-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft),
+    0 8px 16px rgba(18, 28, 42, 0.08);
+  --lg-component-readable-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft),
+    0 8px 16px rgba(18, 28, 42, 0.08);
+}
+
+.lg-shell[data-visual-theme="briefing"] .lg-preview {
+  --lg-component-panel-wash: color-mix(in srgb, var(--aether-readable-tint) 82%, transparent);
+  --lg-component-row-wash: color-mix(in srgb, var(--tint-row) 54%, transparent);
+  --lg-component-row-alt-wash: color-mix(in srgb, var(--tint-chip) 36%, transparent);
+  --lg-component-panel-bg:
+    linear-gradient(90deg, var(--briefing-spine) 0 4px, transparent 4px),
+    repeating-linear-gradient(180deg, transparent 0 43px, var(--briefing-rule) 43px 44px),
+    linear-gradient(180deg, var(--aether-readable-tint), var(--aether-readable-tint-soft));
+  --lg-component-panel-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 12px 22px var(--briefing-paper-shadow);
+  --lg-component-readable-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 10px 18px var(--briefing-paper-shadow);
+}
+
 .lg-shell[data-visual-theme="studio"] .lg-preview {
   --lg-component-text: var(--ink);
   --lg-component-text-mid: var(--ink-mid);
@@ -2907,6 +3188,8 @@ body::before,
   --lg-component-gauge-core: rgba(18, 24, 30, 0.84);
   --lg-component-gauge-inset: rgba(0, 0, 0, 0.22);
   --lg-component-panel-bg:
+    linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--studio-ruler) 0 3px, transparent 3px),
     linear-gradient(145deg, color-mix(in srgb, var(--theme-frame) 13%, rgb(28, 36, 42)), rgb(24, 32, 38) 54%, rgb(18, 24, 30)),
     linear-gradient(90deg, color-mix(in srgb, var(--theme-frame) 10%, transparent), transparent 42%);
   --lg-component-panel-shadow:
@@ -2925,6 +3208,38 @@ body::before,
   --openui-sunk-deep: rgba(16, 22, 30, 0.94);
   --openui-highlight: rgba(54, 76, 92, 0.96);
   color: var(--ink);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="studio"] .lg-preview {
+  --lg-component-edge: rgba(110, 124, 142, 0.32);
+  --lg-component-edge-strong: rgba(68, 82, 104, 0.44);
+  --lg-component-line: color-mix(in srgb, var(--theme-frame) 38%, rgba(44, 118, 164, 0.42));
+  --lg-component-panel-wash: rgba(236, 240, 246, 0.78);
+  --lg-component-cell-wash: rgba(222, 230, 240, 0.72);
+  --lg-component-row-wash: rgba(244, 246, 250, 0.76);
+  --lg-component-row-alt-wash: rgba(230, 236, 244, 0.66);
+  --lg-component-gauge-track: rgba(26, 30, 36, 0.12);
+  --lg-component-gauge-core: rgba(255, 255, 255, 0.92);
+  --lg-component-gauge-inset: rgba(128, 140, 158, 0.20);
+  --lg-component-panel-bg:
+    linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--studio-ruler) 0 3px, transparent 3px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 236, 242, 0.82));
+  --lg-component-panel-shadow:
+    inset 2px 0 0 var(--lg-component-line),
+    inset 0 0 0 1px var(--lg-component-edge),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 24px rgba(34, 42, 52, 0.12);
+  --lg-component-readable-shadow:
+    inset 2px 0 0 var(--lg-component-line),
+    inset 0 0 0 1px var(--lg-component-edge),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 18px rgba(34, 42, 52, 0.10);
+  --openui-foreground: rgba(255, 255, 255, 0.96);
+  --openui-popover-background: rgba(255, 255, 255, 0.98);
+  --openui-sunk: rgba(232, 236, 242, 0.86);
+  --openui-sunk-deep: rgba(218, 226, 236, 0.90);
+  --openui-highlight: rgba(222, 230, 240, 0.96);
 }
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="hud"] .lg-preview {
@@ -2996,11 +3311,12 @@ body::before,
 
 .lg-shell:not([data-visual-theme="hud"]) .lg-preview :where(.openui-card-card, .openui-card-sunk) {
   background-color: var(--aether-readable-tint);
-  background-image: linear-gradient(180deg, var(--aether-readable-tint), var(--aether-readable-tint-soft));
+  background-image: var(--lg-component-panel-bg, linear-gradient(180deg, var(--aether-readable-tint), var(--aether-readable-tint-soft)));
+  border-radius: var(--visual-component-radius, 8px);
   border-color: var(--edge-soft);
-  box-shadow:
+  box-shadow: var(--lg-component-panel-shadow,
     inset 0 0 0 1px var(--edge-soft),
-    0 8px 18px rgba(18, 28, 42, 0.08);
+    0 8px 18px rgba(18, 28, 42, 0.08));
 }
 
 .lg-shell[data-visual-theme="workbench"] .lg-preview :where(h1, h2, h3, h4, h5, h6, p, span, div, li, button, th, td),

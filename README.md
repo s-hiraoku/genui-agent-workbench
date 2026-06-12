@@ -232,7 +232,7 @@ the defaults for newly opened and replayed popups.
 
 Available presets:
 
-- `visualThemePreset`: `hud` (default, existing Liquid Glass HUD), `workbench` (light practical surface), `studio` (dark neutral surface), `briefing` (report-style surface)
+- `visualThemePreset`: `hud` (default, holographic live-signal overlay), `workbench` (operations grid for queues, tables, and status), `studio` (editor console for review, media, and creation), `briefing` (report document for decisions and summaries)
 - `themeColorPreset`: `mint` (default, shown as Tactical), `blue`, `azure` (shown as Bright Blue), `cyan`, `violet`, `rose`, `amber`, `white`, `midnight`, `forest`, `crimson`, `graphite`
 - `glassPreset`: `clear`, `pane`, `milky` (default), `dense`, `mint`, `sky`, `rose`, `amber`
 - `labelInkPreset`: `green` (default), `slate`, `white`, `blue`, `amber`, `red`

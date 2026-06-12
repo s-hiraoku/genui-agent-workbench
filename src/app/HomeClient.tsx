@@ -96,10 +96,10 @@ const labelInkOptions: Array<{ value: LabelInkPreset; label: string }> = [
 ];
 
 const visualThemeOptions: Array<{ value: VisualThemePreset; label: string; description: string }> = [
-  { value: "hud", label: "HUD Glass", description: "Animated AI-style glass frame" },
-  { value: "workbench", label: "Workbench", description: "Light grid for dense operational UI" },
-  { value: "studio", label: "Studio", description: "Graphite editor surface with high contrast" },
-  { value: "briefing", label: "Briefing", description: "White report surface with document rhythm" },
+  { value: "hud", label: "HUD Glass", description: "Holographic overlay for live agent signals" },
+  { value: "workbench", label: "Workbench", description: "Operations grid for queues, tables, and status" },
+  { value: "studio", label: "Studio", description: "Editor console for review, media, and creation" },
+  { value: "briefing", label: "Briefing", description: "Report document for decisions and summaries" },
 ];
 
 const themeColorOptions: Array<{ value: ThemeColorPreset; label: string }> = [

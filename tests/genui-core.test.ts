@@ -449,6 +449,22 @@ describe("theme CSS", () => {
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\]\s*\{/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--ink:\s*rgb\(26,\s*30,\s*36\);/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--aether-window-tint:\s*rgba\(250,\s*251,\s*252,\s*0\.98\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\] \.lg-preview\s*\{/);
+  });
+
+  it("keeps non-HUD visual themes distinct from light and dark appearance", async () => {
+    const css = await fs.readFile(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="workbench"\][\s\S]*?--workbench-grid-line:/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="studio"\][\s\S]*?--studio-ruler:/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?--briefing-spine:/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="workbench"\][\s\S]*?--visual-control-radius:\s*6px;/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="studio"\][\s\S]*?--visual-control-radius:\s*7px;/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?--visual-control-radius:\s*4px;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="dark"\]\[data-visual-theme="workbench"\]\s*\{/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="dark"\]\[data-visual-theme="briefing"\]\s*\{/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:[\s\S]*?--briefing-spine/);
+    expect(css).toMatch(/\.lg-shell:not\(\[data-visual-theme="hud"\]\) \.lg-preview :where\(\.openui-card-card, \.openui-card-sunk\)[\s\S]*?border-radius:\s*var\(--visual-component-radius/);
   });
 
   it("ships standalone HTML interaction recovery for downloaded previews", async () => {
