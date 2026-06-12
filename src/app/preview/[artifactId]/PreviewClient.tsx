@@ -4,9 +4,9 @@ import "@openuidev/react-ui/components.css";
 import "@openuidev/react-ui/styles/index.css";
 import "leaflet/dist/leaflet.css";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Renderer } from "@openuidev/react-lang";
-import { Check, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import {
   GenUIRuntimeDataContext,
   library,
@@ -32,9 +32,54 @@ type PreviewClientProps = {
   visualTheme?: string;
 };
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function escapeAttribute(value: string): string {
+  return escapeHtml(value).replaceAll("'", "&#39;");
+}
+
+function sanitizeFilename(value: string): string {
+  const sanitized = value
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+  return sanitized || "genui-popup";
+}
+
+function readDocumentStyles(): string {
+  return Array.from(document.styleSheets)
+    .map((sheet) => {
+      try {
+        return Array.from(sheet.cssRules)
+          .map((rule) => rule.cssText)
+          .join("\n");
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function htmlAttributesFor(element: Element | null): string {
+  if (!element) return "";
+
+  return Array.from(element.attributes)
+    .map((attribute) => `${attribute.name}="${escapeAttribute(attribute.value)}"`)
+    .join(" ");
+}
+
 export function PreviewClient({
   openuiLang,
   artifactTitle,
+  artifactId,
   animation,
   popupId,
   controlUrl,
@@ -45,6 +90,7 @@ export function PreviewClient({
   visualTheme,
 }: PreviewClientProps) {
   const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
+  const previewRef = useRef<HTMLElement>(null);
 
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
@@ -58,22 +104,6 @@ export function PreviewClient({
         // to window.close() so the popup never gets stuck open.
       } catch {
         /* network error — fall through */
-      }
-    }
-    window.close();
-  }, [authHeaders, popupId, controlUrl]);
-
-  const completePopup = useCallback(async () => {
-    if (popupId && controlUrl) {
-      try {
-        const res = await fetch(`${controlUrl}/v1/popups/${popupId}/complete`, {
-          method: "POST",
-          headers: { "content-type": "application/json", ...(authHeaders ?? {}) },
-          body: JSON.stringify({ outcome: "completed" }),
-        });
-        if (res.ok) return;
-      } catch {
-        /* network error - fall through */
       }
     }
     window.close();
@@ -99,6 +129,57 @@ export function PreviewClient({
     [authHeaders, popupId, controlUrl],
   );
 
+  const downloadHtmlSnapshot = useCallback(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    const shell = preview.closest(".lg-shell");
+    const frame = preview.closest(".lg-window-frame");
+    const shellAttributes = htmlAttributesFor(shell) || 'class="lg-shell"';
+    const frameAttributes = htmlAttributesFor(frame) || 'class="lg-window-frame"';
+    const styles = readDocumentStyles().replaceAll("</style", "<\\/style");
+    const html = `<!doctype html>
+<html lang="${escapeAttribute(document.documentElement.lang || "en")}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="${escapeAttribute(document.baseURI)}">
+  <title>${escapeHtml(artifactTitle)}</title>
+  <style>
+${styles}
+  </style>
+</head>
+<body>
+  <div ${shellAttributes}>
+    <div class="lg-wallpaper"></div>
+    <div class="lg-center">
+      <div ${frameAttributes}>
+        <div class="lg-glass-window">
+          <div class="lg-content h-full">
+            <header class="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
+              <h1 class="lg-title min-w-0 truncate">${escapeHtml(artifactTitle)}</h1>
+              <div class="lg-window-drag-grip" aria-hidden="true"></div>
+            </header>
+            <main class="${escapeAttribute(preview.className)}">
+${preview.innerHTML}
+            </main>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${sanitizeFilename(artifactTitle || artifactId)}.html`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [artifactId, artifactTitle]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") void closePopup();
@@ -121,25 +202,26 @@ export function PreviewClient({
           <div className="flex shrink-0 items-center gap-2">
             <button
               className="lg-icon-button"
-              onClick={completePopup}
+              onClick={downloadHtmlSnapshot}
               type="button"
-              aria-label="Complete"
-              title="Complete popup"
+              aria-label="Download HTML"
+              title="Download HTML"
             >
-              <Check size={16} strokeWidth={1.5} />
+              <Download size={16} strokeWidth={1.5} />
             </button>
             <button
               className="lg-icon-button"
               onClick={closePopup}
               type="button"
               aria-label="Close"
+              title="Close"
             >
               <X size={16} strokeWidth={1.5} />
             </button>
           </div>
         </header>
 
-        <main className="lg-scroll lg-preview flex-1 overflow-auto">
+        <main ref={previewRef} className="lg-scroll lg-preview flex-1 overflow-auto">
           <GenUIRuntimeDataContext.Provider value={artifactContext ?? null}>
             <PopupEventContext.Provider value={reportPopupEvent}>
               <Renderer response={openuiLang} library={library} />
