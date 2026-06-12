@@ -22,6 +22,7 @@ Availability:
 - Run \`${cliCommand} doctor --json\` when you need to check whether GenUI is installed/reachable and what commands to use.
 - The \`popup\`, \`validate\`, \`prompt-spec\`, \`components\`, and \`examples\` commands can auto-start the resident broker unless \`--no-start\` is passed.
 - If \`doctor\` reports \`brokerReachable: false\`, you can still generate and validate after opening a popup command or by asking the user to open GenUI Popup Broker.
+- If auto-start fails on macOS, the unsigned app may need a first launch through Finder: move it to /Applications, right-click GenUI Popup Broker, choose Open, then rerun \`${cliCommand} doctor --json\`.
 
 Workflow:
 1. Run \`${cliCommand} prompt-spec\` and use that output as your OpenUI Lang authoring guide.
@@ -31,12 +32,17 @@ Workflow:
 5. Use \`${cliCommand} examples\` and \`${cliCommand} components\` for examples and the concise component catalog.
 6. Add \`--wait\` when you need a completed, cancelled, closed, or failed result. For approvals/forms, give ConfirmDialog, FormPanel, WizardForm, or MessageThread an \`actionId\`; the selected action or submitted fields return in \`completion.payload\`.
 
+Large data:
+- Put bulky JSON in a file and pass \`--context-file data.json\` instead of expanding every row in OpenUI Lang.
+- Charts and tables can read context paths directly. Examples: \`LineChart(title, description, unit, [], "daily", "date", "pv")\`, \`ComboChart(title, description, [], " views", "%", "PV", "CVR", "info", "daily", "date", "pv", "cvr")\`, and \`DataTable(title, description, [], [], caption, "pages")\`.
+
 Component selection:
 - Use MetricGrid/Stat/Gauge for status, KPIs, scores, confidence, and readiness.
 - Use ChecklistPanel/ProgressStepper/TimelinePanel for gates, workflows, and time-ordered explanations.
 - Use InsightStack/KeyValuePanel/ResourceList for findings, evidence, sources, and metadata.
 - Use DecisionMatrix/CompareTable/ConfirmDialog for choices and approvals.
 - Use DataTable/DataPreview/CodeDiff/CodeBlock for records, raw data, and code review.
+- Use LongText/TranslationPanel/TranslationCompare for long prose, translation results, and side-by-side bilingual review.
 - Use MapWithList/MapView, ImageGallery, VideoPlayer/VideoPlaylist, or AudioPlayer when spatial or media context matters.
 
 Use \`--size review\` for code review, diffs, and approval forms; \`--size wide\` for tables/matrices; \`--size tall\` for timelines/checklists; \`--size stage\` for maps. Resize an open popup with \`genui resize --popup-id <popupId> --size wide\` or custom \`--width\`/\`--height\`. Development checkouts can expose MCP with \`npm run genui:mcp\` (\`genui_prompt_spec\`, \`genui_validate\`, \`genui_popup\`, \`genui_resize\`, \`genui_wait\`).
@@ -52,7 +58,9 @@ If the \`genui\` CLI is available, use it when a local visual popup would make t
 
 Paste this block into project instructions such as \`AGENTS.md\` when you want agents to discover and use GenUI automatically.
 
-Before first use, run \`genui doctor --json\` to check availability. For authoring, run \`genui prompt-spec\` and generate OpenUI Lang directly; do not send natural-language UI requests to GenUI. Validate with \`genui validate --openui-lang-file <file>\`, then open with \`genui popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
+Before first use, run \`genui doctor --json\` to check availability. If macOS blocks auto-start for the unsigned app, launch GenUI Popup Broker once from Finder with right-click Open, then rerun doctor. For authoring, run \`genui prompt-spec\` and generate OpenUI Lang directly; do not send natural-language UI requests to GenUI. Validate with \`genui validate --openui-lang-file <file>\`, then open with \`genui popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
+
+For bulky rows or time series, pass JSON with \`--context-file data.json\`; charts and tables can read context paths, for example \`LineChart(title, description, unit, [], "daily", "date", "pv")\` or \`DataTable(title, description, [], [], caption, "pages")\`.
 
 Do not use GenUI for a short plain-text answer or generic placeholder UI. Never include secrets in OpenUI Lang or context.`;
 }

@@ -45,6 +45,11 @@ type PopupRuntime = PopupRecord & {
 const popupRegistry = new Map<string, PopupRuntime>();
 const MAX_REQUEST_BYTES = 1024 * 1024;
 const GENUI_DATA_DIR_NAME = "genui-agent-workbench";
+const ACTIVE_POPUP_STATUSES = new Set<PopupStatus>(["opening", "open"]);
+
+function activePopupCount(): number {
+  return [...popupRegistry.values()].filter((popup) => ACTIVE_POPUP_STATUSES.has(popup.status)).length;
+}
 
 function getDefaultGenUIDataDir(): string {
   return path.join(app.getPath("appData"), GENUI_DATA_DIR_NAME, "genui-data");
@@ -386,7 +391,7 @@ async function handleControlRequest(req: IncomingMessage, res: ServerResponse): 
       nextServiceStatus,
       nextRestartCount,
       pid: process.pid,
-      popupCount: popupRegistry.size,
+      popupCount: activePopupCount(),
     });
     return;
   }
@@ -668,10 +673,10 @@ async function applySettings(next: BrokerSettings): Promise<void> {
 
   if (next.launchAtLogin !== previous.launchAtLogin) {
     try {
-    app.setLoginItemSettings({ openAtLogin: next.launchAtLogin, openAsHidden: true });
-  } catch (err) {
-    console.warn("[genui] failed to set login item:", err);
-  }
+      app.setLoginItemSettings({ openAtLogin: next.launchAtLogin, openAsHidden: true });
+    } catch (err) {
+      console.warn("[genui] failed to set login item:", err);
+    }
   }
 
   nativeTheme.themeSource = next.theme === "auto" ? "system" : next.theme;

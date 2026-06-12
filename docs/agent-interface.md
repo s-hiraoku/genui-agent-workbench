@@ -31,16 +31,22 @@ genui validate --openui-lang-file ui.openui
 genui popup --agent-id codex --title "Decision Review" --size review --openui-lang-file ui.openui
 ```
 
-9. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
-10. Resize an open popup if the content needs more or less space:
+9. For bulky structured data, pass JSON separately instead of embedding every row in OpenUI Lang:
+
+```bash
+genui popup --agent-id codex --title "Traffic" --size wide --openui-lang-file ui.openui --context-file metrics.json
+```
+
+10. Store `popupId`, `artifactId`, and `previewUrl` if the workflow needs to close or reference the popup later.
+11. Resize an open popup if the content needs more or less space:
 
 ```bash
 genui resize --popup-id "<popupId>" --size wide
 genui resize --popup-id "<popupId>" --width 1100 --height 720
 ```
 
-11. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
-12. Inspect and replay saved UI when the user wants to revisit a prior artifact:
+12. Use `--wait` when the workflow needs the user's explicit completion result. The command returns when the popup is completed, cancelled, closed, or failed. Interactive components with `actionId` return their event data in `completion.payload`.
+13. Inspect and replay saved UI when the user wants to revisit a prior artifact:
 
 ```bash
 genui artifacts --limit 20
@@ -48,7 +54,7 @@ genui artifact --artifact-id "<artifactId>"
 genui replay --artifact-id "<artifactId>"
 ```
 
-13. Close when done:
+14. Close when done:
 
 ```bash
 genui close --popup-id "<popupId>"
@@ -66,6 +72,44 @@ actions = ActionPanel("Next Actions", "Recommended handoff", [a1])
 a1 = { label: "Use direct CLI route", priority: "high", owner: "agent", description: "Generate OpenUI Lang and pass it to --openui-lang-file" }
 ```
 
+## Context Files
+
+Use `--context-file` when rows, API results, or time series would make the
+OpenUI Lang hard to read. Context is stored with the artifact and passed to
+components that support context paths.
+
+For a `metrics.json` file:
+
+```json
+{
+  "daily": [
+    { "date": "Jun 1", "pv": 1200, "cvr": 2.4 },
+    { "date": "Jun 2", "pv": 1450, "cvr": 2.8 }
+  ],
+  "pages": [
+    { "path": "/docs", "views": 1800, "tone": "positive" },
+    { "path": "/pricing", "views": 980, "tone": "neutral" }
+  ]
+}
+```
+
+Use short component declarations that reference context paths:
+
+```openui
+root = Card([header, chart, combo, table, preview])
+header = CardHeader("Traffic", "Daily page views")
+chart = LineChart("Daily Traffic", "Rows loaded from context.daily", " views", [], "daily", "date", "pv")
+combo = ComboChart("PV + CVR", "Two series from context.daily", [], " views", "%", "PV", "CVR", "info", "daily", "date", "pv", "cvr")
+table = DataTable("Top Pages", "Columns inferred from context.pages", [], [], "Landing pages", "pages")
+preview = DataPreview("Raw Page Rows", "Schema inferred from context.pages", "pages", [], [], false, 0, "pages")
+```
+
+`BarChart`, `LineChart`, `ComboChart`, `DataTable`, and `DataPreview` fall back
+to their inline data arguments when the context path is absent. Chart rows can
+use common field names by default, or explicit keys such as `labelKey`,
+`valueKey`, `barValueKey`, and `lineValueKey` when the source data uses domain
+names like `date`, `pv`, or `cvr`.
+
 ## Component Selection
 
 - Use `MetricGrid`, `Stat`, or `Gauge` when a number is the main message.
@@ -73,6 +117,9 @@ a1 = { label: "Use direct CLI route", priority: "high", owner: "agent", descript
 - Use `ChecklistPanel` for acceptance criteria, QA gates, and launch-readiness checks.
 - Use `ProgressStepper` or `TimelinePanel` only when sequence or time order matters.
 - Use `AlertList` for multiple risks and `NotificationToast` for one compact status banner.
+- Use `LongText` for long articles, specs, policies, transcripts, and drafts.
+- Use `TranslationPanel` for one translated result with notes or glossary terms.
+- Use `TranslationCompare` when original and translated text should be reviewed side by side.
 
 ## Approval and Form Results
 
@@ -120,6 +167,7 @@ genui examples
 genui examples --name build-review > ui.openui
 genui validate --openui-lang-file ui.openui
 genui popup --openui-lang-file ui.openui --title "Status" --agent-id codex
+genui popup --openui-lang-file ui.openui --title "Traffic" --agent-id codex --context-file metrics.json
 genui popup --openui-lang-file ui.openui --title "Status" --agent-id codex --wait
 genui complete --popup-id "<popupId>" --outcome completed
 genui resize --popup-id "<popupId>" --size wide

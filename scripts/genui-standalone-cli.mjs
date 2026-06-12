@@ -9,6 +9,8 @@ const EXPECTED_PROTOCOL_VERSION = "0.3.0";
 const DEFAULT_CONTROL_URL = "http://127.0.0.1:48231";
 const DEFAULT_APP_NAME = "GenUI Popup Broker";
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+const MANUAL_FIRST_LAUNCH_HINT =
+  "On macOS developer-preview builds, Gatekeeper can block CLI auto-start until the app is opened once from Finder. Move GenUI Popup Broker.app to /Applications, right-click it, choose Open, then rerun `genui doctor --json`.";
 const AGENT_WHEN_TO_USE = [
   "The user needs to inspect more than a few facts, rows, risks, options, or steps.",
   "A visual layout would make a decision, review, status report, or handoff clearer than prose.",
@@ -41,7 +43,9 @@ If the \`genui\` CLI is available, use it when a local visual popup would make t
 
 Paste this block into project instructions such as \`AGENTS.md\` when you want agents to discover and use GenUI automatically.
 
-Before first use, run \`genui doctor --json\` to check availability. For authoring, run \`genui prompt-spec\` and generate OpenUI Lang directly; do not send natural-language UI requests to GenUI. Validate with \`genui validate --openui-lang-file <file>\`, then open with \`genui popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
+Before first use, run \`genui doctor --json\` to check availability. If macOS blocks auto-start for the unsigned app, launch GenUI Popup Broker once from Finder with right-click Open, then rerun doctor. For authoring, run \`genui prompt-spec\` and generate OpenUI Lang directly; do not send natural-language UI requests to GenUI. Validate with \`genui validate --openui-lang-file <file>\`, then open with \`genui popup --openui-lang-file <file> --title "<title>" --agent-id "<agent-id>"\`.
+
+For bulky rows or time series, pass JSON with \`--context-file data.json\`; charts and tables can read context paths, for example \`LineChart(title, description, unit, [], "daily", "date", "pv")\` or \`DataTable(title, description, [], [], caption, "pages")\`.
 
 Do not use GenUI for a short plain-text answer or generic placeholder UI. Never include secrets in OpenUI Lang or context.`;
 }
@@ -252,14 +256,14 @@ async function ensureBroker(options) {
   if (current) return current;
 
   if (options["no-start"] === true) {
-    throw new Error(`GenUI broker is not reachable. Start ${DEFAULT_APP_NAME}.`);
+    throw new Error(`GenUI broker is not reachable. Start ${DEFAULT_APP_NAME}. ${MANUAL_FIRST_LAUNCH_HINT}`);
   }
 
   try {
     await startBrokerProcess();
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to start ${DEFAULT_APP_NAME}. Detail: ${detail}`);
+    throw new Error(`Failed to start ${DEFAULT_APP_NAME}. Detail: ${detail}. ${MANUAL_FIRST_LAUNCH_HINT}`);
   }
 
   const deadline = Date.now() + 45_000;
@@ -269,7 +273,7 @@ async function ensureBroker(options) {
     if (connection) return connection;
   }
 
-  throw new Error(`GenUI broker did not become ready within 45 seconds. Open ${DEFAULT_APP_NAME} manually.`);
+  throw new Error(`GenUI broker did not become ready within 45 seconds. ${MANUAL_FIRST_LAUNCH_HINT}`);
 }
 
 async function readTextFile(filePath) {
@@ -528,6 +532,7 @@ async function doctor(options) {
     quickStart: [
       "Run `genui prompt-spec` for the exact OpenUI Lang syntax and component signatures.",
       "Run `genui examples` to pick a starter, or `genui examples --name build-review > ui.openui`.",
+      "Use `--context-file data.json` for bulky structured data and reference it from components that support context paths.",
       "Validate with `genui validate --openui-lang-file ui.openui`.",
       "Open with `genui popup --openui-lang-file ui.openui --title \"Status\" --agent-id <agent>`.",
     ],
@@ -541,7 +546,7 @@ async function doctor(options) {
       : [
           "The CLI is installed but the broker is not reachable yet.",
           "Run `genui doctor --start --json` to try starting it, or run `genui popup ...` which also auto-starts the broker.",
-          "If startup fails, open GenUI Popup Broker manually and rerun `genui doctor --json`.",
+          "If startup fails on macOS, move GenUI Popup Broker.app to /Applications, right-click it in Finder, choose Open, and rerun `genui doctor --json`.",
         ],
   };
 }
@@ -559,6 +564,7 @@ Usage:
   genui examples --name build-review > ui.openui
   genui validate --openui-lang-file ui.openui
   genui popup --openui-lang-file ui.openui --agent-id codex --title "Build Review"
+  genui popup --openui-lang-file ui.openui --context-file metrics.json
   genui popup --openui-lang-file ui.openui --wait
   genui complete --popup-id "<popupId>" --outcome completed
   genui close --popup-id "<popupId>"

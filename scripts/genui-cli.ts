@@ -18,6 +18,8 @@ type BrokerConnection = {
   controlToken?: string;
 };
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const manualFirstLaunchHint =
+  "On macOS developer-preview builds, Gatekeeper can block CLI auto-start until the app is opened once from Finder. Move GenUI Popup Broker.app to /Applications, right-click it, choose Open, then rerun `genui doctor --json`.";
 
 function parseArgs(argv: string[]): { command: string; options: CliOptions } {
   const [command = "help", ...rest] = argv;
@@ -196,7 +198,7 @@ async function ensureBroker(options: CliOptions): Promise<BrokerConnection> {
   }
 
   if (options["no-start"] === true) {
-    throw new Error("GenUI broker is not reachable. Start it with npm run electron:dev.");
+    throw new Error(`GenUI broker is not reachable. Start it with npm run electron:dev or open the app manually. ${manualFirstLaunchHint}`);
   }
 
   try {
@@ -218,7 +220,7 @@ async function ensureBroker(options: CliOptions): Promise<BrokerConnection> {
   }
 
   throw new Error(
-    `GenUI broker did not become ready within 30 seconds. Try running "npm run electron:dev" manually in ${repoRoot} to see startup logs.`,
+    `GenUI broker did not become ready within 30 seconds. Try running "npm run electron:dev" manually in ${repoRoot} to see startup logs. ${manualFirstLaunchHint}`,
   );
 }
 
@@ -501,7 +503,7 @@ async function doctor(options: CliOptions): Promise<unknown> {
       : [
           "The CLI is installed but the broker is not reachable yet.",
           "Run `genui doctor --start --json` to try starting it, or run `genui popup ...` which also auto-starts the broker.",
-          "If startup fails, open the GenUI Popup Broker app manually and rerun `genui doctor --json`.",
+          "If startup fails on macOS, move GenUI Popup Broker.app to /Applications, right-click it in Finder, choose Open, and rerun `genui doctor --json`.",
         ],
   };
 }
@@ -519,6 +521,7 @@ Usage:
   genui examples --name build-review > ui.openui
   genui validate --openui-lang-file ui.openui
   genui popup --openui-lang-file ui.openui --agent-id codex --title "Build Review"
+  genui popup --openui-lang-file ui.openui --context-file metrics.json
   genui popup --openui-lang-file ui.openui --wait
   genui complete --popup-id "<popupId>" --outcome completed
   genui close --popup-id "<popupId>"
