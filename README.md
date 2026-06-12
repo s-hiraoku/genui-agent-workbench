@@ -226,6 +226,10 @@ Design defaults can be changed from:
 - the tray settings window (`/settings`)
 - `POST /v1/settings`
 
+Changes to the appearance theme, visual style, accent color, and popup animation
+are pushed live to currently open popup windows. The saved settings also remain
+the defaults for newly opened and replayed popups.
+
 Available presets:
 
 - `visualThemePreset`: `hud` (default, existing Liquid Glass HUD), `workbench` (light practical surface), `studio` (dark neutral surface), `briefing` (report-style surface)
