@@ -581,6 +581,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --scrollbar-track: rgba(226, 232, 240, 0.82);
   --visual-frame-radius: 12px;
   --visual-frame-mask-radius: 14px;
+  --visual-card-radius: 6px;
+  --visual-control-radius: 6px;
+  --visual-component-radius: 6px;
   --visual-frame-border: linear-gradient(180deg, var(--edge-strong), var(--edge-soft));
   --visual-frame-halo-opacity: 0.10;
   --workbench-grid-line: rgba(92, 110, 132, 0.18);
@@ -631,6 +634,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --scrollbar-track: rgba(24, 30, 38, 0.86);
   --visual-frame-radius: 16px;
   --visual-frame-mask-radius: 18px;
+  --visual-card-radius: 8px;
+  --visual-control-radius: 7px;
+  --visual-component-radius: 8px;
   --visual-frame-border:
     linear-gradient(135deg, rgba(118, 136, 152, 0.64), rgba(34, 42, 52, 0.88) 42%, var(--theme-frame-soft));
   --visual-frame-halo-opacity: 0.18;
@@ -741,6 +747,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --scrollbar-track: rgba(222, 232, 242, 0.84);
   --visual-frame-radius: 8px;
   --visual-frame-mask-radius: 10px;
+  --visual-card-radius: 4px;
+  --visual-control-radius: 4px;
+  --visual-component-radius: 4px;
   --visual-frame-border: linear-gradient(180deg, rgba(154, 176, 202, 0.74), rgba(206, 218, 232, 0.82));
   --visual-frame-halo-opacity: 0.06;
   --briefing-spine: rgba(44, 108, 164, 0.52);
@@ -852,6 +861,75 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
 .lg-shell:not([data-visual-theme="hud"]) .lg-card-content,
 .lg-shell:not([data-visual-theme="hud"]) .lg-card-content :where(p, span, div, li, h1, h2, h3, h4, h5, h6, button, a) {
   text-shadow: none;
+}
+
+.lg-shell:not([data-visual-theme="hud"]) :where(.lg-row, .lg-icon-button, .lg-input, .lg-native-select-control) {
+  border-radius: var(--visual-control-radius, var(--r-chip));
+  text-shadow: none;
+}
+
+.lg-shell:not([data-visual-theme="hud"]) :where(.lg-ai-panel, .lg-ai-visual-card, .lg-visual-theme-card, .lg-theme-swatch) {
+  border-radius: var(--visual-control-radius, 8px);
+}
+
+.lg-shell[data-visual-theme="workbench"] .lg-row {
+  background:
+    linear-gradient(90deg, var(--workbench-rail-soft) 0 4px, transparent 4px),
+    repeating-linear-gradient(0deg, transparent 0 27px, var(--workbench-grid-line) 27px 28px),
+    color-mix(in srgb, var(--tint-row) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+}
+
+.lg-shell[data-visual-theme="workbench"] :where(.lg-icon-button, .lg-input, .lg-native-select-control) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tint-solid) 86%, transparent), color-mix(in srgb, var(--tint-row) 76%, transparent)),
+    repeating-linear-gradient(90deg, transparent 0 23px, var(--workbench-grid-line) 23px 24px);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+}
+
+.lg-shell[data-visual-theme="studio"] .lg-row {
+  background:
+    linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--studio-ruler) 0 2px, transparent 2px),
+    color-mix(in srgb, var(--tint-row) 78%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft),
+    0 8px 18px color-mix(in srgb, var(--theme-frame-cast-shadow) 62%, transparent);
+}
+
+.lg-shell[data-visual-theme="studio"] :where(.lg-icon-button, .lg-input, .lg-native-select-control) {
+  background:
+    linear-gradient(180deg, var(--studio-ruler) 0 2px, transparent 2px),
+    color-mix(in srgb, var(--tint-solid) 82%, transparent);
+  box-shadow:
+    inset 2px 0 0 var(--studio-ruler-strong),
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
+}
+
+.lg-shell[data-visual-theme="briefing"] .lg-row {
+  background:
+    linear-gradient(90deg, var(--briefing-spine) 0 4px, transparent 4px),
+    repeating-linear-gradient(180deg, transparent 0 33px, var(--briefing-rule) 33px 34px),
+    color-mix(in srgb, var(--aether-readable-tint) 82%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft),
+    0 10px 18px var(--briefing-paper-shadow);
+}
+
+.lg-shell[data-visual-theme="briefing"] :where(.lg-icon-button, .lg-input, .lg-native-select-control) {
+  background:
+    linear-gradient(90deg, var(--briefing-spine) 0 3px, transparent 3px),
+    color-mix(in srgb, var(--aether-readable-tint) 88%, transparent);
+  box-shadow:
+    inset 0 0 0 1px var(--edge-soft),
+    inset 0 1px 0 var(--spec-soft);
 }
 
 /* Wallpaper — what the material refracts. Keep it visible; the glass
@@ -3063,6 +3141,7 @@ body::before,
 .lg-shell[data-visual-theme="workbench"] .lg-preview {
   --lg-component-panel-bg:
     linear-gradient(90deg, color-mix(in srgb, var(--theme-frame) 18%, transparent) 0 3px, transparent 3px),
+    repeating-linear-gradient(90deg, transparent 0 47px, color-mix(in srgb, var(--edge-soft) 48%, transparent) 47px 48px),
     repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in srgb, var(--edge-soft) 58%, transparent) 31px 32px),
     linear-gradient(180deg, var(--aether-readable-tint), var(--aether-readable-tint-soft));
   --lg-component-panel-shadow:
@@ -3109,6 +3188,8 @@ body::before,
   --lg-component-gauge-core: rgba(18, 24, 30, 0.84);
   --lg-component-gauge-inset: rgba(0, 0, 0, 0.22);
   --lg-component-panel-bg:
+    linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
+    linear-gradient(180deg, var(--studio-ruler) 0 3px, transparent 3px),
     linear-gradient(145deg, color-mix(in srgb, var(--theme-frame) 13%, rgb(28, 36, 42)), rgb(24, 32, 38) 54%, rgb(18, 24, 30)),
     linear-gradient(90deg, color-mix(in srgb, var(--theme-frame) 10%, transparent), transparent 42%);
   --lg-component-panel-shadow:
@@ -3231,6 +3312,7 @@ body::before,
 .lg-shell:not([data-visual-theme="hud"]) .lg-preview :where(.openui-card-card, .openui-card-sunk) {
   background-color: var(--aether-readable-tint);
   background-image: var(--lg-component-panel-bg, linear-gradient(180deg, var(--aether-readable-tint), var(--aether-readable-tint-soft)));
+  border-radius: var(--visual-component-radius, 8px);
   border-color: var(--edge-soft);
   box-shadow: var(--lg-component-panel-shadow,
     inset 0 0 0 1px var(--edge-soft),
