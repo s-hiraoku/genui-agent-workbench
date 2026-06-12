@@ -67,18 +67,21 @@ function popupDesignSettingsPayload() {
   };
 }
 
-function broadcastPopupDesignSettings(): void {
+async function applyPopupDesignSettings(window: BrowserWindow): Promise<void> {
   const payload = JSON.stringify(popupDesignSettingsPayload());
   const script =
     `window.${POPUP_DESIGN_SETTINGS_GLOBAL} = ${payload};` +
     `window.dispatchEvent(new CustomEvent(${JSON.stringify(POPUP_DESIGN_SETTINGS_EVENT)}, { detail: ${payload} }));`;
+  await window.webContents.executeJavaScript(script);
+}
 
+function broadcastPopupDesignSettings(): void {
   for (const popup of popupRegistry.values()) {
-    if (!ACTIVE_POPUP_STATUSES.has(popup.status) || !popup.window || popup.window.isDestroyed()) {
+    if (popup.status !== "open" || !popup.window || popup.window.isDestroyed()) {
       continue;
     }
 
-    void popup.window.webContents.executeJavaScript(script).catch((error: unknown) => {
+    void applyPopupDesignSettings(popup.window).catch((error: unknown) => {
       console.warn("[genui] failed to update popup design settings:", error);
     });
   }
@@ -830,6 +833,11 @@ async function openArtifactPopup(
   try {
     window.show();
     await window.loadURL(previewUrl);
+    try {
+      await applyPopupDesignSettings(window);
+    } catch (error) {
+      console.warn("[genui] failed to apply initial popup design settings:", error);
+    }
     window.focus();
     popup.status = "open";
   } catch (error) {
