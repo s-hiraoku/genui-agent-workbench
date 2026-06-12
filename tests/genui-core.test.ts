@@ -396,6 +396,24 @@ describe("settings", () => {
   });
 });
 
+describe("theme CSS", () => {
+  function extractVisualThemeBlock(css: string, visualTheme: string) {
+    const block = css.match(new RegExp(`\\.lg-shell\\[data-visual-theme="${visualTheme}"\\] \\{([\\s\\S]*?)\\n\\}`));
+    expect(block).not.toBeNull();
+    return block?.[1] ?? "";
+  }
+
+  it("lets non-HUD visual themes inherit accent tokens from theme color presets", async () => {
+    const css = await fs.readFile(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).toMatch(/\.lg-shell\s*\{[\s\S]*?accent-color:\s*var\(--theme-frame\);/);
+
+    for (const visualTheme of ["workbench", "studio", "briefing"]) {
+      expect(extractVisualThemeBlock(css, visualTheme)).not.toMatch(/--theme-frame(?:-soft|-glow)?:/);
+    }
+  });
+});
+
 describe("broker state", () => {
   it("persists and reads broker state under GENUI_DATA_DIR", async () => {
     await writeBrokerState({
