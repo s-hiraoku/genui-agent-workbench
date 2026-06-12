@@ -148,6 +148,7 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
 }
 
 .lg-shell {
+  accent-color: var(--theme-frame);
   position: fixed;
   inset: 0;
   isolation: isolate;
@@ -395,9 +396,6 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --ink-mid: rgb(56, 66, 82);
   --ink-soft: rgb(94, 106, 126);
   --ink-shadow: none;
-  --theme-frame: rgba(72, 102, 138, 0.42);
-  --theme-frame-soft: rgba(132, 148, 166, 0.22);
-  --theme-frame-glow: rgba(56, 76, 104, 0.10);
   --theme-frame-cast-shadow: rgba(18, 28, 42, 0.16);
   --aether-window-tint: rgba(248, 250, 252, 0.98);
   --aether-window-tint-soft: rgba(238, 242, 247, 0.94);
@@ -432,9 +430,6 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --ink-mid: rgb(212, 220, 230);
   --ink-soft: rgb(164, 176, 190);
   --ink-shadow: none;
-  --theme-frame: rgba(96, 116, 132, 0.56);
-  --theme-frame-soft: rgba(72, 86, 100, 0.34);
-  --theme-frame-glow: rgba(64, 144, 172, 0.12);
   --theme-frame-cast-shadow: rgba(0, 0, 0, 0.34);
   --aether-window-tint: rgba(18, 23, 29, 0.98);
   --aether-window-tint-soft: rgba(24, 30, 38, 0.94);
@@ -469,9 +464,6 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --ink-mid: rgb(56, 72, 94);
   --ink-soft: rgb(90, 108, 132);
   --ink-shadow: none;
-  --theme-frame: rgba(62, 116, 166, 0.50);
-  --theme-frame-soft: rgba(92, 140, 184, 0.24);
-  --theme-frame-glow: rgba(42, 92, 146, 0.10);
   --theme-frame-cast-shadow: rgba(24, 54, 88, 0.16);
   --aether-window-tint: rgba(244, 248, 252, 0.98);
   --aether-window-tint-soft: rgba(232, 240, 248, 0.94);
