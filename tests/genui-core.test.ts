@@ -195,7 +195,7 @@ describe("renderGenUI", () => {
       'v2 = { title: "Next", src: "https://youtu.be/aqz-KE-bpKQ?t=42", channel: "YouTube", reason: "next candidate" }',
       'audio = AudioPlayer("音声候補", "選択式キュー", [track1, track2])',
       'track1 = { title: "Track 1", src: "https://example.com/a.mp3", artist: "demo" }',
-      'track2 = { title: "Track 2", src: "https://example.com/b.mp3", artist: "demo" }',
+      'track2 = { title: "Track 2", src: "https://example.com/b.mp3", artist: "demo", coverUrl: "https://example.com/b.png" }',
       'gallery = ImageGallery("画像候補", "選択式プレビュー", [img1, img2], 2)',
       'img1 = { src: "https://example.com/a.png", caption: "A" }',
       'img2 = { src: "https://example.com/b.png", caption: "B" }',
@@ -208,6 +208,8 @@ describe("renderGenUI", () => {
     expect(markup).toContain('data-lg-widget="image-gallery"');
     expect(markup).toContain("data-lg-embed-src");
     expect(markup).toContain("data-lg-audio-track");
+    expect(markup).toContain("data-lg-audio-cover");
+    expect(markup).toContain("data-lg-cover");
     expect(markup).toContain("data-lg-gallery-item");
   });
 
@@ -436,6 +438,8 @@ describe("theme CSS", () => {
     expect(source).toContain('[data-lg-widget="audio-player"]');
     expect(source).toContain('[data-lg-widget="video-playlist"]');
     expect(source).toContain('[data-lg-widget="image-gallery"]');
+    expect(source).toContain('current.style.gridTemplateColumns = coverUrl ? "88px 1fr" : "1fr"');
+    expect(source).toContain('cover.removeAttribute("src")');
     expect(source).toContain('<meta name="color-scheme" content="light dark">');
   });
 

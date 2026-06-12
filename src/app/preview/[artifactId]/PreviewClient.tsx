@@ -175,20 +175,24 @@ const standaloneInteractionScript = String.raw`
     document.querySelectorAll('[data-lg-widget="audio-player"]').forEach((root) => {
       const buttons = Array.from(root.querySelectorAll("[data-lg-audio-track]"));
       const audio = root.querySelector("audio");
+      const current = root.querySelector("[data-lg-audio-current]");
       const cover = root.querySelector("[data-lg-audio-cover]");
       const selectTrack = (button) => {
+        const coverUrl = button.dataset.lgCover;
         markSelected(buttons, button);
         setText(root, "[data-lg-audio-title]", button.dataset.lgTitle);
         setText(root, "[data-lg-audio-artist]", button.dataset.lgArtist);
         setText(root, "[data-lg-audio-description]", button.dataset.lgDescription);
+        if (current) current.style.gridTemplateColumns = coverUrl ? "88px 1fr" : "1fr";
         if (audio && button.dataset.lgSrc) {
           audio.pause();
           audio.src = button.dataset.lgSrc;
           audio.load();
         }
         if (cover) {
-          cover.hidden = !button.dataset.lgCover;
-          if (button.dataset.lgCover) cover.setAttribute("src", button.dataset.lgCover);
+          cover.hidden = !coverUrl;
+          if (coverUrl) cover.setAttribute("src", coverUrl);
+          else cover.removeAttribute("src");
         }
       };
       buttons.forEach((button) => button.addEventListener("click", () => selectTrack(button)));

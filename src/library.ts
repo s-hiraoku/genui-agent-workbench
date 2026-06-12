@@ -1127,14 +1127,13 @@ const AudioPlayer = defineComponent({
               padding: 12,
             },
           },
-          selected.coverUrl
-            ? React.createElement("img", {
-                alt: "",
-                "data-lg-audio-cover": "true",
-                src: selected.coverUrl,
-                style: { borderRadius: 8, height: 88, objectFit: "cover", width: 88 },
-              })
-            : null,
+          React.createElement("img", {
+            alt: "",
+            "data-lg-audio-cover": "true",
+            hidden: !selected.coverUrl,
+            src: selected.coverUrl,
+            style: { borderRadius: 8, height: 88, objectFit: "cover", width: 88 },
+          }),
           React.createElement(
             "div",
             null,
