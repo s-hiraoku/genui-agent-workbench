@@ -806,9 +806,9 @@ body::before,
   inset: -10px;
   z-index: 0;
   border-radius: 40px;
-  /* Animated conic gradient running around the frame for a flashy
-     "rotating beam" border. The mask cuts a 2px-wide ring shape so
-     only the perimeter shows the gradient, not a filled rectangle. */
+  /* Static conic gradient border. Earlier versions animated the angle and
+     glow filters indefinitely, which kept the compositor busy while a popup
+     was merely sitting open. */
   background: conic-gradient(
     from var(--frame-spin, 0deg),
     var(--theme-frame),
@@ -826,20 +826,10 @@ body::before,
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 1;
-  will-change: --frame-spin, filter;
   filter:
     drop-shadow(0 0 6px var(--theme-frame))
     drop-shadow(0 0 18px var(--theme-frame-glow))
     drop-shadow(0 14px 22px rgba(8, 22, 14, 0.32));
-  animation:
-    lg-frame-spin 6.4s linear infinite,
-    lg-frame-ring-pulse 3.2s ease-in-out infinite;
-}
-
-@property --frame-spin {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
 }
 
 .lg-window-frame::after {
@@ -854,38 +844,6 @@ body::before,
   /* No box-shadow here: the cast shadow is on the body so it matches
      the 30px content corner instead of a wider outer curve. */
   transform-origin: 50% 50%;
-  will-change: transform, opacity;
-  animation: lg-window-frame-glow-pulse 3.6s ease-in-out infinite;
-}
-
-@keyframes lg-window-frame-glow-pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.55;
-  }
-  50% {
-    transform: scale(1.06);
-    opacity: 0.95;
-  }
-}
-
-@keyframes lg-frame-spin {
-  to { --frame-spin: 360deg; }
-}
-
-@keyframes lg-frame-ring-pulse {
-  0%, 100% {
-    filter:
-      drop-shadow(0 0 6px var(--theme-frame))
-      drop-shadow(0 0 18px var(--theme-frame-glow))
-      drop-shadow(0 14px 22px var(--theme-frame-cast-shadow));
-  }
-  50% {
-    filter:
-      drop-shadow(0 0 12px var(--theme-frame))
-      drop-shadow(0 0 32px var(--theme-frame-glow))
-      drop-shadow(0 14px 22px var(--theme-frame-cast-shadow));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

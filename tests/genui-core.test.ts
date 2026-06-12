@@ -438,6 +438,15 @@ describe("theme CSS", () => {
     expect(source).toContain('[data-lg-widget="image-gallery"]');
     expect(source).toContain('<meta name="color-scheme" content="light dark">');
   });
+
+  it("does not keep the popup frame running ambient animations while idle", async () => {
+    const css = await fs.readFile(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+    expect(css).not.toMatch(/lg-frame-spin\s+[\d.]+s\s+linear\s+infinite/);
+    expect(css).not.toMatch(/lg-frame-ring-pulse\s+[\d.]+s\s+ease-in-out\s+infinite/);
+    expect(css).not.toMatch(/lg-window-frame-glow-pulse\s+[\d.]+s\s+ease-in-out\s+infinite/);
+    expect(css).not.toMatch(/will-change:\s*--frame-spin/);
+  });
 });
 
 describe("broker state", () => {
