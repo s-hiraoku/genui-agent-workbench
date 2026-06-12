@@ -134,20 +134,21 @@ describe("renderGenUI", () => {
     ].join("\n");
 
     expect(() => validateOpenUILang(chartOpenUILang)).not.toThrow();
-    expect(() =>
-      renderToStaticMarkup(
-        React.createElement(
-          GenUIRuntimeDataContext.Provider,
-          {
-            value: {
-              daily: [{ date: "Jun 1", pv: 1200, cvr: 2.4 }],
-              pages: [{ path: "/docs", views: 1800, tone: "positive" }],
-            },
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        GenUIRuntimeDataContext.Provider,
+        {
+          value: {
+            daily: [{ date: "Jun 1", pv: 1200, cvr: 2.4 }],
+            pages: [{ path: "/docs", views: 1800, tone: "positive" }],
           },
-          React.createElement(Renderer, { response: chartOpenUILang, library }),
-        ),
+        },
+        React.createElement(Renderer, { response: chartOpenUILang, library }),
       ),
-    ).not.toThrow();
+    );
+    expect(markup).toContain("path");
+    expect(markup).toContain("views");
+    expect(markup).toContain("/docs");
   });
 
   it("keeps chart tooltip text readable on any visual theme", () => {

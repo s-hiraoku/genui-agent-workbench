@@ -4117,7 +4117,7 @@ const DataPreview = defineComponent({
     return runtimeDataConsumer((runtimeData) => {
       const contextRows = normalizeRecordRows(getContextPathValue(runtimeData, props.contextPath));
       const sampleRows = contextRows.length > 0 ? contextRows : props.sampleRows;
-      const schema = props.schema ?? inferSchemaFromRows(sampleRows);
+      const schema = props.schema?.length ? props.schema : inferSchemaFromRows(sampleRows);
       const keys = schema.map((c) => c.name);
       const rowCount =
         contextRows.length > 0 && (props.rowCount === undefined || props.rowCount === 0)
