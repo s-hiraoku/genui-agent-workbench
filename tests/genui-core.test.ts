@@ -9,6 +9,7 @@ import packageJson from "../package.json";
 import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { deleteArtifact, listArtifacts, loadArtifact, pruneArtifacts } from "../src/server/genui/artifacts";
 import { readBrokerState, writeBrokerState } from "../src/server/genui/broker-state";
+import { readLiveDesignSettings } from "../src/app/preview/live-design-settings";
 import { buildAgentInstructions, buildAgentSnippet, buildPromptSpec } from "../src/server/genui/cli-guidance";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
@@ -393,6 +394,26 @@ describe("settings", () => {
     });
 
     expect(settings.design.visualThemePreset).toBe("hud");
+  });
+
+  it("reads live popup design update payloads defensively", () => {
+    expect(
+      readLiveDesignSettings({
+        appearanceTheme: "light",
+        animation: "fade",
+        themeColor: "graphite",
+        visualTheme: "workbench",
+        ignored: true,
+      }),
+    ).toEqual({
+      appearanceTheme: "light",
+      animation: "fade",
+      themeColor: "graphite",
+      visualTheme: "workbench",
+    });
+
+    expect(readLiveDesignSettings(null)).toBeNull();
+    expect(readLiveDesignSettings({ themeColor: 42 })).toEqual({});
   });
 });
 

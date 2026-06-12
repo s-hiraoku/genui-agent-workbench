@@ -46,9 +46,45 @@ const popupRegistry = new Map<string, PopupRuntime>();
 const MAX_REQUEST_BYTES = 1024 * 1024;
 const GENUI_DATA_DIR_NAME = "genui-agent-workbench";
 const ACTIVE_POPUP_STATUSES = new Set<PopupStatus>(["opening", "open"]);
+const POPUP_DESIGN_SETTINGS_GLOBAL = "__genuiLiveDesignSettings";
+const POPUP_DESIGN_SETTINGS_EVENT = "genui:design-settings-changed";
 
 function activePopupCount(): number {
   return [...popupRegistry.values()].filter((popup) => ACTIVE_POPUP_STATUSES.has(popup.status)).length;
+}
+
+function didDesignSettingsChange(previous: BrokerSettings, next: BrokerSettings): boolean {
+  return previous.theme !== next.theme || JSON.stringify(previous.design) !== JSON.stringify(next.design);
+}
+
+function popupDesignSettingsPayload() {
+  return {
+    appearanceTheme: resolveTheme(settings.theme),
+    animation: settings.design.windowAnimationPreset,
+    design: settings.design,
+    themeColor: settings.design.themeColorPreset,
+    visualTheme: settings.design.visualThemePreset,
+  };
+}
+
+async function applyPopupDesignSettings(window: BrowserWindow): Promise<void> {
+  const payload = JSON.stringify(popupDesignSettingsPayload());
+  const script =
+    `window.${POPUP_DESIGN_SETTINGS_GLOBAL} = ${payload};` +
+    `window.dispatchEvent(new CustomEvent(${JSON.stringify(POPUP_DESIGN_SETTINGS_EVENT)}, { detail: ${payload} }));`;
+  await window.webContents.executeJavaScript(script);
+}
+
+function broadcastPopupDesignSettings(): void {
+  for (const popup of popupRegistry.values()) {
+    if (popup.status !== "open" || !popup.window || popup.window.isDestroyed()) {
+      continue;
+    }
+
+    void applyPopupDesignSettings(popup.window).catch((error: unknown) => {
+      console.warn("[genui] failed to update popup design settings:", error);
+    });
+  }
 }
 
 function getDefaultGenUIDataDir(): string {
@@ -680,6 +716,10 @@ async function applySettings(next: BrokerSettings): Promise<void> {
   }
 
   nativeTheme.themeSource = next.theme === "auto" ? "system" : next.theme;
+
+  if (didDesignSettingsChange(previous, next)) {
+    broadcastPopupDesignSettings();
+  }
 }
 
 function pickPreset(input: Partial<RenderGenUIInput>, fallback: GenUISizePreset = "default"): GenUISizePreset {
@@ -793,6 +833,11 @@ async function openArtifactPopup(
   try {
     window.show();
     await window.loadURL(previewUrl);
+    try {
+      await applyPopupDesignSettings(window);
+    } catch (error) {
+      console.warn("[genui] failed to apply initial popup design settings:", error);
+    }
     window.focus();
     popup.status = "open";
   } catch (error) {

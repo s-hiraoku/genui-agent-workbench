@@ -4,7 +4,7 @@ import "@openuidev/react-ui/components.css";
 import "@openuidev/react-ui/styles/index.css";
 import "leaflet/dist/leaflet.css";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Renderer } from "@openuidev/react-lang";
 import { Download, X } from "lucide-react";
 import {
@@ -15,6 +15,18 @@ import {
   type PopupEventOptions,
 } from "@/library";
 import { LiquidGlassSurface } from "@/app/_ui/LiquidGlassSurface";
+import {
+  POPUP_DESIGN_SETTINGS_GLOBAL,
+  POPUP_DESIGN_SETTINGS_EVENT,
+  readLiveDesignSettings,
+  type LiveDesignSettings,
+} from "@/app/preview/live-design-settings";
+
+declare global {
+  interface Window {
+    __genuiLiveDesignSettings?: unknown;
+  }
+}
 
 type PreviewClientProps = {
   openuiLang: string;
@@ -102,6 +114,12 @@ export function PreviewClient({
 }: PreviewClientProps) {
   const authHeaders = useMemo(() => (controlToken ? { "x-genui-token": controlToken } : undefined), [controlToken]);
   const previewRef = useRef<HTMLElement>(null);
+  const [liveDesignSettings, setLiveDesignSettings] = useState<LiveDesignSettings>(() => ({
+    appearanceTheme: theme,
+    animation,
+    themeColor,
+    visualTheme,
+  }));
 
   const closePopup = useCallback(async () => {
     if (popupId && controlUrl) {
@@ -199,12 +217,27 @@ ${preview.innerHTML}
     return () => window.removeEventListener("keydown", onKey);
   }, [closePopup]);
 
+  useEffect(() => {
+    const applyDesignSettings = (detail: unknown) => {
+      const next = readLiveDesignSettings(detail);
+      if (!next) return;
+      setLiveDesignSettings((current) => ({ ...current, ...next }));
+    };
+    const onDesignSettingsChanged = (event: Event) => {
+      applyDesignSettings((event as CustomEvent<unknown>).detail);
+    };
+
+    applyDesignSettings(window[POPUP_DESIGN_SETTINGS_GLOBAL]);
+    window.addEventListener(POPUP_DESIGN_SETTINGS_EVENT, onDesignSettingsChanged);
+    return () => window.removeEventListener(POPUP_DESIGN_SETTINGS_EVENT, onDesignSettingsChanged);
+  }, []);
+
   return (
     <LiquidGlassSurface
-      appearanceTheme={theme}
-      animation={animation}
-      themeColor={themeColor}
-      visualTheme={visualTheme}
+      appearanceTheme={liveDesignSettings.appearanceTheme}
+      animation={liveDesignSettings.animation}
+      themeColor={liveDesignSettings.themeColor}
+      visualTheme={liveDesignSettings.visualTheme}
     >
       <div className="lg-content h-full">
         <header className="lg-drag flex shrink-0 items-center justify-between gap-3 px-2 pt-1 pb-3">
