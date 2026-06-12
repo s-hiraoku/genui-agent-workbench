@@ -128,10 +128,12 @@ genui prune --max-artifacts 50
 genui guide
 ```
 
-Popup chrome includes a completion control. When an agent opens a popup with
-`--wait`, the command now returns when the popup is completed, cancelled,
-closed, or failed. Completion responses include a `completion` object when the
-popup reported an explicit outcome. Interactive components such as
+When an agent opens a popup with `--wait`, the command returns when the popup is
+completed, cancelled, closed, or failed. The window close control closes the
+popup without marking it completed. The preview chrome also includes a Download
+HTML control that saves the currently rendered content as a single static HTML
+file with the active popup styling embedded. Completion responses include a
+`completion` object when the popup reported an explicit outcome. Interactive components such as
 `ConfirmDialog`, `FormPanel`, `WizardForm`, and `MessageThread` can send
 structured events back to the broker. Add an `actionId` when the calling agent
 needs to branch on a button press or submitted form:

@@ -153,7 +153,9 @@ When opened with `--wait`, the returned popup JSON includes:
 }
 ```
 
-The popup chrome Complete button also includes any previously recorded events in `completion.payload.events`.
+Completion payloads also include any previously recorded events in `completion.payload.events`.
+The popup preview includes a Download HTML control for saving the rendered view
+as a single static HTML file with styling embedded.
 
 ## CLI Commands
 
