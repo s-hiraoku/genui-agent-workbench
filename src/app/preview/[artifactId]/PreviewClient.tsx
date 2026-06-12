@@ -76,6 +76,17 @@ function htmlAttributesFor(element: Element | null): string {
     .join(" ");
 }
 
+function safeDocumentBaseHref(): string {
+  try {
+    const url = new URL(document.baseURI);
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return `${window.location.origin}${window.location.pathname}`;
+  }
+}
+
 export function PreviewClient({
   openuiLang,
   artifactTitle,
@@ -143,7 +154,7 @@ export function PreviewClient({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <base href="${escapeAttribute(document.baseURI)}">
+  <base href="${escapeAttribute(safeDocumentBaseHref())}">
   <title>${escapeHtml(artifactTitle)}</title>
   <style>
 ${styles}
