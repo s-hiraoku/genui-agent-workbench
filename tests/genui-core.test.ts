@@ -15,6 +15,11 @@ import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
 import { GenUIRuntimeDataContext, chartTooltipStyle, library, promptOptions, resolveVideoEmbedSource } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
+import {
+  applyPreviewThemeParams,
+  buildPopupPreviewUrl,
+  previewThemeParamsFromSettings,
+} from "../src/server/genui/preview-url";
 import { sanitizeSettings } from "../src/server/genui/settings";
 import { coerceSizePreset, resolveResizePreset, resolveWindowGeometry, WINDOW_SIZE_PRESETS } from "../src/server/genui/window-size";
 
@@ -405,6 +410,61 @@ describe("settings", () => {
     expect(settings.design.visualThemePreset).toBe("hud");
   });
 
+  it("builds preview URLs from current visual settings", () => {
+    const settings = sanitizeSettings({
+      theme: "light",
+      design: {
+        visualThemePreset: "studio",
+        glassPreset: "milky",
+        labelInkPreset: "blue",
+        themeColorPreset: "violet",
+        windowAnimationPreset: "fade",
+      },
+    });
+    const url = new URL(
+      buildPopupPreviewUrl({
+        agentId: "codex agent",
+        artifactId: "art_123",
+        controlToken: "token+value",
+        controlUrl: "http://127.0.0.1:48231",
+        nextUrl: "http://127.0.0.1:3000",
+        popupId: "pop_123",
+        size: "review",
+        themeParams: previewThemeParamsFromSettings(settings, "light"),
+      }),
+    );
+
+    expect(url.pathname).toBe("/preview/art_123");
+    expect(url.searchParams.get("popupId")).toBe("pop_123");
+    expect(url.searchParams.get("controlUrl")).toBe("http://127.0.0.1:48231");
+    expect(url.searchParams.get("theme")).toBe("light");
+    expect(url.searchParams.get("animation")).toBe("fade");
+    expect(url.searchParams.get("visualTheme")).toBe("studio");
+    expect(url.searchParams.get("themeColor")).toBe("violet");
+    expect(url.searchParams.get("agent")).toBe("codex agent");
+  });
+
+  it("updates an existing preview URL when settings change", () => {
+    const original =
+      "http://127.0.0.1:3000/preview/art_123?popupId=pop_123&controlUrl=http%3A%2F%2F127.0.0.1%3A48231&theme=dark&chrome=hud&token=token&size=review&animation=center&visualTheme=hud&themeColor=mint&agent=codex";
+    const updated = new URL(
+      applyPreviewThemeParams(original, {
+        animation: "top",
+        theme: "light",
+        themeColor: "graphite",
+        visualTheme: "workbench",
+      }),
+    );
+
+    expect(updated.searchParams.get("popupId")).toBe("pop_123");
+    expect(updated.searchParams.get("size")).toBe("review");
+    expect(updated.searchParams.get("agent")).toBe("codex");
+    expect(updated.searchParams.get("theme")).toBe("light");
+    expect(updated.searchParams.get("animation")).toBe("top");
+    expect(updated.searchParams.get("visualTheme")).toBe("workbench");
+    expect(updated.searchParams.get("themeColor")).toBe("graphite");
+  });
+
   it("reads live popup design update payloads defensively", () => {
     expect(
       readLiveDesignSettings({
@@ -428,9 +488,11 @@ describe("settings", () => {
 
 describe("theme CSS", () => {
   function extractVisualThemeBlock(css: string, visualTheme: string) {
-    const block = css.match(new RegExp(`\\.lg-shell\\[data-visual-theme="${visualTheme}"\\] \\{([\\s\\S]*?)\\n\\}`));
-    expect(block).not.toBeNull();
-    return block?.[1] ?? "";
+    const blocks = Array.from(
+      css.matchAll(new RegExp(`\\.lg-shell\\[data-visual-theme="${visualTheme}"\\] \\{([\\s\\S]*?)\\n\\}`, "g")),
+    );
+    expect(blocks.length).toBeGreaterThan(0);
+    return blocks.at(-1)?.[1] ?? "";
   }
 
   it("lets non-HUD visual themes inherit accent tokens from theme color presets", async () => {
@@ -439,7 +501,9 @@ describe("theme CSS", () => {
     expect(css).toMatch(/\.lg-shell\s*\{[\s\S]*?accent-color:\s*var\(--theme-frame\);/);
 
     for (const visualTheme of ["workbench", "studio", "briefing"]) {
-      expect(extractVisualThemeBlock(css, visualTheme)).not.toMatch(/--theme-frame(?:-soft|-glow)?:/);
+      const block = extractVisualThemeBlock(css, visualTheme);
+      expect(block).not.toMatch(/--theme-frame(?:-soft|-glow)?:/);
+      expect(block).toContain("var(--theme-frame");
     }
   });
 
@@ -458,6 +522,19 @@ describe("theme CSS", () => {
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="workbench"\][\s\S]*?--workbench-grid-line:/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="studio"\][\s\S]*?--studio-ruler:/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?--briefing-spine:/);
+    expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?linear-gradient\(90deg,\s*var\(--briefing-spine\) 0 14px/);
+    expect(extractVisualThemeBlock(css, "briefing")).not.toContain("0 58px");
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:\s*none;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview :where\(\.openui-card-card, \.openui-card-sunk\)[\s\S]*?background-image:\s*none;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-row\s*\{[\s\S]*?var\(--theme-frame\)/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview :where\(article, li\)[\s\S]*?background-image:\s*none !important;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview \.lg-label-surface[\s\S]*?background-image:\s*none !important;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview\s*\{[\s\S]*?--lg-tone-emphasis-shadow:\s*var\(--lg-component-readable-shadow\);/);
+    expect(css).toMatch(/--lg-tone-positive-bg:\s*rgb\(226,\s*246,\s*235\);/);
+    expect(css).toMatch(/--lg-tone-info-bg:\s*rgb\(229,\s*240,\s*255\);/);
+    expect(css).toMatch(/--lg-tone-warning-bg:\s*rgb\(255,\s*244,\s*217\);/);
+    expect(css).toMatch(/--lg-tone-danger-bg:\s*rgb\(255,\s*233,\s*238\);/);
+    expect(css).not.toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview :where\(article, li\)\s*\{[\s\S]*?background:\s*color-mix\(in srgb,\s*var\(--theme-frame\)/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="workbench"\][\s\S]*?--visual-control-radius:\s*6px;/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="studio"\][\s\S]*?--visual-control-radius:\s*7px;/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?--visual-control-radius:\s*4px;/);
@@ -465,6 +542,12 @@ describe("theme CSS", () => {
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="dark"\]\[data-visual-theme="briefing"\]\s*\{/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:[\s\S]*?--briefing-spine/);
     expect(css).toMatch(/\.lg-shell:not\(\[data-visual-theme="hud"\]\) \.lg-preview :where\(\.openui-card-card, \.openui-card-sunk\)[\s\S]*?border-radius:\s*var\(--visual-component-radius/);
+  });
+
+  it("lets component tone colors override theme accents in light briefing", async () => {
+    const librarySource = await fs.readFile(path.join(process.cwd(), "src/library.ts"), "utf8");
+
+    expect(librarySource).toContain("--lg-tone-emphasis-shadow");
   });
 
   it("ships standalone HTML interaction recovery for downloaded previews", async () => {

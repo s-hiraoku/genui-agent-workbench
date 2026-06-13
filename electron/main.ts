@@ -11,6 +11,11 @@ import { agentUsageGuide } from "../src/server/genui/agent-guide";
 import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli-guidance";
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
+import {
+  buildPopupPreviewUrl,
+  previewThemeParamsFromSettings,
+  type PreviewThemeParams,
+} from "../src/server/genui/preview-url";
 import { BROKER_APP_VERSION, BROKER_PROTOCOL_VERSION } from "../src/server/genui/version";
 import {
   coerceSizePreset,
@@ -702,6 +707,10 @@ function resolveTheme(theme: BrokerSettings["theme"]): "dark" | "light" {
   return nativeTheme.shouldUseDarkColors ? "dark" : "light";
 }
 
+function getPreviewThemeParams(): PreviewThemeParams {
+  return previewThemeParamsFromSettings(settings, resolveTheme(settings.theme));
+}
+
 async function applySettings(next: BrokerSettings): Promise<void> {
   const previous = settings;
   settings = next;
@@ -752,23 +761,20 @@ async function openArtifactPopup(
 ): Promise<PopupOpenResponse> {
   const popupId = createId("pop");
   const title = input.title ?? artifact.title ?? `${input.agentId ?? artifact.agentId ?? "Agent"} GenUI`;
-  const theme = resolveTheme(settings.theme);
   const preset = pickPreset(input);
   const geometry = resolveWindowGeometry(screen.getPrimaryDisplay().workAreaSize, preset, input as { width?: unknown; height?: unknown });
   const pos = nextWindowPosition(geometry);
 
-  const previewUrl =
-    `${nextUrl}/preview/${artifact.artifactId}` +
-    `?popupId=${encodeURIComponent(popupId)}` +
-    `&controlUrl=${encodeURIComponent(controlUrl)}` +
-    `&theme=${theme}` +
-    `&chrome=hud` +
-    `&token=${encodeURIComponent(controlToken)}` +
-    `&size=${preset}` +
-    `&animation=${settings.design.windowAnimationPreset}` +
-    `&visualTheme=${settings.design.visualThemePreset}` +
-    `&themeColor=${settings.design.themeColorPreset}` +
-    `&agent=${encodeURIComponent(input.agentId ?? artifact.agentId ?? "agent")}`;
+  const previewUrl = buildPopupPreviewUrl({
+    agentId: input.agentId ?? artifact.agentId ?? "agent",
+    artifactId: artifact.artifactId,
+    controlToken,
+    controlUrl,
+    nextUrl,
+    popupId,
+    size: preset,
+    themeParams: getPreviewThemeParams(),
+  });
 
   // The page renders the Aether-style glass material itself. The
   // BrowserWindow stays transparent so the page-level wallpaper and
