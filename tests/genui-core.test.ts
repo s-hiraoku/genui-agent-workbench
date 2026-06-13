@@ -14,6 +14,11 @@ import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples } from "../src/server/genui/examples";
 import { GenUIRuntimeDataContext, chartTooltipStyle, library, promptOptions, resolveVideoEmbedSource } from "../src/library";
 import { OpenUILangValidationError, renderGenUI, validateOpenUILang } from "../src/server/genui/render";
+import {
+  applyPreviewThemeParams,
+  buildPopupPreviewUrl,
+  previewThemeParamsFromSettings,
+} from "../src/server/genui/preview-url";
 import { sanitizeSettings } from "../src/server/genui/settings";
 import { coerceSizePreset, resolveResizePreset, resolveWindowGeometry, WINDOW_SIZE_PRESETS } from "../src/server/genui/window-size";
 
@@ -402,6 +407,61 @@ describe("settings", () => {
     });
 
     expect(settings.design.visualThemePreset).toBe("hud");
+  });
+
+  it("builds preview URLs from current visual settings", () => {
+    const settings = sanitizeSettings({
+      theme: "light",
+      design: {
+        visualThemePreset: "studio",
+        glassPreset: "milky",
+        labelInkPreset: "blue",
+        themeColorPreset: "violet",
+        windowAnimationPreset: "fade",
+      },
+    });
+    const url = new URL(
+      buildPopupPreviewUrl({
+        agentId: "codex agent",
+        artifactId: "art_123",
+        controlToken: "token+value",
+        controlUrl: "http://127.0.0.1:48231",
+        nextUrl: "http://127.0.0.1:3000",
+        popupId: "pop_123",
+        size: "review",
+        themeParams: previewThemeParamsFromSettings(settings, "light"),
+      }),
+    );
+
+    expect(url.pathname).toBe("/preview/art_123");
+    expect(url.searchParams.get("popupId")).toBe("pop_123");
+    expect(url.searchParams.get("controlUrl")).toBe("http://127.0.0.1:48231");
+    expect(url.searchParams.get("theme")).toBe("light");
+    expect(url.searchParams.get("animation")).toBe("fade");
+    expect(url.searchParams.get("visualTheme")).toBe("studio");
+    expect(url.searchParams.get("themeColor")).toBe("violet");
+    expect(url.searchParams.get("agent")).toBe("codex agent");
+  });
+
+  it("updates an existing preview URL when settings change", () => {
+    const original =
+      "http://127.0.0.1:3000/preview/art_123?popupId=pop_123&controlUrl=http%3A%2F%2F127.0.0.1%3A48231&theme=dark&chrome=hud&token=token&size=review&animation=center&visualTheme=hud&themeColor=mint&agent=codex";
+    const updated = new URL(
+      applyPreviewThemeParams(original, {
+        animation: "top",
+        theme: "light",
+        themeColor: "graphite",
+        visualTheme: "workbench",
+      }),
+    );
+
+    expect(updated.searchParams.get("popupId")).toBe("pop_123");
+    expect(updated.searchParams.get("size")).toBe("review");
+    expect(updated.searchParams.get("agent")).toBe("codex");
+    expect(updated.searchParams.get("theme")).toBe("light");
+    expect(updated.searchParams.get("animation")).toBe("top");
+    expect(updated.searchParams.get("visualTheme")).toBe("workbench");
+    expect(updated.searchParams.get("themeColor")).toBe("graphite");
   });
 });
 
