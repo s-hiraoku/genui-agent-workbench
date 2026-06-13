@@ -306,7 +306,7 @@ function renderVideoSurface({
   if (media.kind === "iframe") {
     return React.createElement(
       "figure",
-      { style: { margin: 0 } },
+      { "data-lg-media-surface": "video", style: { margin: 0, textAlign: "center" } },
       React.createElement("iframe", {
         allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
         allowFullScreen: true,
@@ -318,6 +318,8 @@ function renderVideoSurface({
           background: "#0a0a0a",
           border: 0,
           display: "block",
+          marginInline: "auto",
+          maxWidth: "min(100%, calc((100dvh - 380px) * 16 / 9))",
           width: "100%",
         },
         title: title ? `${title} (${media.provider})` : `${media.provider} video`,
@@ -354,7 +356,7 @@ function renderVideoSurface({
 
   return React.createElement(
     "figure",
-    { style: { margin: 0 } },
+    { "data-lg-media-surface": "video", style: { margin: 0, textAlign: "center" } },
     React.createElement("video", {
       autoPlay: autoplay,
       controls: true,
@@ -363,7 +365,15 @@ function renderVideoSurface({
       poster: posterUrl,
       preload: "metadata",
       src: media.src,
-      style: { background: "#0a0a0a", display: "block", width: "100%" },
+      style: {
+        aspectRatio: "16 / 9",
+        background: "#0a0a0a",
+        display: "block",
+        marginInline: "auto",
+        maxWidth: "min(100%, calc((100dvh - 380px) * 16 / 9))",
+        objectFit: "contain",
+        width: "100%",
+      },
     }),
     React.createElement(
       "figcaption",
