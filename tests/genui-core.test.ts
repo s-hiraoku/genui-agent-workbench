@@ -580,9 +580,15 @@ describe("theme CSS", () => {
     expect(source).toContain('[data-lg-widget="audio-player"]');
     expect(source).toContain('[data-lg-widget="video-playlist"]');
     expect(source).toContain('[data-lg-widget="image-gallery"]');
+    expect(source).toContain("data-lg-deferred-youtube-embed");
+    expect(source).toContain('location.protocol === "file:"');
     expect(source).toContain('current.style.gridTemplateColumns = coverUrl ? "88px 1fr" : "1fr"');
     expect(source).toContain('cover.removeAttribute("src")');
     expect(source).toContain('<meta name="color-scheme" content="light dark">');
+    expect(source).toContain('<meta name="referrer" content="strict-origin-when-cross-origin">');
+    expect(source).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+    expect(source).toContain("Downloaded HTML opened from file://");
+    expect(source).toContain("htmlForStandalonePreview");
   });
 
   it("does not keep the popup frame running ambient animations while idle", async () => {
