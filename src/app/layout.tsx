@@ -36,6 +36,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={jetbrains.variable}>
       <head>
         <meta name="color-scheme" content="light dark" />
+        <meta name="referrer" content="strict-origin-when-cross-origin" />
         <script dangerouslySetInnerHTML={{ __html: noFlash }} />
       </head>
       <body>

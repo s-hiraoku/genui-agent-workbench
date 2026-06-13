@@ -583,6 +583,8 @@ describe("theme CSS", () => {
     expect(source).toContain('current.style.gridTemplateColumns = coverUrl ? "88px 1fr" : "1fr"');
     expect(source).toContain('cover.removeAttribute("src")');
     expect(source).toContain('<meta name="color-scheme" content="light dark">');
+    expect(source).toContain('<meta name="referrer" content="strict-origin-when-cross-origin">');
+    expect(source).toContain('referrerpolicy="strict-origin-when-cross-origin"');
   });
 
   it("does not keep the popup frame running ambient animations while idle", async () => {

@@ -223,7 +223,7 @@ const standaloneInteractionScript = String.raw`
         const title = escapeAttribute(button.dataset.lgTitle);
         const src = escapeAttribute(button.dataset.lgEmbedSrc);
         if (button.dataset.lgEmbedKind === "iframe") {
-          surface.innerHTML = '<iframe title="' + title + '" src="' + src + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="aspect-ratio:16 / 9;border:0;border-radius:8px;display:block;width:100%"></iframe>';
+          surface.innerHTML = '<iframe title="' + title + '" src="' + src + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" style="aspect-ratio:16 / 9;border:0;border-radius:8px;display:block;width:100%"></iframe>';
         } else {
           const poster = button.dataset.lgPoster ? ' poster="' + escapeAttribute(button.dataset.lgPoster) + '"' : "";
           surface.innerHTML = '<video controls preload="metadata"' + poster + ' style="aspect-ratio:16 / 9;background:#0a0a0a;border-radius:8px;display:block;width:100%"><source src="' + src + '"></video>';
@@ -338,6 +338,7 @@ export function PreviewClient({
 <head>
   <meta charset="utf-8">
   <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="${escapeAttribute(safeDocumentBaseHref())}">
   <title>${escapeHtml(artifactTitle)}</title>
