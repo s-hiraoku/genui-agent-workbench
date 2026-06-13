@@ -292,7 +292,7 @@ export function resolveVideoEmbedSource(src: string, options: ResolveVideoEmbedO
 }
 
 function renderVideoSurface({
-  autoplay = false,
+  autoplay = true,
   posterUrl,
   src,
   title,
@@ -1162,14 +1162,16 @@ const AudioPlayer = defineComponent({
         }),
       )
       .min(1),
+    autoplay: z.boolean().optional(),
     ...glassProps,
   }),
   description:
-    "Audio playlist player for music, generated audio, voice notes, podcasts, meeting recordings, and sound previews. Each track needs title and src; artist, coverUrl, and description are optional.",
+    "Audio playlist player for music, generated audio, voice notes, podcasts, meeting recordings, and sound previews. Each track needs title and src; artist, coverUrl, and description are optional. Autoplay defaults to true where the browser allows audible media to start.",
   component: ({ props }) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
     const [selectedIndex, setSelectedIndex] = React.useState(0);
     const selected = props.tracks[Math.min(selectedIndex, props.tracks.length - 1)];
+    const shouldAutoplay = props.autoplay ?? true;
 
     return React.createElement(
       "section",
@@ -1216,9 +1218,11 @@ const AudioPlayer = defineComponent({
               selected.description,
             ),
             React.createElement("audio", {
+              autoPlay: shouldAutoplay,
               controls: true,
+              "data-lg-autoplay": shouldAutoplay ? "true" : "false",
               key: `${selected.src}:${selectedIndex}`,
-              preload: "metadata",
+              preload: shouldAutoplay ? "auto" : "metadata",
               src: selected.src,
               style: { marginTop: 8, width: "100%" },
             }),
@@ -1294,15 +1298,18 @@ const VideoPlayer = defineComponent({
         }),
       )
       .optional(),
+    autoplay: z.boolean().optional(),
     ...glassProps,
   }),
   description:
-    "Video player for demos, screen recordings, generated clips, design walkthroughs, tutorials, YouTube links, and incident evidence. Supports src, posterUrl, transcript, and chapter list.",
+    "Video player for demos, screen recordings, generated clips, design walkthroughs, tutorials, YouTube links, and incident evidence. Supports src, posterUrl, transcript, chapter list, and muted autoplay by default.",
   component: ({ props }) => {
+    const shouldAutoplay = props.autoplay ?? true;
+
     return React.createElement(
       "section",
       { style: panelStyleFor(props) },
-      renderVideoSurface({ posterUrl: props.posterUrl, src: props.src, title: props.title }),
+      renderVideoSurface({ autoplay: shouldAutoplay, posterUrl: props.posterUrl, src: props.src, title: props.title }),
       React.createElement(
         "div",
         { style: { padding: 14 } },
@@ -1361,7 +1368,7 @@ const VideoPlaylist = defineComponent({
     ...glassProps,
   }),
   description:
-    "Recommendation video playlist with a main inline player and a clickable candidate table. The first video is selected by default; set autoplay to true to start it muted where the browser allows.",
+    "Recommendation video playlist with a main inline player and a clickable candidate table. The first video is selected by default and starts muted where the browser allows; set autoplay to false to keep it paused.",
   component: ({ props }) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks -- OpenUI component callbacks render inside React.
     const [selectedIndex, setSelectedIndex] = React.useState(0);
@@ -5446,9 +5453,9 @@ const componentGroups: ComponentGroup[] = [
     name: "Media",
     components: ["AudioPlayer", "VideoPlayer", "VideoPlaylist", "ImageGallery", "AnimationCard"],
     notes: [
-      "- Use AudioPlayer for music, generated speech/audio, podcasts, meeting recordings, and sound previews. It renders one focused player plus a clickable queue. Never autoplay.",
-      "- Use VideoPlayer for demos, screen recordings, walkthroughs, clips, tutorials, YouTube links, and visual evidence. YouTube watch/short/embed URLs render inline as embeds. Never autoplay.",
-      "- Use VideoPlaylist for recommended YouTube/video candidates: first item plays in the main slot, and the table below switches the inline player. Use this for 'おすすめ動画' and search results.",
+      "- Use AudioPlayer for music, generated speech/audio, podcasts, meeting recordings, and sound previews. It renders one focused player plus a clickable queue and attempts autoplay by default; browsers may block audible autoplay until user interaction.",
+      "- Use VideoPlayer for demos, screen recordings, walkthroughs, clips, tutorials, YouTube links, and visual evidence. YouTube watch/short/embed URLs render inline as embeds and start muted by default where the browser allows.",
+      "- Use VideoPlaylist for recommended YouTube/video candidates: first item plays muted in the main slot by default, and the table below switches the inline player. Use this for 'おすすめ動画' and search results.",
       "- Use ImageGallery for screenshots, product photos, design candidates, store/cafe imagery, and any caption-bearing image set. It renders one focused preview plus selectable thumbnails.",
       "- Use AnimationCard for short motion clips (Lottie JSON, looping video, animated GIF/SVG): empty states, micro-interactions, success/error animations, onboarding hooks.",
       "- Prefer caller-provided media URLs. If no URL is available, explain that media source is required or use a clearly labeled sample only for demos.",
@@ -5695,9 +5702,9 @@ export const promptOptions: PromptOptions = {
     "For code, config, prompt, or document changes, prefer CodeDiff(title, description, files).",
     "For map requests, use MapView(title, description, center, zoom, height, markers) as part of the UI. Include useful marker labels and colors.",
     "For interactive map + list directories (cafe lists, store maps, tour stops, customer directories), prefer MapWithList(title, description, center?, zoom, height, items). Each item has { id, lat, lng, label, description?, category?, color?, links?: [{label, url}] }. Pass real http(s) URLs for official sites, review pages, social profiles, etc. A 'Google Maps' link is auto-generated from lat/lng — do not duplicate it. The list and map stay in sync: clicking a list entry flies the map to it; clicking a marker highlights the entry. Links open in the user's default browser.",
-    "For audio or music requests, use AudioPlayer(title, description, tracks). It shows a focused player plus a clickable queue. Do not autoplay. Prefer provided audio URLs.",
-    "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters). Do not autoplay. Prefer provided video URLs. YouTube watch, shorts, youtu.be, and embed URLs are supported inline.",
-    "For recommended video or YouTube search results, prefer VideoPlaylist(title, description, videos, autoplay). Put the best match first; it becomes the main inline player, and candidates below switch playback when clicked. videos = [{title, src, channel?, description?, reason?, posterUrl?, transcript?}].",
+    "For audio or music requests, use AudioPlayer(title, description, tracks, autoplay). It shows a focused player plus a clickable queue and attempts autoplay by default; browser policy may block audible autoplay until user interaction. Prefer provided audio URLs.",
+    "For video requests, use VideoPlayer(title, description, src, posterUrl, transcript, chapters, autoplay). Videos start muted by default where the browser allows. Prefer provided video URLs. YouTube watch, shorts, youtu.be, and embed URLs are supported inline.",
+    "For recommended video or YouTube search results, prefer VideoPlaylist(title, description, videos, autoplay). Put the best match first; it becomes the main inline player and starts muted by default, and candidates below switch playback when clicked. videos = [{title, src, channel?, description?, reason?, posterUrl?, transcript?}].",
     "For screenshots, photo grids, and visual evidence, prefer ImageGallery(title, description, images, columns). It shows a focused preview plus selectable thumbnails.",
     "For single high-stakes confirmation (delete, approve, deploy, autonomous-run gate), prefer ConfirmDialog(title, description, question, detail, risk, confirmLabel, cancelLabel, consequences).",
     "For side-by-side option comparison with shared specs, prefer CompareTable(title, description, options, specOrder). Each option has { name, tagline, recommended, specs }.",
