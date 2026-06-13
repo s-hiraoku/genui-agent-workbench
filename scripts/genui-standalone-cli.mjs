@@ -33,7 +33,13 @@ const AGENT_COMMANDS = {
   components: "genui components",
   open: 'genui popup --agent-id <agent> --title <title> --size review --openui-lang-file ui.openui',
   openAndWait: 'genui popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait',
+  popups: "genui popups --active",
+  artifacts: "genui artifacts --limit 20",
+  artifact: "genui artifact --artifact-id <artifactId>",
+  replay: "genui replay --artifact-id <artifactId>",
   resize: "genui resize --popup-id <popupId> --size wide",
+  closeAll: "genui close --all",
+  prune: "genui prune --max-artifacts 50",
 };
 
 function agentSnippet() {
@@ -298,6 +304,14 @@ function parseJsonObject(label, value) {
   return parsed;
 }
 
+function requireStringOption(options, key) {
+  const value = options[key];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`--${key} is required`);
+  }
+  return value;
+}
+
 async function resolveOpenUILang(options) {
   if (typeof options["openui-lang"] === "string") return options["openui-lang"];
   if (typeof options["openui-lang-file"] === "string") return readTextFile(options["openui-lang-file"]);
@@ -386,6 +400,26 @@ async function popup(options) {
 }
 
 async function close(options) {
+  if (options.all === true) {
+    const connection = await findReachableConnection(options);
+    if (!connection) throw new Error("GenUI broker is not reachable.");
+    const listed = await requestJson(`${connection.controlUrl}/v1/popups`, undefined, connection.controlToken);
+    const active = (listed.popups ?? []).filter(
+      (popup) => typeof popup.popupId === "string" && (popup.status === "opening" || popup.status === "open"),
+    );
+    const closed = [];
+    for (const popup of active) {
+      closed.push(
+        await requestJson(
+          `${connection.controlUrl}/v1/popups/${encodeURIComponent(popup.popupId)}/close`,
+          { method: "POST" },
+          connection.controlToken,
+        ),
+      );
+    }
+    return { closedCount: closed.length, closed };
+  }
+
   if (typeof options["popup-id"] !== "string" || options["popup-id"].trim().length === 0) {
     throw new Error("--popup-id is required");
   }
@@ -453,6 +487,80 @@ async function status(options) {
   const result = await brokerStatus(connection);
   if (!result) throw new Error("GenUI broker status is unavailable.");
   return result;
+}
+
+async function popups(options) {
+  const connection = await findReachableConnection(options);
+  if (!connection) throw new Error("GenUI broker is not reachable.");
+  const result = await requestJson(`${connection.controlUrl}/v1/popups`, undefined, connection.controlToken);
+  if (options.active === true) {
+    return { popups: (result.popups ?? []).filter((popup) => popup.status === "opening" || popup.status === "open") };
+  }
+  return result;
+}
+
+async function artifacts(options) {
+  const connection = await findReachableConnection(options);
+  if (!connection) throw new Error("GenUI broker is not reachable.");
+  const limit = typeof options.limit === "string" ? Number(options.limit) : 20;
+  const search = new URLSearchParams({
+    limit: String(Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : 20),
+  });
+  return requestJson(`${connection.controlUrl}/v1/artifacts?${search}`, undefined, connection.controlToken);
+}
+
+async function artifact(options) {
+  const artifactId = requireStringOption(options, "artifact-id");
+  const connection = await findReachableConnection(options);
+  if (!connection) throw new Error("GenUI broker is not reachable.");
+  return requestJson(`${connection.controlUrl}/v1/artifacts/${encodeURIComponent(artifactId)}`, undefined, connection.controlToken);
+}
+
+async function replay(options) {
+  const artifactId = requireStringOption(options, "artifact-id");
+  const connection = await ensureBroker(options);
+  const widthOption = typeof options.width === "string" ? Number(options.width) : undefined;
+  const heightOption = typeof options.height === "string" ? Number(options.height) : undefined;
+  const result = await requestJson(
+    `${connection.controlUrl}/v1/artifacts/${encodeURIComponent(artifactId)}/replay`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentId: options["agent-id"],
+        title: options.title,
+        locale: options.locale,
+        size: typeof options.size === "string" ? options.size : undefined,
+        width: Number.isFinite(widthOption) ? widthOption : undefined,
+        height: Number.isFinite(heightOption) ? heightOption : undefined,
+      }),
+    },
+    connection.controlToken,
+  );
+
+  if (options.wait === true) {
+    return waitForPopup(connection, result, options);
+  }
+
+  return result;
+}
+
+async function prune(options) {
+  const maxArtifacts = Number(requireStringOption(options, "max-artifacts"));
+  if (!Number.isFinite(maxArtifacts) || maxArtifacts < 1) {
+    throw new Error("--max-artifacts must be a positive number");
+  }
+  const connection = await findReachableConnection(options);
+  if (!connection) throw new Error("GenUI broker is not reachable.");
+  return requestJson(
+    `${connection.controlUrl}/v1/artifacts/prune`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxArtifacts }),
+    },
+    connection.controlToken,
+  );
 }
 
 async function waitForPopup(connection, opened, options) {
@@ -568,8 +676,14 @@ Usage:
   genui popup --openui-lang-file ui.openui --wait
   genui complete --popup-id "<popupId>" --outcome completed
   genui close --popup-id "<popupId>"
+  genui close --all
   genui resize --popup-id "<popupId>" --size wide
   genui status
+  genui popups --active
+  genui artifacts --limit 20
+  genui artifact --artifact-id "<artifactId>"
+  genui replay --artifact-id "<artifactId>" --wait
+  genui prune --max-artifacts 50
 
 Options:
   --service-url <url>       Override broker control URL
@@ -590,6 +704,12 @@ Options:
   --wait                    Wait until the popup is completed, cancelled, closed, or failed
   --wait-timeout-ms <ms>    Timeout for --wait. Omit for no timeout
   --outcome <outcome>       completed | cancelled | failed
+  --popup-id <popupId>      Select a popup for close/complete
+  --all                     Close all active popups with close
+  --active                  Show only opening/open popups with popups
+  --artifact-id <artifactId> Select an artifact for inspect/replay
+  --limit <count>           Limit artifacts returned by artifacts
+  --max-artifacts <count>   Keep newest N artifacts for prune
   --name <example>          Select an example for the examples command
   --json                    Return selected example as JSON
   --start                   For doctor: try to start the broker before reporting
@@ -647,6 +767,31 @@ async function main() {
 
   if (command === "status") {
     console.log(JSON.stringify(await status(options), null, 2));
+    return;
+  }
+
+  if (command === "popups") {
+    console.log(JSON.stringify(await popups(options), null, 2));
+    return;
+  }
+
+  if (command === "artifacts") {
+    console.log(JSON.stringify(await artifacts(options), null, 2));
+    return;
+  }
+
+  if (command === "artifact") {
+    console.log(JSON.stringify(await artifact(options), null, 2));
+    return;
+  }
+
+  if (command === "replay") {
+    console.log(JSON.stringify(await replay(options), null, 2));
+    return;
+  }
+
+  if (command === "prune") {
+    console.log(JSON.stringify(await prune(options), null, 2));
     return;
   }
 

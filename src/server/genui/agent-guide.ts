@@ -53,13 +53,14 @@ export const agentUsageGuide = {
       "genui popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --wait",
     openWithContext:
       "genui popup --agent-id <agent> --title <title> --openui-lang-file ui.openui --context-file data.json",
-    popups: "genui popups",
+    popups: "genui popups --active",
     artifacts: "genui artifacts --limit 20",
     artifact: "genui artifact --artifact-id <artifactId>",
     replay: "genui replay --artifact-id <artifactId>",
     prune: "genui prune --max-artifacts 50",
     resize: "genui resize --popup-id <popupId> --size wide",
     close: "genui close --popup-id <popupId>",
+    closeAll: "genui close --all",
     status: "genui status",
   },
   recommendedComponents: [

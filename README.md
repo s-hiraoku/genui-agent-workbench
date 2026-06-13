@@ -117,10 +117,11 @@ Close and inspect:
 
 ```bash
 genui close --popup-id "<popupId>"
+genui close --all
 genui complete --popup-id "<popupId>" --outcome completed
 genui resize --popup-id "<popupId>" --size wide
 genui status
-genui popups
+genui popups --active
 genui artifacts --limit 20
 genui artifact --artifact-id "<artifactId>"
 genui replay --artifact-id "<artifactId>"
@@ -202,6 +203,16 @@ The component library is the design boundary. Agents can compose listed componen
 - Charts: `BarChart`, `LineChart`, `ComboChart`, `DonutChart`, `Sparkline`
 
 Run `genui prompt-spec` for full signatures and examples.
+
+For visual regression smoke checks of the light Workbench, Studio, and Briefing
+themes, run:
+
+```bash
+npm run verify:visual-light
+```
+
+The command starts a temporary dev server, renders a representative artifact, and
+writes screenshots to `output/light-theme-visuals/`.
 
 ## MCP Server
 

@@ -108,6 +108,7 @@ describe("renderGenUI", () => {
   it("reports validation failures with line context and suggestions", () => {
     expect(() => validateOpenUILang("root = MissingCard()")).toThrow(/line 1: unknown-component/);
     expect(() => validateOpenUILang("root = ConfirmDialg(\"Deploy?\")")).toThrow(/ConfirmDialog/);
+    expect(() => validateOpenUILang("root = ConfirmDialg(\"Deploy?\")")).toThrow(/ConfirmDialog\(title, description, question/);
   });
 
   it("validates representative OpenUI Lang", () => {
@@ -293,6 +294,18 @@ describe("agent interface scaffold", () => {
     expect(instructions.indexOf("genui validate")).toBeLessThan(instructions.indexOf("genui popup"));
   });
 
+  it("keeps the packaged standalone CLI aligned with management commands", async () => {
+    const source = await fs.readFile(path.join(process.cwd(), "scripts/genui-standalone-cli.mjs"), "utf8");
+
+    expect(source).toContain("genui popups --active");
+    expect(source).toContain("genui artifacts --limit 20");
+    expect(source).toContain("genui close --all");
+    expect(source).toContain("closeAll");
+    expect(source).toContain('if (command === "popups")');
+    expect(source).toContain('if (command === "artifacts")');
+    expect(source).toContain('if (command === "replay")');
+  });
+
   it("exposes a component catalog without duplicate names", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
@@ -301,6 +314,7 @@ describe("agent interface scaffold", () => {
 
   it("publishes MCP and interaction guidance", () => {
     expect(packageJson.scripts["genui:mcp"]).toBe("node scripts/genui-mcp-server.mjs");
+    expect(packageJson.scripts["verify:visual-light"]).toBe("node scripts/verify-light-theme-visuals.mjs");
     expect(buildAgentInstructions()).toContain("actionId");
     expect(buildAgentInstructions()).toContain("genui:mcp");
   });
@@ -309,11 +323,13 @@ describe("agent interface scaffold", () => {
     expect(resolveVideoEmbedSource("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toEqual({
       kind: "iframe",
       provider: "YouTube",
+      sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       src: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0",
     });
     expect(resolveVideoEmbedSource("https://youtu.be/aqz-KE-bpKQ?t=1m2s", { autoplay: true })).toEqual({
       kind: "iframe",
       provider: "YouTube",
+      sourceUrl: "https://youtu.be/aqz-KE-bpKQ?t=1m2s",
       src: "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0&autoplay=1&mute=1&start=62",
     });
     expect(resolveVideoEmbedSource("https://example.com/demo.mp4")).toEqual({

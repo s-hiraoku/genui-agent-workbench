@@ -258,6 +258,30 @@ async function popup(options: CliOptions): Promise<unknown> {
 }
 
 async function close(options: CliOptions): Promise<unknown> {
+  if (options.all === true) {
+    const connection = await resolveBrokerConnection(options);
+    const status = await brokerStatus(connection);
+    if (!status) throw new Error("GenUI broker is not reachable.");
+    assertCompatibleBroker(status);
+    const listed = (await requestJson(`${connection.controlUrl}/v1/popups`, undefined, connection.controlToken)) as {
+      popups?: Array<{ popupId?: unknown; status?: unknown }>;
+    };
+    const active = (listed.popups ?? []).filter(
+      (popup) => typeof popup.popupId === "string" && (popup.status === "opening" || popup.status === "open"),
+    );
+    const closed = [];
+    for (const popup of active) {
+      closed.push(
+        await requestJson(
+          `${connection.controlUrl}/v1/popups/${encodeURIComponent(popup.popupId as string)}/close`,
+          { method: "POST" },
+          connection.controlToken,
+        ),
+      );
+    }
+    return { closedCount: closed.length, closed };
+  }
+
   const popupId = requireStringOption(options, "popup-id");
 
   const connection = await resolveBrokerConnection(options);
@@ -328,7 +352,13 @@ async function popups(options: CliOptions): Promise<unknown> {
   const status = await brokerStatus(connection);
   if (!status) throw new Error("GenUI broker is not reachable.");
   assertCompatibleBroker(status);
-  return requestJson(`${connection.controlUrl}/v1/popups`, undefined, connection.controlToken);
+  const result = (await requestJson(`${connection.controlUrl}/v1/popups`, undefined, connection.controlToken)) as {
+    popups?: Array<{ status?: unknown }>;
+  };
+  if (options.active === true) {
+    return { popups: (result.popups ?? []).filter((popup) => popup.status === "opening" || popup.status === "open") };
+  }
+  return result;
 }
 
 async function artifacts(options: CliOptions): Promise<unknown> {
@@ -525,9 +555,10 @@ Usage:
   genui popup --openui-lang-file ui.openui --wait
   genui complete --popup-id "<popupId>" --outcome completed
   genui close --popup-id "<popupId>"
+  genui close --all
   genui resize --popup-id "<popupId>" --size wide
   genui status
-  genui popups
+  genui popups --active
   genui artifacts --limit 20
   genui artifact --artifact-id "<artifactId>"
   genui replay --artifact-id "<artifactId>" --wait
@@ -553,6 +584,8 @@ Options:
   --wait-timeout-ms <ms>    Timeout for --wait. Omit for no timeout
   --outcome <outcome>       completed | cancelled | failed
   --popup-id <popupId>      Select a popup for close/complete
+  --all                     Close all active popups with close
+  --active                  Show only opening/open popups with popups
   --artifact-id <artifactId> Select an artifact for inspect/replay
   --limit <count>           Limit artifacts returned by artifacts
   --max-artifacts <count>   Keep newest N artifacts for prune

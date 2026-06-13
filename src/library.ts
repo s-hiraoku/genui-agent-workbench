@@ -204,7 +204,7 @@ const MapWithListDynamic = dynamic<MapWithListProps>(() => import("./app/_ui/Map
 
 type VideoEmbedSource =
   | { kind: "native"; src: string }
-  | { kind: "iframe"; src: string; provider: "YouTube" };
+  | { kind: "iframe"; src: string; provider: "YouTube"; sourceUrl: string };
 
 type ResolveVideoEmbedOptions = {
   autoplay?: boolean;
@@ -285,7 +285,7 @@ function normalizeYouTubeEmbedUrl(src: string, options: ResolveVideoEmbedOptions
 export function resolveVideoEmbedSource(src: string, options: ResolveVideoEmbedOptions = {}): VideoEmbedSource {
   const youtubeEmbedUrl = normalizeYouTubeEmbedUrl(src, options);
   if (youtubeEmbedUrl) {
-    return { kind: "iframe", provider: "YouTube", src: youtubeEmbedUrl };
+    return { kind: "iframe", provider: "YouTube", sourceUrl: src, src: youtubeEmbedUrl };
   }
 
   return { kind: "native", src };
@@ -304,33 +304,89 @@ function renderVideoSurface({
 }): React.ReactElement {
   const media = resolveVideoEmbedSource(src, { autoplay });
   if (media.kind === "iframe") {
-    return React.createElement("iframe", {
-      allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
-      allowFullScreen: true,
-      loading: "lazy",
-      referrerPolicy: "strict-origin-when-cross-origin",
-      src: media.src,
-      style: {
-        aspectRatio: "16 / 9",
-        background: "#0a0a0a",
-        border: 0,
-        display: "block",
-        width: "100%",
-      },
-      title: title ? `${title} (${media.provider})` : `${media.provider} video`,
-    });
+    return React.createElement(
+      "figure",
+      { style: { margin: 0 } },
+      React.createElement("iframe", {
+        allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+        allowFullScreen: true,
+        loading: "lazy",
+        referrerPolicy: "strict-origin-when-cross-origin",
+        src: media.src,
+        style: {
+          aspectRatio: "16 / 9",
+          background: "#0a0a0a",
+          border: 0,
+          display: "block",
+          width: "100%",
+        },
+        title: title ? `${title} (${media.provider})` : `${media.provider} video`,
+      }),
+      React.createElement(
+        "figcaption",
+        {
+          style: {
+            alignItems: "center",
+            borderTop: `1px solid ${hudEdge}`,
+            color: hudTextSoft,
+            display: "flex",
+            flexWrap: "wrap",
+            fontSize: 12,
+            gap: 8,
+            justifyContent: "space-between",
+            padding: "8px 10px",
+          },
+        },
+        React.createElement("span", null, `${media.provider} embed`),
+        React.createElement(
+          "a",
+          {
+            href: media.sourceUrl,
+            rel: "noreferrer",
+            style: { color: hudTextMid, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 },
+            target: "_blank",
+          },
+          "Open externally",
+        ),
+      ),
+    );
   }
 
-  return React.createElement("video", {
-    autoPlay: autoplay,
-    controls: true,
-    muted: autoplay,
-    playsInline: true,
-    poster: posterUrl,
-    preload: "metadata",
-    src: media.src,
-    style: { background: "#0a0a0a", display: "block", width: "100%" },
-  });
+  return React.createElement(
+    "figure",
+    { style: { margin: 0 } },
+    React.createElement("video", {
+      autoPlay: autoplay,
+      controls: true,
+      muted: autoplay,
+      playsInline: true,
+      poster: posterUrl,
+      preload: "metadata",
+      src: media.src,
+      style: { background: "#0a0a0a", display: "block", width: "100%" },
+    }),
+    React.createElement(
+      "figcaption",
+      {
+        style: {
+          borderTop: `1px solid ${hudEdge}`,
+          color: hudTextSoft,
+          fontSize: 12,
+          padding: "8px 10px",
+        },
+      },
+      React.createElement(
+        "a",
+        {
+          href: media.src,
+          rel: "noreferrer",
+          style: { color: hudTextMid, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 },
+          target: "_blank",
+        },
+        "Open video source",
+      ),
+    ),
+  );
 }
 import {
   Bar as RcBar,
