@@ -584,11 +584,11 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --visual-card-radius: 6px;
   --visual-control-radius: 6px;
   --visual-component-radius: 6px;
-  --visual-frame-border: linear-gradient(180deg, var(--edge-strong), var(--edge-soft));
+  --visual-frame-border: linear-gradient(180deg, var(--theme-frame), var(--edge-strong) 44%, var(--theme-frame-soft));
   --visual-frame-halo-opacity: 0.10;
-  --workbench-grid-line: rgba(92, 110, 132, 0.18);
-  --workbench-rail: rgba(222, 232, 244, 0.92);
-  --workbench-rail-soft: rgba(78, 96, 120, 0.18);
+  --workbench-grid-line: color-mix(in srgb, var(--theme-frame) 28%, rgba(92, 110, 132, 0.16));
+  --workbench-rail: color-mix(in srgb, var(--theme-frame) 18%, rgba(222, 232, 244, 0.92));
+  --workbench-rail-soft: color-mix(in srgb, var(--theme-frame) 30%, rgba(78, 96, 120, 0.16));
   --visual-window-pattern:
     linear-gradient(90deg, var(--workbench-rail) 0 48px, transparent 48px),
     repeating-linear-gradient(0deg, transparent 0 31px, var(--workbench-grid-line) 31px 32px),
@@ -640,13 +640,13 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --visual-frame-border:
     linear-gradient(135deg, rgba(118, 136, 152, 0.64), rgba(34, 42, 52, 0.88) 42%, var(--theme-frame-soft));
   --visual-frame-halo-opacity: 0.18;
-  --studio-rail: rgba(8, 12, 16, 0.46);
-  --studio-ruler: rgba(118, 136, 152, 0.22);
-  --studio-ruler-strong: rgba(74, 172, 208, 0.36);
+  --studio-rail: color-mix(in srgb, var(--theme-frame) 12%, rgba(8, 12, 16, 0.46));
+  --studio-ruler: color-mix(in srgb, var(--theme-frame) 26%, rgba(118, 136, 152, 0.18));
+  --studio-ruler-strong: color-mix(in srgb, var(--theme-frame) 68%, rgba(150, 170, 190, 0.22));
   --visual-window-pattern:
     linear-gradient(90deg, var(--studio-rail) 0 10px, transparent 10px),
     linear-gradient(180deg, var(--studio-ruler) 0 4px, transparent 4px),
-    radial-gradient(80% 80% at 100% 0%, rgba(74, 172, 208, 0.10), transparent 58%),
+    radial-gradient(80% 80% at 100% 0%, color-mix(in srgb, var(--theme-frame) 14%, transparent), transparent 58%),
     linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft));
   --visual-card-pattern:
     linear-gradient(90deg, var(--studio-ruler-strong) 0 3px, transparent 3px),
@@ -681,9 +681,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --tint-solid: rgba(255, 255, 255, 0.94);
   --scrollbar-thumb: rgba(88, 100, 118, 0.40);
   --scrollbar-track: rgba(226, 230, 236, 0.86);
-  --studio-rail: rgba(42, 50, 60, 0.16);
-  --studio-ruler: rgba(54, 62, 74, 0.16);
-  --studio-ruler-strong: rgba(44, 118, 164, 0.42);
+  --studio-rail: color-mix(in srgb, var(--theme-frame) 10%, rgba(42, 50, 60, 0.14));
+  --studio-ruler: color-mix(in srgb, var(--theme-frame) 18%, rgba(54, 62, 74, 0.12));
+  --studio-ruler-strong: color-mix(in srgb, var(--theme-frame) 62%, rgba(44, 118, 164, 0.18));
 }
 
 .lg-shell[data-appearance-theme="dark"][data-visual-theme="workbench"] {
@@ -708,9 +708,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --tint-row: rgba(38, 50, 64, 0.74);
   --tint-chip: rgba(50, 66, 84, 0.88);
   --tint-solid: rgba(24, 32, 42, 0.94);
-  --workbench-grid-line: rgba(160, 180, 202, 0.12);
-  --workbench-rail: rgba(30, 40, 54, 0.96);
-  --workbench-rail-soft: rgba(150, 172, 196, 0.16);
+  --workbench-grid-line: color-mix(in srgb, var(--theme-frame) 26%, rgba(160, 180, 202, 0.10));
+  --workbench-rail: color-mix(in srgb, var(--theme-frame) 14%, rgba(30, 40, 54, 0.96));
+  --workbench-rail-soft: color-mix(in srgb, var(--theme-frame) 34%, rgba(150, 172, 196, 0.12));
 }
 
 .lg-shell[data-visual-theme="briefing"] {
@@ -750,14 +750,14 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --visual-card-radius: 4px;
   --visual-control-radius: 4px;
   --visual-component-radius: 4px;
-  --visual-frame-border: linear-gradient(180deg, rgba(154, 176, 202, 0.74), rgba(206, 218, 232, 0.82));
+  --visual-frame-border: linear-gradient(180deg, var(--theme-frame), color-mix(in srgb, var(--theme-frame) 18%, rgba(206, 218, 232, 0.82)));
   --visual-frame-halo-opacity: 0.06;
-  --briefing-spine: rgba(44, 108, 164, 0.52);
-  --briefing-rule: rgba(86, 126, 164, 0.18);
+  --briefing-spine: color-mix(in srgb, var(--theme-frame) 36%, rgba(104, 118, 136, 0.42));
+  --briefing-spine-edge: color-mix(in srgb, var(--theme-frame) 44%, rgba(162, 174, 190, 0.24));
+  --briefing-rule: color-mix(in srgb, var(--theme-frame) 24%, rgba(86, 126, 164, 0.14));
   --briefing-paper-shadow: rgba(48, 78, 112, 0.12);
   --visual-window-pattern:
-    linear-gradient(90deg, transparent 0 22px, var(--briefing-spine) 22px 26px, transparent 26px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0 58px, transparent 58px),
+    linear-gradient(90deg, var(--briefing-spine) 0 14px, var(--briefing-spine-edge) 14px 15px, transparent 15px),
     linear-gradient(180deg, var(--aether-window-tint), var(--aether-window-tint-soft));
   --visual-card-pattern:
     linear-gradient(90deg, var(--briefing-spine) 0 5px, transparent 5px),
@@ -787,8 +787,9 @@ html[data-chrome] :where(.lg-scroll, .lg-preview) * {
   --tint-row: rgba(38, 56, 76, 0.74);
   --tint-chip: rgba(48, 70, 94, 0.88);
   --tint-solid: rgba(24, 36, 50, 0.94);
-  --briefing-spine: rgba(92, 152, 210, 0.50);
-  --briefing-rule: rgba(154, 184, 214, 0.14);
+  --briefing-spine: color-mix(in srgb, var(--theme-frame) 34%, rgba(118, 132, 150, 0.32));
+  --briefing-spine-edge: color-mix(in srgb, var(--theme-frame) 42%, rgba(170, 184, 202, 0.14));
+  --briefing-rule: color-mix(in srgb, var(--theme-frame) 22%, rgba(154, 184, 214, 0.10));
   --briefing-paper-shadow: rgba(0, 0, 0, 0.24);
 }
 
@@ -3172,6 +3173,118 @@ body::before,
     0 10px 18px var(--briefing-paper-shadow);
 }
 
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] {
+  --aether-readable-tint: rgb(255, 255, 255);
+  --aether-readable-tint-soft: rgb(248, 250, 253);
+  --tint-row: rgb(247, 250, 253);
+  --tint-chip: rgb(238, 244, 250);
+  --briefing-paper-shadow: rgba(48, 78, 112, 0.07);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview {
+  --lg-component-panel-wash: rgb(255, 255, 255);
+  --lg-component-cell-wash: rgb(247, 250, 253);
+  --lg-component-row-wash: rgb(249, 251, 253);
+  --lg-component-row-alt-wash: rgb(241, 246, 250);
+  --lg-component-edge: rgba(122, 139, 160, 0.28);
+  --lg-component-edge-strong: rgba(88, 106, 132, 0.38);
+  --lg-component-line: var(--briefing-spine);
+  --lg-component-panel-bg: none;
+  --lg-component-panel-shadow:
+    inset 3px 0 0 var(--lg-component-line),
+    inset 0 0 0 1px var(--lg-component-edge),
+    0 8px 18px var(--briefing-paper-shadow);
+  --lg-component-readable-shadow:
+    inset 3px 0 0 var(--lg-component-line),
+    inset 0 0 0 1px var(--lg-component-edge),
+    0 6px 14px var(--briefing-paper-shadow);
+  --openui-foreground: rgb(255, 255, 255);
+  --openui-popover-background: rgb(255, 255, 255);
+  --openui-sunk: rgb(246, 249, 252);
+  --openui-sunk-deep: rgb(238, 244, 250);
+  --openui-highlight: rgb(236, 242, 248);
+  --lg-tone-emphasis-shadow: var(--lg-component-readable-shadow);
+  --lg-tone-critical-accent: rgb(178, 42, 68);
+  --lg-tone-critical-bg: rgb(255, 230, 236);
+  --lg-tone-critical-border: rgba(178, 42, 68, 0.34);
+  --lg-tone-critical-text: rgb(116, 30, 48);
+  --lg-tone-danger-accent: rgb(196, 62, 86);
+  --lg-tone-danger-bg: rgb(255, 233, 238);
+  --lg-tone-danger-border: rgba(196, 62, 86, 0.30);
+  --lg-tone-danger-text: rgb(124, 36, 54);
+  --lg-tone-warning-accent: rgb(184, 124, 22);
+  --lg-tone-warning-bg: rgb(255, 244, 217);
+  --lg-tone-warning-border: rgba(184, 124, 22, 0.32);
+  --lg-tone-warning-text: rgb(106, 72, 12);
+  --lg-tone-positive-accent: rgb(34, 132, 86);
+  --lg-tone-positive-bg: rgb(226, 246, 235);
+  --lg-tone-positive-border: rgba(34, 132, 86, 0.30);
+  --lg-tone-positive-text: rgb(18, 84, 55);
+  --lg-tone-info-accent: rgb(58, 112, 184);
+  --lg-tone-info-bg: rgb(229, 240, 255);
+  --lg-tone-info-border: rgba(58, 112, 184, 0.30);
+  --lg-tone-info-text: rgb(28, 76, 132);
+  --lg-tone-neutral-accent: rgb(92, 108, 128);
+  --lg-tone-neutral-bg: rgb(241, 245, 249);
+  --lg-tone-neutral-border: rgba(92, 108, 128, 0.28);
+  --lg-tone-neutral-text: rgb(35, 47, 64);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview :where(.openui-card-card, .openui-card-sunk) {
+  background-color: rgb(255, 255, 255);
+  background-image: none;
+  border-color: var(--lg-component-edge);
+  box-shadow:
+    inset 3px 0 0 var(--lg-component-line),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.74),
+    0 8px 18px var(--briefing-paper-shadow);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-row {
+  background: rgb(249, 251, 253);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--theme-frame) 40%, transparent),
+    inset 0 0 0 1px var(--lg-component-edge);
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview :where(article, li) {
+  background-image: none !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface {
+  --glass-label-border: rgba(92, 108, 128, 0.26);
+  --glass-label-ink: rgb(35, 47, 64);
+  background: rgb(241, 245, 249) !important;
+  background-image: none !important;
+  box-shadow:
+    inset 0 0 0 1px var(--glass-label-border) !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="positive"] {
+  --glass-label-border: rgba(34, 132, 86, 0.28);
+  --glass-label-ink: rgb(18, 84, 55);
+  background: rgb(226, 246, 235) !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="info"] {
+  --glass-label-border: rgba(58, 112, 184, 0.28);
+  --glass-label-ink: rgb(28, 76, 132);
+  background: rgb(229, 240, 255) !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="warning"] {
+  --glass-label-border: rgba(184, 124, 22, 0.30);
+  --glass-label-ink: rgb(106, 72, 12);
+  background: rgb(255, 244, 217) !important;
+}
+
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="danger"],
+.lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="critical"] {
+  --glass-label-border: rgba(196, 62, 86, 0.30);
+  --glass-label-ink: rgb(124, 36, 54);
+  background: rgb(255, 233, 238) !important;
+}
+
 .lg-shell[data-visual-theme="studio"] .lg-preview {
   --lg-component-text: var(--ink);
   --lg-component-text-mid: var(--ink-mid);
@@ -3321,7 +3434,7 @@ body::before,
 
 .lg-shell[data-visual-theme="workbench"] .lg-preview :where(h1, h2, h3, h4, h5, h6, p, span, div, li, button, th, td),
 .lg-shell[data-visual-theme="briefing"] .lg-preview :where(h1, h2, h3, h4, h5, h6, p, span, div, li, button, th, td) {
-  color: var(--ink) !important;
+  color: var(--ink);
   text-shadow: none !important;
 }
 

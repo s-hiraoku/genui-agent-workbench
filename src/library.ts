@@ -707,7 +707,7 @@ const readableGlassStyle: React.CSSProperties = {
 function accentedReadableGlassStyle(tone: { border: string }): React.CSSProperties {
   return {
     ...readableGlassStyle,
-    boxShadow: `${readableGlassStyle.boxShadow}, inset 0 0 28px ${tone.border}, 0 0 26px ${tone.border}`,
+    boxShadow: `var(--lg-tone-emphasis-shadow, ${readableGlassStyle.boxShadow}, inset 0 0 28px ${tone.border}, 0 0 26px ${tone.border})`,
   };
 }
 
