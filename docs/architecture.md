@@ -84,3 +84,7 @@ Popup previews are constrained by a dedicated renderer wrapper. The renderer app
 - narrow-container handling for generated grid layouts.
 
 This is intentionally defensive because agent-authored UI can contain arbitrary component combinations and long text.
+
+The broker also broadcasts saved appearance and visual design setting changes to
+currently open popups, so settings updates can restyle active windows without
+replaying or regenerating the underlying OpenUI Lang artifact.

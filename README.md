@@ -226,6 +226,10 @@ Design defaults can be changed from:
 - the tray settings window (`/settings`)
 - `POST /v1/settings`
 
+Changes to the appearance theme, visual style, accent color, and popup animation
+are pushed live to currently open popup windows. The saved settings also remain
+the defaults for newly opened and replayed popups.
+
 Available presets:
 
 - `visualThemePreset`: `hud` (default, holographic live-signal overlay), `workbench` (operations grid for queues, tables, and status), `studio` (editor console for review, media, and creation), `briefing` (report document for decisions and summaries)

@@ -12,7 +12,6 @@ import { buildAgentInstructions, buildPromptSpec } from "../src/server/genui/cli
 import { componentCatalog } from "../src/server/genui/component-catalog";
 import { genUIExamples, getGenUIExample } from "../src/server/genui/examples";
 import {
-  applyPreviewThemeParams,
   buildPopupPreviewUrl,
   previewThemeParamsFromSettings,
   type PreviewThemeParams,
@@ -52,9 +51,45 @@ const popupRegistry = new Map<string, PopupRuntime>();
 const MAX_REQUEST_BYTES = 1024 * 1024;
 const GENUI_DATA_DIR_NAME = "genui-agent-workbench";
 const ACTIVE_POPUP_STATUSES = new Set<PopupStatus>(["opening", "open"]);
+const POPUP_DESIGN_SETTINGS_GLOBAL = "__genuiLiveDesignSettings";
+const POPUP_DESIGN_SETTINGS_EVENT = "genui:design-settings-changed";
 
 function activePopupCount(): number {
   return [...popupRegistry.values()].filter((popup) => ACTIVE_POPUP_STATUSES.has(popup.status)).length;
+}
+
+function didDesignSettingsChange(previous: BrokerSettings, next: BrokerSettings): boolean {
+  return previous.theme !== next.theme || JSON.stringify(previous.design) !== JSON.stringify(next.design);
+}
+
+function popupDesignSettingsPayload() {
+  return {
+    appearanceTheme: resolveTheme(settings.theme),
+    animation: settings.design.windowAnimationPreset,
+    design: settings.design,
+    themeColor: settings.design.themeColorPreset,
+    visualTheme: settings.design.visualThemePreset,
+  };
+}
+
+async function applyPopupDesignSettings(window: BrowserWindow): Promise<void> {
+  const payload = JSON.stringify(popupDesignSettingsPayload());
+  const script =
+    `window.${POPUP_DESIGN_SETTINGS_GLOBAL} = ${payload};` +
+    `window.dispatchEvent(new CustomEvent(${JSON.stringify(POPUP_DESIGN_SETTINGS_EVENT)}, { detail: ${payload} }));`;
+  await window.webContents.executeJavaScript(script);
+}
+
+function broadcastPopupDesignSettings(): void {
+  for (const popup of popupRegistry.values()) {
+    if (popup.status !== "open" || !popup.window || popup.window.isDestroyed()) {
+      continue;
+    }
+
+    void applyPopupDesignSettings(popup.window).catch((error: unknown) => {
+      console.warn("[genui] failed to update popup design settings:", error);
+    });
+  }
 }
 
 function getDefaultGenUIDataDir(): string {
@@ -690,35 +725,9 @@ async function applySettings(next: BrokerSettings): Promise<void> {
   }
 
   nativeTheme.themeSource = next.theme === "auto" ? "system" : next.theme;
-  syncOpenPopupAppearance();
-}
 
-function syncOpenPopupAppearance(): void {
-  const themeParams = getPreviewThemeParams();
-  const script = `
-(() => {
-  const shell = document.querySelector(".lg-shell");
-  if (shell) {
-    shell.dataset.appearanceTheme = ${JSON.stringify(themeParams.theme)};
-    shell.dataset.themeColor = ${JSON.stringify(themeParams.themeColor)};
-    shell.dataset.visualTheme = ${JSON.stringify(themeParams.visualTheme)};
-  }
-  const frame = document.querySelector(".lg-window-frame");
-  if (frame) {
-    frame.dataset.animation = ${JSON.stringify(themeParams.animation)};
-  }
-  document.documentElement.setAttribute("data-appearance", ${JSON.stringify(themeParams.theme)});
-})();
-`;
-
-  for (const popup of popupRegistry.values()) {
-    if (!ACTIVE_POPUP_STATUSES.has(popup.status)) continue;
-    popup.previewUrl = applyPreviewThemeParams(popup.previewUrl, themeParams);
-
-    if (!popup.window || popup.window.isDestroyed()) continue;
-    void popup.window.webContents.executeJavaScript(script, true).catch((error) => {
-      console.warn(`[genui] failed to sync popup appearance for ${popup.popupId}:`, error);
-    });
+  if (didDesignSettingsChange(previous, next)) {
+    broadcastPopupDesignSettings();
   }
 }
 
@@ -830,6 +839,11 @@ async function openArtifactPopup(
   try {
     window.show();
     await window.loadURL(previewUrl);
+    try {
+      await applyPopupDesignSettings(window);
+    } catch (error) {
+      console.warn("[genui] failed to apply initial popup design settings:", error);
+    }
     window.focus();
     popup.status = "open";
   } catch (error) {
