@@ -42,6 +42,19 @@ function normalizeInput(input: RenderGenUIInput): RenderGenUIInput & { openuiLan
 }
 
 const componentNames = componentCatalog.map((component) => component.name);
+const componentSignatureHints: Record<string, string> = {
+  ActionPanel: 'ActionPanel(title, description, actions)',
+  AlertList: 'AlertList(title, description, alerts)',
+  BarChart: 'BarChart(title, description, unit, max, data)',
+  ChecklistPanel: 'ChecklistPanel(title, description, items, summary)',
+  ConfirmDialog: 'ConfirmDialog(title, description, question, detail, risk, confirmLabel, cancelLabel, consequences)',
+  DataTable: 'DataTable(title, description, columns, rows, caption)',
+  DonutChart: 'DonutChart(title, description, total, segments)',
+  LineChart: 'LineChart(title, description, unit, data)',
+  MetricGrid: 'MetricGrid(title, description, metrics)',
+  VideoPlayer: 'VideoPlayer(title, description, src, posterUrl, transcript, chapters)',
+  VideoPlaylist: 'VideoPlaylist(title, description, videos, autoplay)',
+};
 
 function levenshtein(a: string, b: string): number {
   const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
@@ -65,6 +78,17 @@ function closestComponents(name: string): string[] {
     .sort((a, b) => a.distance - b.distance || a.candidate.localeCompare(b.candidate))
     .slice(0, 3)
     .map(({ candidate }) => candidate);
+}
+
+function suggestionText(names: string[]): string {
+  if (names.length === 0) return "";
+  const hints = names
+    .map((name) => {
+      const signature = componentSignatureHints[name];
+      return signature ? `"${name}" (${signature})` : `"${name}"`;
+    })
+    .join(", ");
+  return `; did you mean ${hints}?`;
 }
 
 function lineForStatement(openuiLang: string, statementId?: string): number | undefined {
@@ -92,7 +116,7 @@ function validationSummary(
       const line = lineForStatement(openuiLang, error.statementId);
       const prefix = line ? `line ${line}: ` : "";
       const suggestions = error.component ? closestComponents(error.component) : [];
-      const suffix = suggestions.length > 0 ? `; did you mean ${suggestions.map((name) => `"${name}"`).join(", ")}?` : "";
+      const suffix = suggestionText(suggestions);
       return `${prefix}${error.code}: ${error.message}${suffix}`;
     }),
     ...unresolved.map((name) => {

@@ -19,6 +19,7 @@
     "release:macos": "npm run electron:zip -- --arm64 && node scripts/package-macos-release.mjs",
     "genui": "tsx scripts/genui-cli.ts",
     "genui:mcp": "node scripts/genui-mcp-server.mjs",
+    "verify:visual-light": "node scripts/verify-light-theme-visuals.mjs",
     "start": "next start",
     "test": "vitest run",
     "lint": "eslint"

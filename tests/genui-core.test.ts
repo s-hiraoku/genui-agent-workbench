@@ -108,6 +108,7 @@ describe("renderGenUI", () => {
   it("reports validation failures with line context and suggestions", () => {
     expect(() => validateOpenUILang("root = MissingCard()")).toThrow(/line 1: unknown-component/);
     expect(() => validateOpenUILang("root = ConfirmDialg(\"Deploy?\")")).toThrow(/ConfirmDialog/);
+    expect(() => validateOpenUILang("root = ConfirmDialg(\"Deploy?\")")).toThrow(/ConfirmDialog\(title, description, question/);
   });
 
   it("validates representative OpenUI Lang", () => {
@@ -293,6 +294,18 @@ describe("agent interface scaffold", () => {
     expect(instructions.indexOf("genui validate")).toBeLessThan(instructions.indexOf("genui popup"));
   });
 
+  it("keeps the packaged standalone CLI aligned with management commands", async () => {
+    const source = await fs.readFile(path.join(process.cwd(), "scripts/genui-standalone-cli.mjs"), "utf8");
+
+    expect(source).toContain("genui popups --active");
+    expect(source).toContain("genui artifacts --limit 20");
+    expect(source).toContain("genui close --all");
+    expect(source).toContain("closeAll");
+    expect(source).toContain('if (command === "popups")');
+    expect(source).toContain('if (command === "artifacts")');
+    expect(source).toContain('if (command === "replay")');
+  });
+
   it("exposes a component catalog without duplicate names", () => {
     const names = componentCatalog.map((component) => component.name);
     expect(new Set(names).size).toBe(names.length);
@@ -301,6 +314,7 @@ describe("agent interface scaffold", () => {
 
   it("publishes MCP and interaction guidance", () => {
     expect(packageJson.scripts["genui:mcp"]).toBe("node scripts/genui-mcp-server.mjs");
+    expect(packageJson.scripts["verify:visual-light"]).toBe("node scripts/verify-light-theme-visuals.mjs");
     expect(buildAgentInstructions()).toContain("actionId");
     expect(buildAgentInstructions()).toContain("genui:mcp");
   });
@@ -309,11 +323,13 @@ describe("agent interface scaffold", () => {
     expect(resolveVideoEmbedSource("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toEqual({
       kind: "iframe",
       provider: "YouTube",
+      sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
       src: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0",
     });
     expect(resolveVideoEmbedSource("https://youtu.be/aqz-KE-bpKQ?t=1m2s", { autoplay: true })).toEqual({
       kind: "iframe",
       provider: "YouTube",
+      sourceUrl: "https://youtu.be/aqz-KE-bpKQ?t=1m2s",
       src: "https://www.youtube-nocookie.com/embed/aqz-KE-bpKQ?rel=0&autoplay=1&mute=1&start=62",
     });
     expect(resolveVideoEmbedSource("https://example.com/demo.mp4")).toEqual({
@@ -512,8 +528,9 @@ describe("theme CSS", () => {
 
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\]\s*\{/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--ink:\s*rgb\(26,\s*30,\s*36\);/);
-    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--aether-window-tint:\s*rgba\(250,\s*251,\s*252,\s*0\.98\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\][\s\S]*?--aether-window-tint:\s*rgb\(255,\s*252,\s*247\);/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\] \.lg-preview\s*\{/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:\s*var\(--lg-component-panel-wash\);/);
   });
 
   it("keeps non-HUD visual themes distinct from light and dark appearance", async () => {
@@ -524,7 +541,12 @@ describe("theme CSS", () => {
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?--briefing-spine:/);
     expect(css).toMatch(/\.lg-shell\[data-visual-theme="briefing"\][\s\S]*?linear-gradient\(90deg,\s*var\(--briefing-spine\) 0 14px/);
     expect(extractVisualThemeBlock(css, "briefing")).not.toContain("0 58px");
-    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:\s*none;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="workbench"\]\s*\{[\s\S]*?--aether-card-blur:\s*0px;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="workbench"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:\s*var\(--lg-component-panel-wash\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="studio"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:\s*var\(--lg-component-panel-wash\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview\s*\{[\s\S]*?--lg-component-panel-bg:\s*var\(--lg-component-panel-wash\);/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]:is\(\[data-visual-theme="workbench"\], \[data-visual-theme="studio"\], \[data-visual-theme="briefing"\]\) \.lg-preview :where\(section, article, li, \.openui-card-card, \.openui-card-sunk, \.lg-label-surface\)[\s\S]*?backdrop-filter:\s*none !important;/);
+    expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]:is\(\[data-visual-theme="workbench"\], \[data-visual-theme="studio"\], \[data-visual-theme="briefing"\]\) \.lg-preview :where\(\.openui-card-card, \.openui-card-sunk\)[\s\S]*?background-image:\s*none !important;/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview :where\(\.openui-card-card, \.openui-card-sunk\)[\s\S]*?background-image:\s*none;/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-row\s*\{[\s\S]*?var\(--theme-frame\)/);
     expect(css).toMatch(/\.lg-shell\[data-appearance-theme="light"\]\[data-visual-theme="briefing"\] \.lg-preview :where\(article, li\)[\s\S]*?background-image:\s*none !important;/);

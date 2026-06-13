@@ -274,7 +274,7 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
     setError(null);
     setMessage(null);
     try {
-      const res = await fetch(`${controlUrl}/v1/popups/${popup.popupId}/close`, {
+      const res = await fetch(`${controlUrl}/v1/popups/${encodeURIComponent(popup.popupId)}/close`, {
         method: "POST",
         headers: authHeaders,
       });
@@ -284,6 +284,34 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
       setMessage(`Closed ${popup.title}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to close popup");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const closeAllPopups = async () => {
+    const targets = activePopups;
+    if (targets.length === 0) return;
+    setBusyId("active-popups");
+    setError(null);
+    setMessage(null);
+    try {
+      const closed = await Promise.all(
+        targets.map(async (popup) => {
+          const res = await fetch(`${controlUrl}/v1/popups/${encodeURIComponent(popup.popupId)}/close`, {
+            method: "POST",
+            headers: authHeaders,
+          });
+          if (!res.ok) throw new Error(`Close failed: ${res.status} ${res.statusText}`);
+          return (await res.json()) as Popup;
+        }),
+      );
+      setPopups((items) =>
+        items.map((item) => closed.find((popup) => popup.popupId === item.popupId) ?? item),
+      );
+      setMessage(`Closed ${closed.length} active popup${closed.length === 1 ? "" : "s"}`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to close active popups");
     } finally {
       setBusyId(null);
     }
@@ -491,8 +519,20 @@ export function HomeClient({ artifacts, controlUrl, controlToken }: HomeClientPr
                   <div className="flex items-end justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-1">
                       <span className="lg-label">Active Popups</span>
-                      <span className="lg-meta-faint">Runtime windows currently known to the broker</span>
+                      <span className="lg-meta-faint">
+                        {activePopups.length} active / {popups.length} known runtime windows
+                      </span>
                     </div>
+                    <button
+                      aria-label="Close all active popups"
+                      className="lg-icon-button"
+                      disabled={!controlUrl || activePopups.length === 0 || busyId === "active-popups"}
+                      onClick={closeAllPopups}
+                      title="Close all active popups"
+                      type="button"
+                    >
+                      <Square size={14} strokeWidth={1.5} />
+                    </button>
                   </div>
                   {activePopups.length === 0 ? (
                     <div className="lg-row">
