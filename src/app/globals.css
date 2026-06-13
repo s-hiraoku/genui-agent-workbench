@@ -3252,6 +3252,7 @@ body::before,
 }
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface {
+
   --glass-label-border: rgba(92, 108, 128, 0.26);
   --glass-label-ink: rgb(35, 47, 64);
   background: rgb(241, 245, 249) !important;
@@ -3261,18 +3262,21 @@ body::before,
 }
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="positive"] {
+
   --glass-label-border: rgba(34, 132, 86, 0.28);
   --glass-label-ink: rgb(18, 84, 55);
   background: rgb(226, 246, 235) !important;
 }
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="info"] {
+
   --glass-label-border: rgba(58, 112, 184, 0.28);
   --glass-label-ink: rgb(28, 76, 132);
   background: rgb(229, 240, 255) !important;
 }
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="warning"] {
+
   --glass-label-border: rgba(184, 124, 22, 0.30);
   --glass-label-ink: rgb(106, 72, 12);
   background: rgb(255, 244, 217) !important;
@@ -3280,6 +3284,7 @@ body::before,
 
 .lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="danger"],
 .lg-shell[data-appearance-theme="light"][data-visual-theme="briefing"] .lg-preview .lg-label-surface[data-tone="critical"] {
+
   --glass-label-border: rgba(196, 62, 86, 0.30);
   --glass-label-ink: rgb(124, 36, 54);
   background: rgb(255, 233, 238) !important;
