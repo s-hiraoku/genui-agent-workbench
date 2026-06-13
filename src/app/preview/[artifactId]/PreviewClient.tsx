@@ -99,6 +99,52 @@ function safeDocumentBaseHref(): string {
   }
 }
 
+function isYouTubeEmbedUrl(value: string | null): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    return (host === "youtube.com" || host === "youtube-nocookie.com") && url.pathname.startsWith("/embed/");
+  } catch {
+    return false;
+  }
+}
+
+function watchUrlFromEmbed(value: string): string {
+  try {
+    const url = new URL(value);
+    const videoId = url.pathname.split("/").filter(Boolean)[1];
+    return videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}` : value;
+  } catch {
+    return value;
+  }
+}
+
+function htmlForStandalonePreview(preview: HTMLElement): string {
+  const clone = preview.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll("iframe").forEach((iframe) => {
+    const src = iframe.getAttribute("src");
+    if (!isYouTubeEmbedUrl(src)) return;
+
+    // file:// snapshots cannot provide the HTTP referrer YouTube requires.
+    // Defer the iframe so the standalone script can choose iframe vs fallback.
+    const placeholder = document.createElement("div");
+    placeholder.dataset.lgDeferredYoutubeEmbed = "true";
+    placeholder.dataset.lgEmbedSrc = src;
+    placeholder.dataset.lgSourceUrl =
+      iframe.closest("figure")?.querySelector<HTMLAnchorElement>("a[href]")?.href ?? watchUrlFromEmbed(src);
+    placeholder.dataset.lgTitle = iframe.getAttribute("title") ?? "YouTube video";
+    placeholder.setAttribute(
+      "style",
+      iframe.getAttribute("style") ??
+        "aspect-ratio:16 / 9;background:#0a0a0a;display:block;width:100%",
+    );
+    iframe.replaceWith(placeholder);
+  });
+
+  return clone.innerHTML;
+}
+
 const standaloneInteractionScript = String.raw`
 (() => {
   const ready = (fn) => {
@@ -108,6 +154,25 @@ const standaloneInteractionScript = String.raw`
     }
     fn();
   };
+  const isFileSnapshot = location.protocol === "file:";
+  const isYouTubeEmbed = (value) => {
+    try {
+      const url = new URL(String(value || ""));
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      return (host === "youtube.com" || host === "youtube-nocookie.com") && url.pathname.startsWith("/embed/");
+    } catch {
+      return false;
+    }
+  };
+  const youtubeWatchUrlFromEmbed = (value) => {
+    try {
+      const url = new URL(String(value || ""));
+      const videoId = url.pathname.split("/").filter(Boolean)[1];
+      return videoId ? "https://www.youtube.com/watch?v=" + encodeURIComponent(videoId) : String(value || "");
+    } catch {
+      return String(value || "");
+    }
+  };
   const escapeAttribute = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
     "<": "&lt;",
@@ -115,6 +180,19 @@ const standaloneInteractionScript = String.raw`
     '"': "&quot;",
     "'": "&#39;",
   })[char]);
+  const escapeHtml = escapeAttribute;
+  const renderYouTubeFallbackHtml = (title, embedSrc, sourceUrl) => {
+    const href = sourceUrl || youtubeWatchUrlFromEmbed(embedSrc);
+    return '<div data-lg-youtube-fallback="true" style="align-items:center;aspect-ratio:16 / 9;background:#111827;color:#f8fafc;display:flex;justify-content:center;padding:24px;text-align:center;width:100%"><div style="max-width:520px"><strong style="display:block;font-size:15px">' + escapeHtml(title || "YouTube video") + '</strong><p style="color:#cbd5e1;font-size:12px;line-height:1.5;margin:8px 0 14px">Downloaded HTML opened from file:// cannot provide the HTTP referrer YouTube requires for embedded playback.</p><a href="' + escapeAttribute(href) + '" target="_blank" rel="noreferrer" style="color:#93c5fd;font-size:13px;font-weight:800;text-decoration:underline;text-underline-offset:3px">Open on YouTube</a></div></div>';
+  };
+  const renderYouTubeIframeHtml = (title, embedSrc) =>
+    '<iframe title="' + escapeAttribute(title || "YouTube video") + '" src="' + escapeAttribute(embedSrc) + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" style="aspect-ratio:16 / 9;border:0;border-radius:8px;display:block;width:100%"></iframe>';
+  const renderStandaloneEmbedHtml = (title, embedSrc, sourceUrl) => {
+    if (isFileSnapshot && isYouTubeEmbed(embedSrc)) {
+      return renderYouTubeFallbackHtml(title, embedSrc, sourceUrl);
+    }
+    return renderYouTubeIframeHtml(title, embedSrc);
+  };
   const setText = (root, selector, value) => {
     const node = root.querySelector(selector);
     if (!node) return;
@@ -146,6 +224,14 @@ const standaloneInteractionScript = String.raw`
       + ".lg-preview [data-lg-standalone-clicked=\"true\"] { filter: brightness(1.08); }\n"
       + ".lg-preview [data-lg-local-status] { color: var(--lg-component-text-mid, currentColor); font-size: 12px; margin: 6px 0 0; }";
     document.head.append(style);
+
+    document.querySelectorAll("[data-lg-deferred-youtube-embed]").forEach((placeholder) => {
+      placeholder.outerHTML = renderStandaloneEmbedHtml(
+        placeholder.dataset.lgTitle,
+        placeholder.dataset.lgEmbedSrc,
+        placeholder.dataset.lgSourceUrl,
+      );
+    });
 
     document.querySelectorAll('[role="tablist"]').forEach((tablist) => {
       const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
@@ -220,11 +306,11 @@ const standaloneInteractionScript = String.raw`
         setText(root, "[data-lg-video-description]", button.dataset.lgDescription);
         setText(root, "[data-lg-video-reason]", button.dataset.lgReason);
         if (!surface || !button.dataset.lgEmbedSrc) return;
-        const title = escapeAttribute(button.dataset.lgTitle);
-        const src = escapeAttribute(button.dataset.lgEmbedSrc);
+        const title = button.dataset.lgTitle;
         if (button.dataset.lgEmbedKind === "iframe") {
-          surface.innerHTML = '<iframe title="' + title + '" src="' + src + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" style="aspect-ratio:16 / 9;border:0;border-radius:8px;display:block;width:100%"></iframe>';
+          surface.innerHTML = renderStandaloneEmbedHtml(title, button.dataset.lgEmbedSrc, button.dataset.lgSourceUrl);
         } else {
+          const src = escapeAttribute(button.dataset.lgEmbedSrc);
           const poster = button.dataset.lgPoster ? ' poster="' + escapeAttribute(button.dataset.lgPoster) + '"' : "";
           surface.innerHTML = '<video controls preload="metadata"' + poster + ' style="aspect-ratio:16 / 9;background:#0a0a0a;border-radius:8px;display:block;width:100%"><source src="' + src + '"></video>';
         }
@@ -333,6 +419,7 @@ export function PreviewClient({
     const frameAttributes = htmlAttributesFor(frame) || 'class="lg-window-frame"';
     const styles = readDocumentStyles().replaceAll("</style", "<\\/style");
     const interactionScript = standaloneInteractionScript.replaceAll("</script", "<\\/script");
+    const previewHtml = htmlForStandalonePreview(preview);
     const html = `<!doctype html>
 <html lang="${escapeAttribute(document.documentElement.lang || "en")}">
 <head>
@@ -358,7 +445,7 @@ ${styles}
               <div class="lg-window-drag-grip" aria-hidden="true"></div>
             </header>
             <main class="${escapeAttribute(preview.className)}">
-${preview.innerHTML}
+${previewHtml}
             </main>
           </div>
         </div>

@@ -1461,6 +1461,7 @@ const VideoPlaylist = defineComponent({
                         "data-lg-embed-src": embedSource.src,
                         "data-lg-poster": video.posterUrl,
                         "data-lg-reason": video.reason,
+                        "data-lg-source-url": embedSource.kind === "iframe" ? embedSource.sourceUrl : undefined,
                         "data-lg-title": video.title,
                         "data-lg-video-item": "true",
                         onClick: () => setSelectedIndex(index),
