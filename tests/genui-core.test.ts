@@ -218,7 +218,8 @@ describe("renderGenUI", () => {
     expect(markup).toContain('autoPlay=""');
     expect(markup).toContain('data-lg-autoplay="true"');
     expect(markup).toContain("data-lg-embed-src");
-    expect(markup).toContain("max(120px, 100dvh - 220px)");
+    expect(markup).toContain("max(0px, 100dvh - 220px)");
+    expect(markup).not.toContain("max(120px, 100dvh - 220px)");
     expect(markup).toContain("data-lg-audio-track");
     expect(markup).toContain("data-lg-audio-cover");
     expect(markup).toContain("data-lg-cover");
