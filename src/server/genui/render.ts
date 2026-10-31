@@ -52,7 +52,8 @@ const componentSignatureHints: Record<string, string> = {
   DonutChart: 'DonutChart(title, description, total, segments)',
   LineChart: 'LineChart(title, description, unit, data)',
   MetricGrid: 'MetricGrid(title, description, metrics)',
-  VideoPlayer: 'VideoPlayer(title, description, src, posterUrl, transcript, chapters)',
+  AudioPlayer: 'AudioPlayer(title, description, tracks, autoplay)',
+  VideoPlayer: 'VideoPlayer(title, description, src, posterUrl, transcript, chapters, autoplay)',
   VideoPlaylist: 'VideoPlaylist(title, description, videos, autoplay)',
 };
 

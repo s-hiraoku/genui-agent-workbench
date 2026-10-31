@@ -162,7 +162,8 @@ export const componentCatalog: ComponentCatalogItem[] = [
   {
     name: "AudioPlayer",
     category: "Media",
-    description: "Playlist-style audio player with one focused player and a clickable queue for music, voice notes, podcasts, recordings, and generated audio.",
+    description:
+      "Playlist-style audio player with one focused player and a clickable queue for music, voice notes, podcasts, recordings, and generated audio. Attempts autoplay by default where browser policy allows.",
     useCases: ["music preview", "voice note review", "meeting recordings", "podcasts", "generated speech"],
     examplePrompt: "音声メモをプレーヤーで表示して。概要と再生リストも付けて。",
   },
@@ -170,7 +171,7 @@ export const componentCatalog: ComponentCatalogItem[] = [
     name: "VideoPlayer",
     category: "Media",
     description:
-      "Video player with poster, chapters, transcript support, and inline YouTube embeds for demos, clips, recordings, and walkthroughs.",
+      "Video player with poster, chapters, transcript support, muted autoplay by default, and inline YouTube embeds for demos, clips, recordings, and walkthroughs.",
     useCases: ["YouTube embeds", "screen recordings", "feature demos", "tutorials", "incident evidence", "generated clips"],
     examplePrompt: "デモ動画をチャプター付きで表示して。重要な場面もまとめて。",
   },
@@ -178,7 +179,7 @@ export const componentCatalog: ComponentCatalogItem[] = [
     name: "VideoPlaylist",
     category: "Media",
     description:
-      "Recommended video playlist with a main inline player and clickable candidate table. Put the best match first for automatic main playback.",
+      "Recommended video playlist with a muted-autoplay main inline player and clickable candidate table. Put the best match first for automatic main playback.",
     useCases: ["YouTube recommendations", "video search results", "tutorial playlist", "demo playlist", "learning queue"],
     examplePrompt: "おすすめYouTube動画を、1本目をメイン再生、次候補をクリックで切り替えられるUIで表示して。",
   },

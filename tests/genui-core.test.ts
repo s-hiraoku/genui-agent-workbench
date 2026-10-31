@@ -196,10 +196,11 @@ describe("renderGenUI", () => {
 
   it("validates interactive media OpenUI Lang", () => {
     const mediaOpenUILang = [
-      "root = Card([videos, audio, gallery])",
+      "root = Card([videos, singleVideo, audio, gallery])",
       'videos = VideoPlaylist("おすすめ動画", "クリックで候補を切り替え", [v1, v2], true)',
       'v1 = { title: "Main", src: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", channel: "YouTube", reason: "best match" }',
       'v2 = { title: "Next", src: "https://youtu.be/aqz-KE-bpKQ?t=42", channel: "YouTube", reason: "next candidate" }',
+      'singleVideo = VideoPlayer("単体動画", "表示時に再生を開始", "https://youtu.be/aqz-KE-bpKQ?t=42")',
       'audio = AudioPlayer("音声候補", "選択式キュー", [track1, track2])',
       'track1 = { title: "Track 1", src: "https://example.com/a.mp3", artist: "demo" }',
       'track2 = { title: "Track 2", src: "https://example.com/b.mp3", artist: "demo", coverUrl: "https://example.com/b.png" }',
@@ -213,7 +214,12 @@ describe("renderGenUI", () => {
     expect(markup).toContain('data-lg-widget="video-playlist"');
     expect(markup).toContain('data-lg-widget="audio-player"');
     expect(markup).toContain('data-lg-widget="image-gallery"');
+    expect(markup).toContain("autoplay=1&amp;mute=1");
+    expect(markup).toContain('autoPlay=""');
+    expect(markup).toContain('data-lg-autoplay="true"');
     expect(markup).toContain("data-lg-embed-src");
+    expect(markup).toContain("max(0px, 100dvh - 220px)");
+    expect(markup).not.toContain("max(120px, 100dvh - 220px)");
     expect(markup).toContain("data-lg-audio-track");
     expect(markup).toContain("data-lg-audio-cover");
     expect(markup).toContain("data-lg-cover");
